@@ -1,0 +1,3 @@
+- [Lightweight-charts v5 API](lightweight-charts-v5.md) — addAreaSeries removed; use addSeries(AreaSeries, opts) + import Time for ISeriesApi generic.
+- [Orval React Query v5 queryKey](orval-rq-v5-querykey.md) — generated hooks accept { query?: UseQueryOptions } but RQ v5 requires queryKey; pass queryKey: [] as stub (overridden internally).
+- [Real/Demo account separation](real-demo-separation.md) — separate DB tables, API ?account param, account-store simplified to mode only; codegen renames admin hooks.

@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Big Profits"
+version = "1.0.0"
+id = "artifacts/big-profits"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18154
+
+[services.development]
+run = "pnpm --filter @workspace/big-profits run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/big-profits", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/big-profits/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18154"
+BASE_PATH = "/"
