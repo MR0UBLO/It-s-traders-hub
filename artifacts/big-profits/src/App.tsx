@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +16,7 @@ import CopyTrading from "@/pages/copy-trading";
 import AutoTrading from "@/pages/auto-trading";
 import Deposits from "@/pages/deposits";
 import Withdraw from "@/pages/withdraw";
+import Portfolio from "@/pages/portfolio";
 import Admin from "@/pages/admin";
 import SettingsPage from "@/pages/settings";
 import Support from "@/pages/support";
@@ -54,6 +55,7 @@ function Router() {
       <Route path="/auto-trading"><ProtectedRoute component={AutoTrading} /></Route>
       <Route path="/deposits"><ProtectedRoute component={Deposits} /></Route>
       <Route path="/withdraw"><ProtectedRoute component={Withdraw} /></Route>
+      <Route path="/portfolio"><ProtectedRoute component={Portfolio} /></Route>
       <Route path="/admin"><ProtectedRoute component={Admin} /></Route>
       <Route path="/settings"><ProtectedRoute component={SettingsPage} /></Route>
       <Route path="/support"><ProtectedRoute component={Support} /></Route>

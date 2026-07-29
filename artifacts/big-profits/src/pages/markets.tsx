@@ -1,4 +1,4 @@
-import { useGetMarketPrices } from "@workspace/api-client-react";
+import { useGetMarketPrices, getGetMarketPricesQueryKey } from "@workspace/api-client-react";
 import { motion } from "framer-motion";
 import { ArrowUp, ArrowDown, TrendingUp, Activity } from "lucide-react";
 
@@ -21,7 +21,7 @@ function MiniSparkline({ up }: { up: boolean }) {
 }
 
 export default function Markets() {
-  const { data: prices, isLoading } = useGetMarketPrices({ query: { queryKey: [], refetchInterval: 3000 } });
+  const { data: prices, isLoading } = useGetMarketPrices({ query: { queryKey: getGetMarketPricesQueryKey(), refetchInterval: 3000 } });
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">

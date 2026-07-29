@@ -75,7 +75,7 @@ const CRYPTO_ADDRESSES: Record<string, string> = {
 /* ─── MAIN ─────────────────────────────────────────────────────────── */
 export default function Deposits() {
   const { mode } = useAccountStore();
-  const { data: deposits, isLoading, refetch: refetchDeposits } = useGetDeposits({ account: mode }, { query: { queryKey: [] } });
+  const { data: deposits, isLoading, refetch: refetchDeposits } = useGetDeposits({ account: mode }, { query: { queryKey: getGetDepositsQueryKey({ account: mode }) } });
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { token } = useAuth();

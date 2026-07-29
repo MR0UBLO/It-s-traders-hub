@@ -1,4 +1,7 @@
-import { useGetDashboardSummary, useGetTrades, useGetMarketPrices } from "@workspace/api-client-react";
+import {
+  useGetDashboardSummary, useGetTrades, useGetMarketPrices,
+  getGetDashboardSummaryQueryKey, getGetTradesQueryKey, getGetMarketPricesQueryKey,
+} from "@workspace/api-client-react";
 import { useAccountStore } from "@/store/account-store";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
@@ -62,9 +65,9 @@ const AI_INSIGHTS = [
 
 export default function Dashboard() {
   const { mode } = useAccountStore();
-  const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({ account: mode }, { query: { queryKey: [] } });
-  const { data: trades, isLoading: loadingTrades } = useGetTrades({ account: mode }, { query: { queryKey: [] } });
-  const { data: prices } = useGetMarketPrices({ query: { queryKey: [], refetchInterval: 5000 } });
+  const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({ account: mode }, { query: { queryKey: getGetDashboardSummaryQueryKey({ account: mode }) } });
+  const { data: trades, isLoading: loadingTrades } = useGetTrades({ account: mode }, { query: { queryKey: getGetTradesQueryKey({ account: mode }) } });
+  const { data: prices } = useGetMarketPrices({ query: { queryKey: getGetMarketPricesQueryKey(), refetchInterval: 5000 } });
 
   const recentTrades = trades?.slice(0, 6) || [];
 

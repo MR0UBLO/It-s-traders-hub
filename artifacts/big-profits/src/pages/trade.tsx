@@ -8,6 +8,7 @@ import {
   getGetOpenTradesQueryKey,
   getGetDashboardSummaryQueryKey,
   getGetTradesQueryKey,
+  getGetMarketPricesQueryKey,
   useGetWallet,
   getGetWalletQueryKey,
 } from "@workspace/api-client-react";
@@ -532,10 +533,10 @@ export default function Trade() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: prices } = useGetMarketPrices({ query: { queryKey: [], refetchInterval: 2000 } });
-  const { data: openTrades }      = useGetOpenTrades({ account: mode }, { query: { queryKey: [], refetchInterval: 3000 } });
-  const { data: allTrades }       = useGetTrades({ account: mode }, { query: { queryKey: [], refetchInterval: 5000 } });
-  const { data: wallet }          = useGetWallet({ account: mode }, { query: { queryKey: [], refetchInterval: 5000 } });
+  const { data: prices } = useGetMarketPrices({ query: { queryKey: getGetMarketPricesQueryKey(), refetchInterval: 2000 } });
+  const { data: openTrades }      = useGetOpenTrades({ account: mode }, { query: { queryKey: getGetOpenTradesQueryKey({ account: mode }), refetchInterval: 3000 } });
+  const { data: allTrades }       = useGetTrades({ account: mode }, { query: { queryKey: getGetTradesQueryKey({ account: mode }), refetchInterval: 5000 } });
+  const { data: wallet }          = useGetWallet({ account: mode }, { query: { queryKey: getGetWalletQueryKey({ account: mode }), refetchInterval: 5000 } });
   const createTrade = useCreateTrade();
   const closeTrade  = useCloseTrade();
 
