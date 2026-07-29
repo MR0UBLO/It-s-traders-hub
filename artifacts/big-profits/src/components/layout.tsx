@@ -7,13 +7,13 @@ import {
   useResetDemo,
 } from "@workspace/api-client-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   LayoutDashboard, LineChart, BarChart2, Bot, Wallet,
-  ArrowDownToLine, ArrowUpFromLine, Trophy, Settings,
+  Trophy, Settings,
   HelpCircle, Users, LogOut, TrendingUp, Menu, X,
   Bell, ChevronDown, Shield, RefreshCw, Cpu, Briefcase,
-  MoreHorizontal, ChevronLeft, ChevronRight,
+  MoreHorizontal, ChevronLeft, ChevronRight, Info,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -23,8 +23,8 @@ const NAV_GROUPS = [
   {
     label: "Overview",
     items: [
-      { href: "/dashboard",  label: "Dashboard",     icon: LayoutDashboard },
-      { href: "/markets",    label: "Markets",        icon: BarChart2       },
+      { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
+      { href: "/markets",    label: "Markets",    icon: BarChart2       },
     ],
   },
   {
@@ -39,21 +39,20 @@ const NAV_GROUPS = [
   {
     label: "Portfolio",
     items: [
-      { href: "/portfolio",   label: "Portfolio",    icon: Briefcase },
-      { href: "/leaderboard", label: "Leaderboard",  icon: Trophy    },
+      { href: "/portfolio",   label: "Portfolio",   icon: Briefcase },
+      { href: "/leaderboard", label: "Leaderboard", icon: Trophy    },
     ],
   },
   {
     label: "Wallet",
     items: [
-      { href: "/deposits", label: "Deposits", icon: ArrowDownToLine },
-      { href: "/withdraw",  label: "Withdraw",  icon: ArrowUpFromLine },
+      { href: "/wallet", label: "Wallet", icon: Wallet },
     ],
   },
 ];
 
 const BOTTOM_ITEMS = [
-  { href: "/settings", label: "Settings", icon: Settings  },
+  { href: "/settings", label: "Settings", icon: Settings   },
   { href: "/support",  label: "Support",  icon: HelpCircle },
 ];
 
@@ -62,20 +61,20 @@ const MOBILE_PRIMARY = [
   { href: "/dashboard", label: "Home",      icon: LayoutDashboard, primary: false },
   { href: "/markets",   label: "Markets",   icon: BarChart2,       primary: false },
   { href: "/trade",     label: "Trade",     icon: TrendingUp,      primary: true  },
-  { href: "/portfolio", label: "Portfolio", icon: Briefcase,       primary: false },
+  { href: "/wallet",    label: "Wallet",    icon: Wallet,          primary: false },
   { href: "__more__",   label: "More",      icon: MoreHorizontal,  primary: false },
 ];
 
-/* Mobile "More" drawer items */
+/* Mobile "More" drawer — secondary features only */
 const MOBILE_MORE = [
-  { href: "/ai-signals",   label: "AI Signals",   icon: Bot            },
-  { href: "/copy-trading", label: "Copy Trading", icon: Users          },
-  { href: "/auto-trading", label: "Auto Trading", icon: Cpu            },
-  { href: "/leaderboard",  label: "Leaderboard",  icon: Trophy         },
-  { href: "/deposits",     label: "Deposits",     icon: ArrowDownToLine},
-  { href: "/withdraw",     label: "Withdraw",     icon: ArrowUpFromLine},
-  { href: "/settings",     label: "Settings",     icon: Settings       },
-  { href: "/support",      label: "Support",      icon: HelpCircle     },
+  { href: "/ai-signals",   label: "AI Signals",   icon: Bot         },
+  { href: "/copy-trading", label: "Copy Trading", icon: Users       },
+  { href: "/auto-trading", label: "Auto Trading", icon: Cpu         },
+  { href: "/leaderboard",  label: "Leaderboard",  icon: Trophy      },
+  { href: "/portfolio",    label: "Portfolio",    icon: Briefcase   },
+  { href: "/settings",     label: "Settings",     icon: Settings    },
+  { href: "/support",      label: "Support",      icon: HelpCircle  },
+  { href: "/about",        label: "About",        icon: Info        },
 ];
 
 /* ─── Helpers ─────────────────────────────────────────────────────── */
@@ -135,6 +134,14 @@ function AccountSwitcher({ collapsed }: { collapsed: boolean }) {
   const queryClient = useQueryClient();
   const resetDemo = useResetDemo();
 
+  /* Switch mode AND invalidate every cached query so all pages update instantly */
+  const handleSetMode = useCallback((next: "real" | "demo") => {
+    if (next === mode) return;
+    setMode(next);
+    // Invalidate everything — each page's hooks will refetch with the new account param
+    queryClient.invalidateQueries();
+  }, [mode, setMode, queryClient]);
+
   const handleResetDemo = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -150,7 +157,7 @@ function AccountSwitcher({ collapsed }: { collapsed: boolean }) {
     return (
       <div className="flex flex-col items-center gap-1 px-2 pb-2">
         <button
-          onClick={() => setMode(isDemo ? "real" : "demo")}
+          onClick={() => handleSetMode(isDemo ? "real" : "demo")}
           title={isDemo ? "Switch to Real" : "Switch to Demo"}
           className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold border transition-colors ${
             isDemo
@@ -169,13 +176,13 @@ function AccountSwitcher({ collapsed }: { collapsed: boolean }) {
       <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-1 font-semibold">Account</p>
       <div className="grid grid-cols-2 gap-1 bg-background/50 rounded-xl p-1">
         <button
-          onClick={() => setMode("real")}
+          onClick={() => handleSetMode("real")}
           className={`py-1.5 rounded-lg text-xs font-bold transition-all ${!isDemo ? "bg-emerald-500 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
         >
           Real
         </button>
         <button
-          onClick={() => setMode("demo")}
+          onClick={() => handleSetMode("demo")}
           className={`py-1.5 rounded-lg text-xs font-bold transition-all ${isDemo ? "bg-amber-500 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
         >
           Demo
@@ -191,7 +198,7 @@ function AccountSwitcher({ collapsed }: { collapsed: boolean }) {
           >
             <div className="bg-amber-500/8 border border-amber-500/20 rounded-xl p-2 space-y-1.5">
               <span className="text-[10px] text-amber-400/70 uppercase tracking-wide font-semibold block">
-                Demo Mode
+                Demo Mode — Virtual Funds
               </span>
               <button
                 onClick={handleResetDemo}
@@ -383,6 +390,15 @@ function MoreDrawer({
 }) {
   const [location] = useLocation();
   const drawerRef = useRef<HTMLDivElement>(null);
+  const { mode, setMode } = useAccountStore();
+  const queryClient = useQueryClient();
+  const isDemo = mode === "demo";
+
+  const handleSetMode = useCallback((next: "real" | "demo") => {
+    if (next === mode) return;
+    setMode(next);
+    queryClient.invalidateQueries();
+  }, [mode, setMode, queryClient]);
 
   // Close on outside click
   useEffect(() => {
@@ -426,7 +442,31 @@ function MoreDrawer({
               <div className="w-10 h-1 rounded-full bg-border" />
             </div>
 
-            <div className="flex items-center justify-between px-5 pb-3">
+            {/* Account switcher inside drawer */}
+            <div className="px-4 pb-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-2">Account</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleSetMode("real")}
+                  className={`py-2 rounded-xl text-sm font-bold transition-all border ${!isDemo ? "bg-emerald-500 text-white border-emerald-500" : "border-border text-muted-foreground hover:text-foreground"}`}
+                >
+                  Real Account
+                </button>
+                <button
+                  onClick={() => handleSetMode("demo")}
+                  className={`py-2 rounded-xl text-sm font-bold transition-all border ${isDemo ? "bg-amber-500 text-white border-amber-500" : "border-border text-muted-foreground hover:text-foreground"}`}
+                >
+                  Demo Account
+                </button>
+              </div>
+              {isDemo && (
+                <p className="text-[10px] text-amber-400 mt-1.5 text-center">
+                  You are trading with virtual funds
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between px-5 pb-3 border-t border-border pt-3">
               <h3 className="font-bold text-base">More</h3>
               <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-accent text-muted-foreground">
                 <X className="w-4 h-4" />
@@ -552,6 +592,13 @@ function AppHeader({ onMenuToggle }: { onMenuToggle: () => void }) {
                 <div className="px-3 py-2 border-b border-border mb-1">
                   <p className="text-sm font-semibold truncate">{user?.name}</p>
                   <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                  <span className={`mt-1 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    isDemo
+                      ? "bg-amber-500/15 text-amber-400"
+                      : "bg-emerald-500/15 text-emerald-400"
+                  }`}>
+                    {isDemo ? "DEMO Account" : "REAL Account"}
+                  </span>
                 </div>
                 <Link href="/settings" onClick={() => setProfileOpen(false)}>
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-accent text-sm cursor-pointer transition-colors">
