@@ -110,7 +110,7 @@ export default function Register() {
   const onResend = async () => {
     setIsResending(true);
     try {
-      const res = await fetch("/api/auth/resend-otp", {
+      const res = await fetch(`${API_URL}/auth/resend-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
