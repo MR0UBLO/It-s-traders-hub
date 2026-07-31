@@ -29,7 +29,9 @@ router.get("/candles/:symbol/:timeframe", (req, res) => {
     return res.status(400).json({ error: "Unknown symbol" });
   }
 
-  const candles = getPriceHistory(symbol);
+  const { timeframe } = req.params;
 
-  res.json(candles);
+const candles = getCandles(symbol, timeframe as any);
+
+res.json(candles);
 });
