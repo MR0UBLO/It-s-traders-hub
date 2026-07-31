@@ -268,6 +268,7 @@ console.log("PRICE DATA:", prices);
           time:  Math.floor(c.time / 1000) as Time,
           open:  c.open, high: c.high, low: c.low, close: c.close,
         }));
+        console.log("Setting chart data", lwData.length, lwData);
         candleSeriesRef.current.setData(lwData);
         chartRef.current?.timeScale().fitContent();
 
