@@ -1,3 +1,4 @@
+import { setBaseUrl } from "@workspace/api-client-react";
 import {
   useGetDashboardSummary, useGetTrades, useGetMarketPrices,
   getGetDashboardSummaryQueryKey, getGetTradesQueryKey, getGetMarketPricesQueryKey,
