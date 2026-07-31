@@ -49,7 +49,8 @@ export default function VerifyOtp() {
     email,
     otp,
   }),
-});
+
+        
         
       const data = await res.json();
       if (!res.ok) {
