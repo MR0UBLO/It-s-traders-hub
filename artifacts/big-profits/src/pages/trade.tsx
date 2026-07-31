@@ -246,7 +246,7 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
       const prices: { symbol: string; bid: number; ask: number }[] = await priceRes.json();
       
 
-const prices: { symbol: string; bid: number; ask: number }[] = await priceRes.json();
+
 console.log("PRICE DATA:", prices);
 
       const p = prices.find((d) => d.symbol === symbol);
