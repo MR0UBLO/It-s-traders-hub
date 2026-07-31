@@ -244,6 +244,11 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
       const candles: RawCandle[] = await candleRes.json();
       console.log("CANDLE DATA:", candles);
       const prices: { symbol: string; bid: number; ask: number }[] = await priceRes.json();
+      const candles: RawCandle[] = await candleRes.json();
+console.log("CANDLE DATA:", candles);
+
+const prices: { symbol: string; bid: number; ask: number }[] = await priceRes.json();
+console.log("PRICE DATA:", prices);
 
       const p = prices.find((d) => d.symbol === symbol);
       if (p) setLivePrice({ bid: p.bid, ask: p.ask });
