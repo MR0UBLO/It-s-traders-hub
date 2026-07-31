@@ -42,7 +42,7 @@ export default function Register() {
   const onRegister = async (values: RegisterValues) => {
     setIsPending(true);
     try {
-      const res = await fetch("/api/auth/register", {
+      const res = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
