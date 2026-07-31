@@ -1,3 +1,4 @@
+import { getCandles } from "../lib/candleEngine.js";
 import { Router } from "express";
 import { getCurrentPrice, getPriceHistory, SYMBOLS } from "../lib/market.js";
 
