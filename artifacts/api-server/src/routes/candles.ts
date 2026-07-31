@@ -12,6 +12,9 @@ router.get("/:symbol/:timeframe", (req, res) => {
     const timeframe = (req.params.timeframe as string)?.toUpperCase() as Timeframe;
     const limit = Math.min(300, Math.max(1, parseInt((req.query.limit as string) ?? "200") || 200));
 
+    // Temporary: log incoming candles requests for debugging
+    logger.info({ symbol, timeframe, limit, url: req.originalUrl }, "GET /api/market/candles requested");
+
     if (!SYMBOLS.includes(symbol as any)) {
       res.status(400).json({ error: `Invalid symbol. Valid: ${SYMBOLS.join(", ")}` });
       return;
