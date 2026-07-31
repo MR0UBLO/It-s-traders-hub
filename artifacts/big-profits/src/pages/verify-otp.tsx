@@ -38,25 +38,28 @@ export default function VerifyOtp() {
       toast({ title: "Invalid code", description: "Enter the 6-digit code.", variant: "destructive" });
       return;
     }
+
     setIsPending(true);
+
     try {
       const res = await fetch(`${API_URL}/auth/verify-otp`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    email,
-    otp,
-  }),
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          otp: code,
+        }),
+      });
 
-        
-        
       const data = await res.json();
+
       if (!res.ok) {
-        toast({ title: "Verification failed", description: data.error || "Invalid or expired code.", variant: "destructive" });
+        toast({ title: "Verification failed", description: data?.error || "Invalid or expired code.", variant: "destructive" });
         return;
       }
+
       setAuth(data.token, data.user);
       setLocation("/dashboard");
     } catch {
