@@ -234,7 +234,9 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
 
   /* Fetch candles and live price, update chart incrementally */
   const fetchAndUpdate = useCallback(async () => {
-    try {
+  console.log("fetchAndUpdate running", symbol, timeframe);
+
+  try {
       const [candleRes, priceRes] = await Promise.all([
         fetch(`https://it-s-traders-hub.onrender.com/api/market/candles/${symbol}/${timeframe}?limit=300`),
         fetch(`/api/market/prices`),
