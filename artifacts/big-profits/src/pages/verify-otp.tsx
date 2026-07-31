@@ -50,10 +50,7 @@ export default function VerifyOtp() {
     otp,
   }),
 });
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: Number(userId), otp: code }),
-      });
+        
       const data = await res.json();
       if (!res.ok) {
         toast({ title: "Verification failed", description: data.error || "Invalid or expired code.", variant: "destructive" });
