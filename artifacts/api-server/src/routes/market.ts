@@ -21,3 +21,15 @@ router.get("/prices/:symbol/history", (req, res) => {
 });
 
 export default router;
+// GET /api/market/candles/:symbol/:timeframe
+router.get("/candles/:symbol/:timeframe", (req, res) => {
+  const { symbol } = req.params;
+
+  if (!SYMBOLS.includes(symbol as any)) {
+    return res.status(400).json({ error: "Unknown symbol" });
+  }
+
+  const candles = getPriceHistory(symbol);
+
+  res.json(candles);
+});
