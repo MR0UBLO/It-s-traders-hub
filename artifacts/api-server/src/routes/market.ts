@@ -1,4 +1,3 @@
-import { getCandles } from "../lib/candleEngine.js";
 import { Router } from "express";
 import { getCurrentPrice, getPriceHistory, SYMBOLS } from "../lib/market.js";
 
@@ -22,17 +21,3 @@ router.get("/prices/:symbol/history", (req, res) => {
 });
 
 export default router;
-// GET /api/market/candles/:symbol/:timeframe
-router.get("/candles/:symbol/:timeframe", (req, res) => {
-  const { symbol } = req.params;
-
-  if (!SYMBOLS.includes(symbol as any)) {
-    return res.status(400).json({ error: "Unknown symbol" });
-  }
-
-  const { timeframe } = req.params;
-
-const candles = getCandles(symbol, timeframe as any);
-
-res.json(candles);
-});
