@@ -453,6 +453,11 @@ function PnlAnalytics({ trades }: { trades: any[] }) {
       timeScale: { borderColor: "rgba(255,255,255,0.06)", timeVisible: true },
       crosshair: { mode: 1 }, handleScroll: true, handleScale: true,
     });
+    console.log(
+  "Chart size:",
+  containerRef.current?.clientWidth,
+  containerRef.current?.clientHeight
+);
     console.log("Chart created");
     const series = chart.addSeries(AreaSeries, {
       lineColor: "#6366f1", topColor: "#6366f120", bottomColor: "#6366f105",
