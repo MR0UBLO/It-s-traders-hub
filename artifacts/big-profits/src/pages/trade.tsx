@@ -242,6 +242,7 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
       if (!candleRes.ok || !priceRes.ok) return;
 
       const candles: RawCandle[] = await candleRes.json();
+      console.log("CANDLE DATA:", candles);
       const prices: { symbol: string; bid: number; ask: number }[] = await priceRes.json();
 
       const p = prices.find((d) => d.symbol === symbol);
