@@ -236,7 +236,7 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
   const fetchAndUpdate = useCallback(async () => {
     try {
       const [candleRes, priceRes] = await Promise.all([
-        fetch(`https://it-s-traders-hub.onrender.com/api/market/candles/${symbol}/${timeframe}?limit=300`)
+        fetch(`https://it-s-traders-hub.onrender.com/api/market/candles/${symbol}/${timeframe}?limit=300`),
         fetch(`/api/market/prices`),
       ]);
       if (!candleRes.ok || !priceRes.ok) return;
