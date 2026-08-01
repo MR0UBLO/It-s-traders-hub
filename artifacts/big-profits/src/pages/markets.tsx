@@ -21,7 +21,20 @@ function MiniSparkline({ up }: { up: boolean }) {
 }
 
 export default function Markets() {
-  const { data: prices, isLoading } = useGetMarketPrices({ query: { queryKey: getGetMarketPricesQueryKey(), refetchInterval: 3000 } });
+  const {
+  data: prices,
+  isLoading,
+  error,
+} = useGetMarketPrices({
+  query: {
+    queryKey: getGetMarketPricesQueryKey(),
+    refetchInterval: 3000,
+  },
+});
+
+console.log("Prices:", prices);
+console.log("Loading:", isLoading);
+console.log("Error:", error);
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
