@@ -32,12 +32,18 @@ export default function Login() {
   const onSubmit = async (values: LoginValues) => {
     setIsPending(true);
     try {
-      const res = await `${import.meta.env.VITE_API_URL}/...`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-      const data = await res.json();
+      const res = await fetch(
+  `${import.meta.env.VITE_API_URL}/auth/login`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(values),
+  }
+);
+
+const data = await res.json();
 
       if (!res.ok) {
         if (data.requiresVerification) {
