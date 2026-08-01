@@ -42,18 +42,21 @@ export default function VerifyOtp() {
     setIsPending(true);
 
     try {
-      const res = await `${import.meta.env.VITE_API_URL}/...`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          otp: code,
-        }),
-      });
+      const res = await fetch(
+  `${import.meta.env.VITE_API_URL}/auth/verify-otp`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      userId,
+      otp,
+    }),
+  }
+);
 
-      const data = await res.json();
+const data = await res.json();
 
       if (!res.ok) {
         toast({ title: "Verification failed", description: data?.error || "Invalid or expired code.", variant: "destructive" });
