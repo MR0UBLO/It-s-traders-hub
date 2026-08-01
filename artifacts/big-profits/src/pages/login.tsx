@@ -45,6 +45,8 @@ export default function Login() {
 
 const data = await res.json();
 
+const data = await res.json();
+
       if (!res.ok) {
         if (data.requiresVerification) {
           toast({ title: "Email not verified", description: "A new code has been sent to your email." });
