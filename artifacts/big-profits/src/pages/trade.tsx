@@ -238,7 +238,7 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
 
   try {
       const [candleRes, priceRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_URL}/market/candles/${symbol}/${timeframe}?limit=300`),
+        `${import.meta.env.VITE_API_URL}/...`,
         fetch(`${import.meta.env.VITE_API_URL}/market/prices`),
       ]);
       if (!candleRes.ok || !priceRes.ok) return;
