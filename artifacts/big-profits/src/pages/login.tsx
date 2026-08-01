@@ -49,10 +49,19 @@ const data = await res.json();
 
       if (!res.ok) {
         if (data.requiresVerification) {
-          toast({ title: "Email not verified", description: "A new code has been sent to your email." });
-          setLocation(`/verify-otp?userId=${data.userId}&email=${encodeURIComponent(values.email)}`);
-          return;
-        }
+  toast({
+    title: "Email not verified",
+    description: data.devOtp
+      ? "Use the verification code shown on the next screen."
+      : "A new code has been sent to your email.",
+  });
+
+  setLocation(
+    `/verify-otp?userId=${data.userId}&email=${encodeURIComponent(values.email)}&devOtp=${data.devOtp || ""}`
+  );
+
+  return;
+}
         toast({ title: "Login failed", description: data.error || "Check your credentials.", variant: "destructive" });
         return;
       }
