@@ -88,7 +88,7 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
     const callbackUrl = `${process.env.CALLBACK_BASE_URL}/api/mpesa/callback`;
 
     const token = await getMpesaToken();
-    const stkRes = await fetch(`${BASE_URL}/mpesa/stkpush/v1/processrequest`, {
+    const stkRes = await `${import.meta.env.VITE_API_URL}/...`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
