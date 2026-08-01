@@ -1,16 +1,12 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
-import * as schema from "./schema";
-
-const { Pool } = pg;
-
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
-
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool, { schema });
-
-export * from "./schema";
+*** Begin Patch
+*** Update File: lib/db/src/index.ts
+@@
+-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
++export const pool = new Pool({
++  connectionString: process.env.DATABASE_URL,
++  // Supabase requires SSL. In hosted environments (Render) TLS verification
++  // can fail unless we explicitly allow the client to connect. This is the
++  // common setting used to make connections reliable from managed hosts.
++  ssl: { rejectUnauthorized: false },
++});
+*** End Patch
