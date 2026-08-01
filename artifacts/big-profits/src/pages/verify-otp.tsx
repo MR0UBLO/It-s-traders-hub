@@ -42,7 +42,7 @@ export default function VerifyOtp() {
     setIsPending(true);
 
     try {
-      const res = await fetch(`${API_URL}/auth/verify-otp`, {
+      const res = await `${import.meta.env.VITE_API_URL}/...`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
