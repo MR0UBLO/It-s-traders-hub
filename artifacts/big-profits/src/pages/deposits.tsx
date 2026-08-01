@@ -99,7 +99,14 @@ export default function Deposits() {
     stopPolling();
     pollingRef.current = setInterval(async () => {
       try {
-        const res = await `${import.meta.env.VITE_API_URL}/...`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(
+  `${import.meta.env.VITE_API_URL}/...`,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
         if (!res.ok) return;
         const data = await res.json();
         if (data.status === "completed") {
