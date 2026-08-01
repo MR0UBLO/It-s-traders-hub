@@ -365,7 +365,10 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await `${import.meta.env.VITE_API_URL}/...`
+  const response = await fetch(input, {
+  ...init,
+  headers,
+});
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
