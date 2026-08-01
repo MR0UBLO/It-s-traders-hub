@@ -88,23 +88,29 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
     const callbackUrl = `${process.env.CALLBACK_BASE_URL}/api/mpesa/callback`;
 
     const token = await getMpesaToken();
-    const stkRes = await `${import.meta.env.VITE_API_URL}/...`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        BusinessShortCode: MPESA_SHORTCODE,
-        Password: password,
-        Timestamp: timestamp,
-        TransactionType: "CustomerPayBillOnline",
-        Amount: Math.round(amt),
-        PartyA: normalizedPhone,
-        PartyB: MPESA_SHORTCODE,
-        PhoneNumber: normalizedPhone,
-        CallBackURL: callbackUrl,
-        AccountReference: "TradersHub",
-        TransactionDesc: "TradersHub Wallet Deposit",
-      }),
-    });
+    const stkRes = await fetch(
+  "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      BusinessShortCode: MPESA_SHORTCODE,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: "CustomerPayBillOnline",
+      Amount: Math.round(amt),
+      PartyA: normalizedPhone,
+      PartyB: MPESA_SHORTCODE,
+      PhoneNumber: normalizedPhone,
+      CallBackURL: callbackUrl,
+      AccountReference: "TradersHub",
+      TransactionDesc: "TradersHub Wallet Deposit",
+    }),
+  }
+);
 
     const stkData = await stkRes.json() as {
       ResponseCode?: string;
