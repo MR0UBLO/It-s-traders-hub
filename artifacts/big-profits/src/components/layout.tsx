@@ -46,7 +46,7 @@ const NAV_GROUPS = [
   {
     label: "Wallet",
     items: [
-      { href: "/wallet", label: "Wallet", icon: Wallet },
+      { href: "/deposits", label: "Wallet", icon: Wallet },
     ],
   },
 ];
