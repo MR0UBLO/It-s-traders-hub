@@ -58,7 +58,7 @@ export default function VerifyOtp() {
 
 const data = await res.json();
 
-const data = await res.json();
+
 
       if (!res.ok) {
         toast({ title: "Verification failed", description: data?.error || "Invalid or expired code.", variant: "destructive" });
