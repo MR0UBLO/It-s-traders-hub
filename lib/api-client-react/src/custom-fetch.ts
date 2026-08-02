@@ -365,7 +365,10 @@ export async function customFetch<T = unknown>(
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, {
+  console.log("BASE URL:", _baseUrl);
+console.log("REQUEST URL:", resolveUrl(input));
+
+const response = await fetch(input, {
   ...init,
   headers,
 });
