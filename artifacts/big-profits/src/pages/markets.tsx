@@ -12,47 +12,87 @@ function MiniSparkline({ up }: { up: boolean }) {
   const path = up
     ? "M0,40 L20,32 L40,35 L60,25 L80,28 L100,15"
     : "M0,15 L20,22 L40,18 L60,28 L80,25 L100,38";
+
   const color = up ? "#22C55E" : "#EF4444";
+
   return (
     <svg width="100" height="50" viewBox="0 0 100 50" className="opacity-80">
-      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <path
+        d={path}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
 export default function Markets() {
   const {
-  data: prices,
-  isLoading,
-  error,
-} = useGetMarketPrices({
-  query: {
-    queryKey: getGetMarketPricesQueryKey(),
-    refetchInterval: 3000,
-  },
-});
+    data: prices,
+    isLoading,
+    error,
+  } = useGetMarketPrices({
+    query: {
+      queryKey: getGetMarketPricesQueryKey(),
+      refetchInterval: 3000,
+    },
+  });
 
-console.log("Prices:", prices);
-console.log("Loading:", isLoading);
-console.log("Error:", error);
+  console.log("Prices:", prices);
+  console.log("Loading:", isLoading);
+  console.log("Error:", error);
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <h2 className="text-2xl font-bold text-red-500 mb-4">
+          Market API Error
+        </h2>
+
+        <pre className="bg-gray-900 text-white p-4 rounded-lg overflow-auto whitespace-pre-wrap">
+          {JSON.stringify(error, null, 2)}
+        </pre>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-1">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col gap-1"
+      >
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          <Activity className="w-7 h-7 text-primary" /> Live Markets
+          <Activity className="w-7 h-7 text-primary" />
+          Live Markets
         </h1>
-        <p className="text-muted-foreground">Real-time prices refreshing every 3 seconds.</p>
+
+        <p className="text-muted-foreground">
+          Real-time prices refreshing every 3 seconds.
+        </p>
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {isLoading
           ? [1, 2, 3].map((i) => (
-              <div key={i} className="glass-card h-48 animate-pulse rounded-2xl bg-card/40" />
+              <div
+                key={i}
+                className="glass-card h-48 animate-pulse rounded-2xl bg-card/40"
+              />
             ))
           : prices?.map((p, i) => {
-              const meta = SYMBOL_META[p.symbol] || { name: p.symbol, description: "Market", color: "#64748b" };
+              const meta =
+                SYMBOL_META[p.symbol] || {
+                  name: p.symbol,
+                  description: "Market",
+                  color: "#64748b",
+                };
+
               const up = p.changePercent24h >= 0;
+
               return (
                 <motion.div
                   key={p.symbol}
@@ -68,27 +108,55 @@ console.log("Error:", error);
                           className="w-2.5 h-2.5 rounded-full"
                           style={{ backgroundColor: meta.color }}
                         />
+
                         <span className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
                           {p.symbol}
                         </span>
                       </div>
-                      <p className="font-bold text-lg leading-tight">{meta.name}</p>
-                      <p className="text-xs text-muted-foreground">{meta.description}</p>
+
+                      <p className="font-bold text-lg leading-tight">
+                        {meta.name}
+                      </p>
+
+                      <p className="text-xs text-muted-foreground">
+                        {meta.description}
+                      </p>
                     </div>
+
                     <MiniSparkline up={up} />
                   </div>
 
                   <div className="space-y-3">
                     <div className="text-3xl font-bold font-mono tracking-tight">
-                      {p.bid.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {p.bid.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </div>
+
                     <div className="flex items-center justify-between text-sm">
-                      <span className={`flex items-center gap-1 font-semibold ${up ? "text-green-500" : "text-red-500"}`}>
-                        {up ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />}
+                      <span
+                        className={`flex items-center gap-1 font-semibold ${
+                          up ? "text-green-500" : "text-red-500"
+                        }`}
+                      >
+                        {up ? (
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        )}
+
                         {Math.abs(p.changePercent24h).toFixed(2)}% 24h
                       </span>
+
                       <div className="text-right text-muted-foreground text-xs">
-                        <div>Ask: <span className="text-foreground font-mono">{p.ask.toFixed(2)}</span></div>
+                        <div>
+                          Ask:
+                          <span className="text-foreground font-mono">
+                            {" "}
+                            {p.ask.toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -97,10 +165,17 @@ console.log("Error:", error);
             })}
       </div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="glass-card rounded-2xl p-6">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+        className="glass-card rounded-2xl p-6"
+      >
         <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-primary" /> Market Info
+          <TrendingUp className="w-5 h-5 text-primary" />
+          Market Info
         </h2>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
           {[
             { label: "Trading Hours", value: "24/7" },
