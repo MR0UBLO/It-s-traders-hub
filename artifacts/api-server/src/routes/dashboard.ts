@@ -13,25 +13,68 @@ router.get("/summary", requireAuth, async (req: AuthRequest, res) => {
     const isDemo = account === "demo";
     const walletTable = isDemo ? demoWalletsTable : walletsTable;
 
-    const [wallet] = await db.select().from(walletTable).where(eq(walletTable.userId, req.userId!)).limit(1);
+    let [wallet] = await db
+      .select()
+      .from(walletTable)
+      .where(eq(walletTable.userId, req.userId!))
+      .limit(1);
+
+    // Automatically create/reset demo wallet
+    if (isDemo) {
+      if (!wallet) {
+        const [newWallet] = await db
+          .insert(demoWalletsTable)
+          .values({
+            userId: req.userId!,
+            balance: "10000",
+            totalDeposited: "0",
+            totalProfit: "0",
+          })
+          .returning();
+
+        wallet = newWallet;
+      } else if (Number(wallet.balance) === 0) {
+        await db
+          .update(demoWalletsTable)
+          .set({
+            balance: "10000",
+          })
+          .where(eq(demoWalletsTable.userId, req.userId!));
+
+        [wallet] = await db
+          .select()
+          .from(demoWalletsTable)
+          .where(eq(demoWalletsTable.userId, req.userId!))
+          .limit(1);
+      }
+    }
+
     const trades = await db
       .select()
       .from(tradesTable)
-      .where(and(eq(tradesTable.userId, req.userId!), eq(tradesTable.accountType, account)));
+      .where(
+        and(
+          eq(tradesTable.userId, req.userId!),
+          eq(tradesTable.accountType, account)
+        )
+      );
 
     const openTrades = trades.filter((t) => t.status === "open").length;
     const closedTrades = trades.filter((t) => t.status === "closed");
     const totalTrades = closedTrades.length;
-    const winningTrades = closedTrades.filter((t) => Number(t.profitLoss) > 0).length;
-    const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+    const winningTrades = closedTrades.filter(
+      (t) => Number(t.profitLoss) > 0
+    ).length;
+    const winRate =
+      totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
 
     res.json({
-      balance: wallet ? Number(wallet.balance) : (isDemo ? 10000 : 0),
-      totalProfit: wallet ? Number(wallet.totalProfit) : 0,
+      balance: Number(wallet?.balance ?? 0),
+      totalProfit: Number(wallet?.totalProfit ?? 0),
+      totalDeposited: Number(wallet?.totalDeposited ?? 0),
       openTrades,
-      winRate: Math.round(winRate * 10) / 10,
       totalTrades,
-      totalDeposited: wallet ? Number(wallet.totalDeposited) : 0,
+      winRate: Math.round(winRate * 10) / 10,
       accountType: account,
     });
   } catch (err) {
