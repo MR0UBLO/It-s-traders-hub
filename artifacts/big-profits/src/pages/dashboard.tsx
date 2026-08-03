@@ -97,7 +97,10 @@ export default function Dashboard() {
         </div>
       ) : summary ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Balance" value={`$${(summary.balance / 130).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`} sub={`Deposited: $${(summary.totalDeposited / 130).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`} icon={Wallet} accent="bg-primary/10 text-primary" delay={0} />
+          <StatCard title="Total Balance" value={`$${summary.balance.toLocaleString("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})} USD`} sub={`Deposited: $${(summary.totalDeposited / 130).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`} icon={Wallet} accent="bg-primary/10 text-primary" delay={0} />
           <StatCard
             title="Total Profit / Loss"
             value={`${summary.totalProfit >= 0 ? "+" : ""}$${(Math.abs(summary.totalProfit) / 130).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`}
