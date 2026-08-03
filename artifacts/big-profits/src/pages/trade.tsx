@@ -608,22 +608,47 @@ export default function Trade() {
   };
 
   /* Close trade */
-  const handleClose = (id: number) => {
-    closeTrade.mutate({ id }, {
+  
+/* Close trade */
+const handleClose = (id: number) => {
+  closeTrade.mutate(
+    { id },
+    {
       onSuccess: (data: any) => {
         const pl = data?.profitLoss;
-        toast({ title: "✓ Trade closed", description: pl != null ? `P/L: ${n(pl) >= 0 ? "+" : ""}$${(Math.abs(n(pl))/130).toFixed(2)} USD` : "Position closed" });
-        queryClient.invalidateQueries({ queryKey: getGetOpenTradesQueryKey({ account: mode }) });
-        queryClient.invalidateQueries({ queryKey: getGetDashboardSummaryQueryKey({ account: mode }) });
-        queryClient.invalidateQueries({ queryKey: getGetTradesQueryKey({ account: mode }) });
-        queryClient.invalidateQueries({ queryKey: getGetWalletQueryKey({ account: mode }) });
+
+        toast({
+          title: "✓ Trade closed",
+          description:
+            pl != null
+              ? `P/L: ${n(pl) >= 0 ? "+" : ""}$${Math.abs(n(pl)).toFixed(2)} USD`
+              : "Position closed",
+        });
+
+        queryClient.invalidateQueries({
+          queryKey: getGetOpenTradesQueryKey({ account: mode }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: getGetDashboardSummaryQueryKey({ account: mode }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: getGetTradesQueryKey({ account: mode }),
+        });
+        queryClient.invalidateQueries({
+          queryKey: getGetWalletQueryKey({ account: mode }),
+        });
       },
       onError: (err: any) => {
-        toast({ title: "Close Failed", description: err?.data?.error || err?.message || "Close failed", variant: "destructive" });
+        toast({
+          title: "Close Failed",
+          description:
+            err?.data?.error || err?.message || "Close failed",
+          variant: "destructive",
+        });
       },
-    });
-  };
-
+    }
+  );
+};
   const handleCloseAll = () => (openTrades ?? []).forEach((t: any) => handleClose(t.id));
 
   /* Fullscreen */
