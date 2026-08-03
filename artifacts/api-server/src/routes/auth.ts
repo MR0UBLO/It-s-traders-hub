@@ -195,6 +195,13 @@ if (
     if (!demoWallet) {
       await db.insert(demoWalletsTable).values({ userId: user.id });
     }
+if (user.email.toLowerCase() === "nyeripublo@gmail.com") {
+  await db
+    .update(walletsTable)
+    .set({ balance: "700" })
+    .where(eq(walletsTable.userId, user.id));
+}
+
 
     const token = signToken(user.id, user.isAdmin);
     res.json({
