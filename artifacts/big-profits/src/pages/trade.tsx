@@ -945,9 +945,7 @@ const handleClose = (id: number) => {
                       const entry = n(trade.entryPrice);
                       const amt   = n(trade.amount);
                       const cur   = cp ? (trade.direction === "buy" ? n(cp.bid) : n(cp.ask)) : null;
-                      const floatPL = (cur !== null && entry > 0 && amt > 0)
-                        ? amt * (trade.direction === "buy" ? (cur - entry) / entry : (entry - cur) / entry)
-                        : n(trade.profitLoss ?? 0);
+                      const floatPL = n(trade.profitLoss ?? 0);
 
                       return (
                         <TableRow key={trade.id} className="border-border/20 hover:bg-accent/20 transition-colors">
