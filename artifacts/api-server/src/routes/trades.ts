@@ -117,10 +117,10 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       res.status(400).json({ error: "Invalid amount" });
       return;
     }
-    if (amt < 100) {
-      res.status(400).json({ error: "Minimum trade amount is $100 USD" });
-      return;
-    }
+    if (amt < 1) {
+  res.status(400).json({ error: "Minimum trade amount is $1 USD" });
+  return;
+}
 
     const slNum = stopLoss != null ? Number(stopLoss) : null;
     const tpNum = takeProfit != null ? Number(takeProfit) : null;
