@@ -73,10 +73,10 @@ router.get("/open", requireAuth, async (req: AuthRequest, res) => {
         const amount = Number(t.amount);
         let floatPL: number;
         if (t.direction === "buy") {
-          floatPL = amount * ((price.bid - entryPrice) / entryPrice);
-        } else {
-          floatPL = amount * ((entryPrice - price.ask) / entryPrice);
-        }
+  floatPL = amount * ((price.bid - entryPrice) / entryPrice);
+} else {
+  floatPL = amount * ((entryPrice - price.ask) / entryPrice);
+}
         formatted.profitLoss = parseFloat(floatPL.toFixed(4));
         formatted.profitLossPercent = parseFloat(((floatPL / amount) * 100).toFixed(4));
       } catch {
