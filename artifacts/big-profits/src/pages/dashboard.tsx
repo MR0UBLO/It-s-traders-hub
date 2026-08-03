@@ -106,7 +106,10 @@ export default function Dashboard() {
 })} USD`} icon={Wallet} accent="bg-primary/10 text-primary" delay={0} />
           <StatCard
             title="Total Profit / Loss"
-            value={`${summary.totalProfit >= 0 ? "+" : ""}$${(Math.abs(summary.totalProfit) / 130).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`}
+            value={`${summary.totalProfit >= 0 ? "+" : ""}$${Math.abs(summary.totalProfit).toLocaleString("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})} USD`}
             icon={summary.totalProfit >= 0 ? ArrowUpRight : ArrowDownRight}
             accent={summary.totalProfit >= 0 ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}
             delay={0.08}
