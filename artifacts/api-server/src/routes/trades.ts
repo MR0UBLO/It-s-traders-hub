@@ -254,12 +254,14 @@ router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
     const entryPrice = Number(trade.entryPrice);
     const amt = Number(trade.amount);
 
-    let pl: number;
-    if (trade.direction === "buy") {
-      pl = amt * ((closePrice - entryPrice) / entryPrice);
-    } else {
-      pl = amt * ((entryPrice - closePrice) / entryPrice);
-    }
+    const multiplier = 50;
+
+let pl: number;
+if (trade.direction === "buy") {
+  pl = amt * multiplier * ((closePrice - entryPrice) / entryPrice);
+} else {
+  pl = amt * multiplier * ((entryPrice - closePrice) / entryPrice);
+}
     const plPercent = (pl / amt) * 100;
     const payout = Math.max(0, amt + pl);
 
