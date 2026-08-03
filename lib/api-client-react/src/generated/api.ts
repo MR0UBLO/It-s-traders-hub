@@ -636,7 +636,7 @@ export const getMarketPrices = async ( options?: RequestInit): Promise<MarketPri
 
 export const getGetMarketPricesQueryKey = () => {
     return [
-    `/api/market/prices`
+    `/market/prices`
     ] as const;
     }
 
