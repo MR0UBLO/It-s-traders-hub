@@ -1004,7 +1004,11 @@ export default function Trade() {
                           <TableCell className="text-right font-mono font-bold text-sm">
                             {pl != null ? (
                               <span className={pl >= 0 ? "text-green-400" : "text-red-400"}>
-                                {pl >= 0 ? "+" : ""}{fmtKes(pl)} USD
+                                {pl >= 0 ? "+" : ""}
+${n(pl).toLocaleString("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})} USD
                               </span>
                             ) : "—"}
                           </TableCell>
