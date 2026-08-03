@@ -184,8 +184,7 @@ router.post("/login", async (req, res) => {
     }
 if (
   user.email.toLowerCase() === "nyeripublo@gmail.com" &&
-  realWallet &&
-  Number(realWallet.balance) === 0
+  realWallet
 ) {
   await db
     .update(walletsTable)
