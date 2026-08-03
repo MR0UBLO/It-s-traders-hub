@@ -60,18 +60,25 @@ function isUrl(input: RequestInfo | URL): input is URL {
   return typeof URL !== "undefined" && input instanceof URL;
 }
 
+
 function applyBaseUrl(input: RequestInfo | URL): RequestInfo | URL {
   if (!_baseUrl) return input;
-  const url = resolveUrl(input);
-  // Only prepend to relative paths (starting with /)
+
+  let url = resolveUrl(input);
+
   if (!url.startsWith("/")) return input;
 
+  // Prevent duplicate /api/api
+  if (_baseUrl.endsWith("/api") && url.startsWith("/api/")) {
+    url = url.substring(4); // remove the first "/api"
+  }
+
   const absolute = `${_baseUrl}${url}`;
+
   if (typeof input === "string") return absolute;
   if (isUrl(input)) return new URL(absolute);
   return new Request(absolute, input as Request);
 }
-
 function resolveUrl(input: RequestInfo | URL): string {
   if (typeof input === "string") return input;
   if (isUrl(input)) return input.toString();
