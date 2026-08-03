@@ -258,7 +258,7 @@ router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
 
     const multiplier = 50;
 
-const multiplier = 50;
+
 
 let pl: number;
 if (trade.direction === "buy") {
