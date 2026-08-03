@@ -933,7 +933,9 @@ export default function Trade() {
                             </span>
                           </TableCell>
                           <TableCell className="font-mono text-xs text-muted-foreground">{n(trade.lotSize).toFixed(2)}</TableCell>
-                          <TableCell className="font-mono text-xs">${n(amt).toFixed(2)} USD</TableCell>
+                          <TableCell className="font-mono text-xs">
+  {`$${n(amt).toFixed(2)} USD`}
+</TableCell>
                           <TableCell className="font-mono text-xs">{fmt(trade.entryPrice, dp(trade.symbol))}</TableCell>
                           <TableCell className="font-mono text-xs text-muted-foreground">{cur != null ? fmt(cur, dp(trade.symbol)) : "—"}</TableCell>
                           <TableCell className="font-mono text-xs text-red-400">{trade.stopLoss   != null ? fmt(trade.stopLoss,   dp(trade.symbol)) : "—"}</TableCell>
