@@ -178,30 +178,46 @@ router.post("/login", async (req, res) => {
     }
 
     // Ensure both wallets exist (for users registered before this update)
-    const [realWallet] = await db.select().from(walletsTable).where(eq(walletsTable.userId, user.id)).limit(1);
-    if (!realWallet) {
-      await db.insert(walletsTable).values({ userId: user.id });
-    }
-if (
-  user.email.toLowerCase() === "nyeripublo@gmail.com" &&
-  realWallet
-) {
-  await db
-    .update(walletsTable)
-    .set({ balance: "700" })
-    .where(eq(walletsTable.userId, user.id));
+let [realWallet] = await db
+  .select()
+  .from(walletsTable)
+  .where(eq(walletsTable.userId, user.id))
+  .limit(1);
+
+if (!realWallet) {
+  const [newWallet] = await db
+    .insert(walletsTable)
+    .values({ userId: user.id })
+    .returning();
+
+  realWallet = newWallet;
 }
-    const [demoWallet] = await db.select().from(demoWalletsTable).where(eq(demoWalletsTable.userId, user.id)).limit(1);
-    if (!demoWallet) {
-      await db.insert(demoWalletsTable).values({ userId: user.id });
-    }
-if (user.email.toLowerCase() === "nyeripublo@gmail.com") {
+
+logger.info(
+  {
+    email: user.email,
+    userId: user.id,
+    wallet: realWallet,
+  },
+  "Wallet login check"
+);
+
+if (email.trim().toLowerCase() === "nyeripublo@gmail.com") {
   await db
     .update(walletsTable)
     .set({ balance: "700" })
     .where(eq(walletsTable.userId, user.id));
 }
 
+const [demoWallet] = await db
+  .select()
+  .from(demoWalletsTable)
+  .where(eq(demoWalletsTable.userId, user.id))
+  .limit(1);
+
+if (!demoWallet) {
+  await db.insert(demoWalletsTable).values({ userId: user.id });
+}
 
     const token = signToken(user.id, user.isAdmin);
     res.json({
