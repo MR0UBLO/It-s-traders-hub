@@ -941,7 +941,7 @@ export default function Trade() {
                           <TableCell className="text-right font-mono font-bold text-sm">
                             <motion.span key={Math.round(floatPL * 100)} initial={{ opacity: 0.6 }} animate={{ opacity: 1 }}
                               className={floatPL >= 0 ? "text-green-400" : "text-red-400"}
-                            >{floatPL >= 0 ? "+" : ""}{fmtKes(floatPL)} USD</motion.span>
+                          {floatPL >= 0 ? "+" : ""}${n(floatPL).toFixed(2)} USD</motion.span>
                           </TableCell>
                           <TableCell className="text-right">
                             <Button size="sm" variant="outline" onClick={() => handleClose(trade.id)} disabled={closeTrade.isPending}
