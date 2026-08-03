@@ -993,7 +993,12 @@ export default function Trade() {
                               {(trade.direction ?? "buy").toUpperCase()}
                             </span>
                           </TableCell>
-                          <TableCell className="font-mono text-xs">{fmtKes(n(trade.amount))} USD</TableCell>
+                          <TableCell className="font-mono text-xs">
+  ${n(trade.amount).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} USD
+</TableCell>
                           <TableCell className="font-mono text-xs">{fmt(trade.entryPrice, dp(trade.symbol))}</TableCell>
                           <TableCell className="font-mono text-xs text-muted-foreground">{trade.closePrice != null ? fmt(trade.closePrice, dp(trade.symbol)) : "—"}</TableCell>
                           <TableCell className="text-right font-mono font-bold text-sm">
