@@ -65,8 +65,21 @@ router.get("/summary", requireAuth, async (req: AuthRequest, res) => {
     const winningTrades = closedTrades.filter(
       (t) => Number(t.profitLoss) > 0
     ).length;
+
     const winRate =
       totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+
+    // Debug log
+    logger.info(
+      {
+        account,
+        userId: req.userId,
+        wallet,
+        openTrades,
+        totalTrades,
+      },
+      "Dashboard summary"
+    );
 
     res.json({
       balance: Number(wallet?.balance ?? 0),
