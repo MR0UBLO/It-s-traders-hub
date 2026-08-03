@@ -152,7 +152,12 @@ export default function Dashboard() {
                         {trade.direction.toUpperCase()}
                       </span>
                     </TableCell>
-                    <TableCell className="font-mono text-sm">${(trade.amount / 130).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</TableCell>
+                    <TableCell className="font-mono text-sm">
+  ${trade.amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} USD
+</TableCell>
                     <TableCell>
                       <span className={`text-xs capitalize px-2 py-0.5 rounded-full ${trade.status === "open" ? "bg-blue-500/10 text-blue-400" : "text-muted-foreground"}`}>
                         {trade.status}
