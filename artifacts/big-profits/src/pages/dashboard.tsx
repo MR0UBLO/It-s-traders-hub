@@ -158,10 +158,12 @@ export default function Dashboard() {
                         {trade.status}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right font-mono font-bold text-sm">
-                      {trade.status === "closed" && trade.profitLoss != null ? (
-                        <span className={trade.profitLoss >= 0 ? "text-green-500" : "text-red-500"}>
-                          {trade.profitLoss >= 0 ? "+" : ""}${(Math.abs(trade.profitLoss) / 130).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                    <TableCell className="font-mono text-sm">
+  ${trade.amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} USD
+</TableCell>
                         </span>
                       ) : <span className="text-muted-foreground">—</span>}
                     </TableCell>
