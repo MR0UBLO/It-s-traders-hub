@@ -54,6 +54,9 @@ function Router() {
       <Route path="/leaderboard"><ProtectedRoute component={Leaderboard} /></Route>
       <Route path="/copy-trading"><ProtectedRoute component={CopyTrading} /></Route>
       <Route path="/auto-trading"><ProtectedRoute component={AutoTrading} /></Route>
+<Route path="/wallet">
+  <ProtectedRoute component={Wallet} />
+</Route>
       <Route path="/deposits"><ProtectedRoute component={Deposits} /></Route>
       <Route path="/withdraw"><ProtectedRoute component={Withdraw} /></Route>
       <Route path="/portfolio"><ProtectedRoute component={Portfolio} /></Route>
