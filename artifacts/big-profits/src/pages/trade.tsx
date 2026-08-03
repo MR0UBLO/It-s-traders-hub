@@ -756,7 +756,7 @@ const handleClose = (id: number) => {
                   {indicatorMenuOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                      className="absolute top-full right-0 mt-1 z-50 glass-card rounded-xl p-2 shadow-xl min-w-[150px]"
+                      className="absolute top-full left-0 mt-1 z-50 glass-card rounded-xl p-2 shadow-xl min-w-[160px]"
                     >
                       {indicatorList.map(({ key, label, color }) => (
                         <button key={key} onClick={() => setIndicators((p) => ({ ...p, [key]: !p[key] }))}
