@@ -85,8 +85,7 @@ export default function Withdraw() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState("all");
 
-  const balanceKes = wallet ? Number(wallet.balance) : 0;
-  const balance = balanceKes / USD_RATE;
+  const balance = wallet ? Number(wallet.balance) : 0;
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
