@@ -70,7 +70,10 @@ const dp = (s: string) =>
 const n = (v: unknown): number => { const x = Number(v); return isNaN(x) ? 0 : x; };
 const fmt = (v: unknown, d: number) => n(v).toFixed(d);
 const fmtKes = (v: unknown) =>
-  "$" + (n(v) / 130).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  "$" + n(v).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 /* ─── Indicator calculations ─────────────────────────────────────────── */
 function calcEMA(data: number[], period: number): (number | null)[] {
