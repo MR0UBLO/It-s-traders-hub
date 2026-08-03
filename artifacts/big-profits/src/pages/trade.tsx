@@ -684,7 +684,7 @@ const handleClose = (id: number) => {
           <motion.div
             ref={chartWrapRef}
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            className="glass-card rounded-2xl overflow-hidden flex flex-col"
+            className="glass-card rounded-2xl overflow-visible flex flex-col"
             style={{ minHeight: 520 }}
           >
             {/* Chart toolbar */}
