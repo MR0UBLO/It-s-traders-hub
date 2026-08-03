@@ -609,11 +609,7 @@ export function useGetDashboardSummary<TData = Awaited<ReturnType<typeof getDash
 
 
 export const getGetMarketPricesUrl = () => {
-
-
-
-
-  return `/market/prices`
+  return `/api/market/prices`
 }
 
 /**
