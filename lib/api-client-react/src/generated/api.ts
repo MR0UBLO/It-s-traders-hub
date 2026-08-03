@@ -613,7 +613,7 @@ export const getGetMarketPricesUrl = () => {
 
 
 
-  return `/api/market/prices`
+  return `/market/prices`
 }
 
 /**
