@@ -661,7 +661,38 @@ const handleClose = (id: number) => {
   );
 };
   const handleCloseAll = () => (openTrades ?? []).forEach((t: any) => handleClose(t.id));
+useEffect(() => {
+  if (!openTrades?.length) {
+    setTimeLeft({});
+    return;
+  }
 
+  const updateCountdown = () => {
+    const now = Date.now();
+
+    const remaining: Record<number, number> = {};
+
+    openTrades.forEach((trade: any) => {
+      const start = new Date(trade.createdAt).getTime();
+      const duration = Number(trade.duration || 0) * 1000;
+
+      const seconds = Math.max(
+        0,
+        Math.ceil((start + duration - now) / 1000)
+      );
+
+      remaining[trade.id] = seconds;
+    });
+
+    setTimeLeft(remaining);
+  };
+
+  updateCountdown();
+
+  const timer = setInterval(updateCountdown, 1000);
+
+  return () => clearInterval(timer);
+}, [openTrades]);
   /* Fullscreen */
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) { chartWrapRef.current?.requestFullscreen().catch(() => {}); setIsFullscreen(true); }
