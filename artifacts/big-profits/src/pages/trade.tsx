@@ -894,16 +894,15 @@ const handleClose = (id: number) => {
             {/* Market info */}
             <div className="bg-background/40 rounded-xl px-3 py-2 space-y-1.5 text-xs">
               {[
-                ["Spread",       `${spread.toFixed(decimals + 1)}`],
-                ["Commission",   `$${(commission/130).toFixed(2)} USD`],
-                ["Swap",         `$${(swap/130).toFixed(4)} USD`],
-                ["Margin req.",  `$${(margin/130).toFixed(2)} USD`],
-              ].map(([k, v]) => (
-                <div key={k} className="flex justify-between">
-                  <span className="text-muted-foreground">{k}</span>
-                  <span className="font-mono">{v}</span>
-                </div>
-              ))}
+  ["Stake", `$${Number(amount).toFixed(2)}`],
+  ["Payout (95%)", `$${(Number(amount) * 0.95).toFixed(2)}`],
+  ["Trade Duration", `${tradeDuration}s`],
+].map(([k, v]) => (
+  <div key={k} className="flex justify-between">
+    <span className="text-muted-foreground">{k}</span>
+    <span className="font-mono">{v}</span>
+  </div>
+))}
               <div className="flex justify-between border-t border-border/40 pt-1.5">
                 <span className="text-muted-foreground">Balance</span>
                 <span className="font-mono font-semibold">{fmtKes(balance)} USD</span>
