@@ -661,8 +661,35 @@ const handleClose = (id: number) => {
     }
   );
 };
-  const handleCloseAll = () => (openTrades ?? []).forEach((t: any) => handleClose(t.id));
+  const handleCloseAll = () =>
+  (openTrades ?? []).forEach((t: any) => handleClose(t.id));
+
 useEffect(() => {
+  // Detect trades that have just closed
+  previousOpenTrades.current.forEach((oldTrade: any) => {
+    const stillOpen = openTrades?.some((t: any) => t.id === oldTrade.id);
+
+    if (!stillOpen) {
+      const closedTrade = (allTrades ?? []).find(
+        (t: any) => t.id === oldTrade.id && t.status === "closed"
+      );
+
+      const profit = Number(closedTrade?.profitLoss ?? 0);
+
+      toast({
+        title: "✅ Trade Closed",
+        description: `${oldTrade.symbol} • ${
+          profit >= 0 ? "+" : "-"
+        }$${Math.abs(profit).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })} USD`,
+      });
+    }
+  });
+
+  previousOpenTrades.current = openTrades ?? [];
+
   if (!openTrades?.length) {
     setTimeLeft({});
     return;
@@ -677,12 +704,10 @@ useEffect(() => {
       const start = new Date(trade.createdAt).getTime();
       const duration = Number(trade.duration || 0) * 1000;
 
-      const seconds = Math.max(
+      remaining[trade.id] = Math.max(
         0,
         Math.ceil((start + duration - now) / 1000)
       );
-
-      remaining[trade.id] = seconds;
     });
 
     setTimeLeft(remaining);
@@ -693,6 +718,7 @@ useEffect(() => {
   const timer = setInterval(updateCountdown, 1000);
 
   return () => clearInterval(timer);
+}, [openTrades, allTrades, toast]);
 }, [openTrades]);
   /* Fullscreen */
   const toggleFullscreen = () => {
