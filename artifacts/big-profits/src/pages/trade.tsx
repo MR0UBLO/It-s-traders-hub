@@ -960,7 +960,7 @@ const handleClose = (id: number) => {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border/30">
-                      {["Symbol","Dir","Lots","Amount","Entry","Current","SL","TP","Float P/L",""].map((h, i) => (
+                      {["Symbol","Direction","Stake","Entry","Time Left","Potential Payout",""].map((h, i) => (
                         <TableHead key={i} className={`text-xs ${i >= 8 ? "text-right" : ""} ${h === "SL" ? "text-red-400" : h === "TP" ? "text-green-400" : ""}`}>{h}</TableHead>
                       ))}
                     </TableRow>
