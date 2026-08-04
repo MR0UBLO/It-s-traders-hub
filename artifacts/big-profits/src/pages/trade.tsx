@@ -1,4 +1,4 @@
-Iiimport { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   useGetMarketPrices,
   useGetOpenTrades,
