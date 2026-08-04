@@ -166,6 +166,7 @@ const expiryTime = new Date(
 );
 
 const payoutPercent = 95;
+const marginUsed = parseFloat((amt * 0.01).toFixed(4));
 
     // Validate SL/TP
     if (slNum !== null) {
