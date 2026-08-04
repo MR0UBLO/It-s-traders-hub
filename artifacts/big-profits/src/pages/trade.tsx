@@ -822,15 +822,36 @@ const handleClose = (id: number) => {
             )}
 
             {/* Lot size */}
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Lot Size</label>
-              <Input type="number" value={lotSize} onChange={(e) => setLotSize(e.target.value)} step="0.01" min="0.01" className="font-mono text-sm h-9 bg-background/60" />
-              <div className="grid grid-cols-4 gap-1">
-                {[0.01, 0.1, 0.5, 1].map((l) => (
-                  <button key={l} onClick={() => setLotSize(String(l))} className={`py-1 text-xs rounded-lg border transition-colors ${lotSize === String(l) ? "border-primary/60 text-primary bg-primary/10" : "border-border hover:border-primary/40"}`}>{l}</button>
-                ))}
-              </div>
-            </div>
+           {/* Stake Amount */}
+<div className="space-y-1">
+  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+    Stake Amount (USD)
+  </label>
+
+  <Input
+    type="number"
+    value={amount}
+    onChange={(e) => setAmount(e.target.value)}
+    className="font-mono text-base h-10 bg-background/60"
+    min="1"
+  />
+
+  <div className="grid grid-cols-4 gap-1">
+    {[10, 20, 50, 100].map((a) => (
+      <button
+        key={a}
+        onClick={() => setAmount(String(a))}
+        className={`py-1 text-xs rounded-lg border transition-colors ${
+          amount === String(a)
+            ? "border-primary/60 text-primary bg-primary/10"
+            : "border-border hover:border-primary/40"
+        }`}
+      >
+        ${a}
+      </button>
+    ))}
+  </div>
+</div>
 
             {/* Amount */}
             {/* Trade Duration */}
