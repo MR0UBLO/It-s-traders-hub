@@ -907,19 +907,7 @@ const handleClose = (id: number) => {
                 <span className="text-muted-foreground">Balance</span>
                 <span className="font-mono font-semibold">{fmtKes(balance)} USD</span>
               </div>
-              {(openTrades ?? []).length > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Float P/L</span>
-                  <motion.span
-                    key={Math.round(totalFloatPL)}
-                    initial={{ opacity: 0.6 }} animate={{ opacity: 1 }}
-                    className={`font-mono font-semibold ${totalFloatPL >= 0 ? "text-green-400" : "text-red-400"}`}
-                  >
-                    {totalFloatPL >= 0 ? "+" : ""}{fmtKes(totalFloatPL)} USD
-                  </motion.span>
-                </div>
-              )}
-            </div>
+              
 
             {/* Execute button */}
             <Button
