@@ -943,7 +943,7 @@ const handleClose = (id: number) => {
                 <span className="text-muted-foreground">Balance</span>
                 <span className="font-mono font-semibold">{fmtKes(balance)} USD</span>
               </div>
-              
+              </div>
 
             {/* Execute button */}
             <Button
