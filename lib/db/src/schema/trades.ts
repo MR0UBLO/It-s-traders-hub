@@ -103,4 +103,5 @@ export const insertTradeSchema = createInsertSchema(tradesTable).omit({
   createdAt: true,
 });
 
-export type InsertTrade =
+export type InsertTrade = z.infer<typeof insertTradeSchema>;
+export type Trade = typeof tradesTable.$inferSelect;
