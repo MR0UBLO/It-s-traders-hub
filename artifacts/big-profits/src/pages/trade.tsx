@@ -719,7 +719,6 @@ useEffect(() => {
 
   return () => clearInterval(timer);
 }, [openTrades, allTrades, toast]);
-}, [openTrades]);
   /* Fullscreen */
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) { chartWrapRef.current?.requestFullscreen().catch(() => {}); setIsFullscreen(true); }
