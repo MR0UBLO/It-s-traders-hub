@@ -592,7 +592,14 @@ export default function Trade() {
     const tpNum = takeProfit ? Number(takeProfit) : null;
     const entryPrice = direction === "buy" ? n(currentPrice.ask) : n(currentPrice.bid);
 
-    const payload: any = { symbol, direction, amount: numAmt, lotSize: numLot, accountType: mode };
+    const payload: any = {
+  symbol,
+  direction,
+  amount: numAmt,
+  lotSize: numLot,
+  duration: Number(tradeDuration),
+  accountType: mode,
+};
     if (slNum != null) payload.stopLoss = slNum;
     if (tpNum != null) payload.takeProfit = tpNum;
 
