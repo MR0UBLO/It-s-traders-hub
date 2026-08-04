@@ -833,17 +833,29 @@ const handleClose = (id: number) => {
             </div>
 
             {/* Amount */}
-            <div className="space-y-1">
-              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Amount (USD)</label>
-              <Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="font-mono text-base h-10 bg-background/60" />
-              <div className="grid grid-cols-4 gap-1">
-                {[500, 1000, 2000, 5000].map((a) => (
-                  <button key={a} onClick={() => setAmount(String(a))} className={`py-1 text-xs rounded-lg border transition-colors ${amount === String(a) ? "border-primary/60 text-primary bg-primary/10" : "border-border hover:border-primary/40"}`}>
-                    {a >= 1000 ? `${a / 1000}k` : a}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Trade Duration */}
+<div className="space-y-1">
+  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+    Trade Duration
+  </label>
+
+  <select
+    value={tradeDuration}
+    onChange={(e) => setTradeDuration(e.target.value)}
+    className="w-full h-10 rounded-lg border border-border bg-background/60 px-3 text-sm"
+  >
+    <option value="5">5 Seconds</option>
+    <option value="10">10 Seconds</option>
+    <option value="15">15 Seconds</option>
+    <option value="30">30 Seconds</option>
+    <option value="60">1 Minute</option>
+    <option value="180">3 Minutes</option>
+    <option value="300">5 Minutes</option>
+    <option value="900">15 Minutes</option>
+    <option value="1800">30 Minutes</option>
+    <option value="3600">1 Hour</option>
+  </select>
+</div>
 
             {/* SL / TP */}
             <div className="grid grid-cols-2 gap-2">
