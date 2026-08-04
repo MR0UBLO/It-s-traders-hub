@@ -101,7 +101,13 @@ setInterval(async () => {
           profitLoss: String(profit),
           closedAt: new Date(),
         })
-        .where(eq(tradesTable.id, trade.id));
+        .where(eq(tradesTable.id, trade.id));socketIO.emitTradeClosed({
+  tradeId: trade.id,
+  userId: trade.userId,
+  result: win ? "WIN" : "LOSS",
+  profit: profit,
+  payout: win ? stake + profit : 0,
+});
     }
   } catch (err) {
     logger.error({ err }, "Binary expiry job failed");
