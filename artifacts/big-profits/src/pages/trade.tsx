@@ -536,6 +536,7 @@ export default function Trade() {
   const [timeframe, setTimeframe] = useState("M5");
   const [direction, setDirection] = useState<"buy" | "sell">("buy");
   const [lotSize,   setLotSize]   = useState("0.01");
+  const [amount, setAmount] = useState("10");
   const [tradeDuration, setTradeDuration] = useState("5");
   const [stopLoss,  setStopLoss]  = useState("");
   const [takeProfit,setTakeProfit]= useState("");
