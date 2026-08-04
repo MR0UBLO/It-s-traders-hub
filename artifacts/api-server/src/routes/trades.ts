@@ -97,7 +97,16 @@ if (t.direction === "buy") {
 // POST /api/trades
 router.post("/", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { symbol, direction, amount, lotSize, stopLoss, takeProfit, accountType: rawAccountType } = req.body;
+    const {
+  symbol,
+  direction,
+  amount,
+  duration,
+  lotSize,
+  stopLoss,
+  takeProfit,
+  accountType: rawAccountType,
+} = req.body;
     const accountType: "real" | "demo" = rawAccountType === "demo" ? "demo" : "real";
 
     if (!symbol || !direction || !amount) {
@@ -150,7 +159,13 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
 
     const price = getCurrentPrice(symbol);
     const entryPrice = direction === "buy" ? price.ask : price.bid;
-    const marginUsed = parseFloat((amt * 0.01).toFixed(4)); // 1% margin requirement
+    const tradeDuration = Number(duration ?? 60);
+
+const expiryTime = new Date(
+  Date.now() + tradeDuration * 1000
+);
+
+const payoutPercent = 95;
 
     // Validate SL/TP
     if (slNum !== null) {
@@ -178,20 +193,32 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
     await db.update(walletTable).set({ balance: sql`${walletTable.balance} - ${amt}` }).where(eq(walletTable.userId, req.userId!));
 
     const [trade] = await db.insert(tradesTable).values({
-      userId: req.userId!,
-      accountType,
-      ticketNumber: generateTicket(),
-      symbol,
-      direction,
-      amount: String(amt),
-      lotSize: lotSizeNum != null ? String(lotSizeNum) : null,
-      marginUsed: String(marginUsed),
-      entryPrice: String(entryPrice),
-      stopLoss: slNum != null ? String(slNum) : null,
-      takeProfit: tpNum != null ? String(tpNum) : null,
-      status: "open",
-      isCopied: false,
-    }).returning();
+  userId: req.userId!,
+  accountType,
+  ticketNumber: generateTicket(),
+
+  symbol,
+  direction,
+
+  amount: String(amt),
+
+  duration: tradeDuration,
+  expiryTime,
+  payoutPercent: String(payoutPercent),
+  result: null,
+
+  lotSize: lotSizeNum != null ? String(lotSizeNum) : null,
+  marginUsed: String(marginUsed),
+
+  entryPrice: String(entryPrice),
+
+  stopLoss: slNum != null ? String(slNum) : null,
+  takeProfit: tpNum != null ? String(tpNum) : null,
+
+  status: "open",
+
+  isCopied: false,
+}).returning();
 
     // Auto-copy to followers (only for real account trades)
     if (accountType === "real") {
