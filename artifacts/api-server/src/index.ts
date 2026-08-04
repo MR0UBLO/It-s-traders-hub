@@ -3,7 +3,7 @@ import app from "./app.js";
 import { logger } from "./lib/logger.js";
 import { createSocketServer } from "./lib/socket.js";
 import { startBackgroundJobs } from "./lib/jobs.js";
-
+import { startTradeEngine } from "./lib/trade-engine.js";
 const rawPort = process.env["PORT"];
 if (!rawPort) throw new Error("PORT environment variable is required but was not provided.");
 const port = Number(rawPort);
