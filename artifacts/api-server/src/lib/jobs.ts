@@ -112,7 +112,15 @@ setInterval(async () => {
 socketIO.emitWalletUpdate(trade.userId, {
   accountType: trade.accountType,
 });
-
+logger.info(
+  {
+    userId: trade.userId,
+    tradeId: trade.id,
+    profit,
+    win,
+  },
+  "Sending trade notification"
+);
 socketIO.emitNotification(trade.userId, {
   type: "trade_closed",
   title: win ? "Trade Won" : "Trade Lost",
