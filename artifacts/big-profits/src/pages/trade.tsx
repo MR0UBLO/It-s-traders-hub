@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+Iiimport { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   useGetMarketPrices,
   useGetOpenTrades,
@@ -880,17 +880,7 @@ const handleClose = (id: number) => {
 </div>
 
             {/* SL / TP */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-red-400/80 uppercase tracking-wider">Stop Loss</label>
-                <Input type="number" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder="Optional" className="font-mono text-xs h-8 bg-background/60 border-red-500/20" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-green-400/80 uppercase tracking-wider">Take Profit</label>
-                <Input type="number" value={takeProfit} onChange={(e) => setTakeProfit(e.target.value)} placeholder="Optional" className="font-mono text-xs h-8 bg-background/60 border-green-500/20" />
-              </div>
-            </div>
-
+   
             {/* Market info */}
             <div className="bg-background/40 rounded-xl px-3 py-2 space-y-1.5 text-xs">
               {[
