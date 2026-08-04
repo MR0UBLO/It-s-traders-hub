@@ -535,6 +535,7 @@ export default function Trade() {
   const [symbol,    setSymbol]    = useState("BTCUSD");
   const [timeframe, setTimeframe] = useState("M5");
   const [direction, setDirection] = useState<"buy" | "sell">("buy");
+const [timeLeft, setTimeLeft] = useState<Record<number, number>>({});
   const [lotSize,   setLotSize]   = useState("0.01");
   const [amount, setAmount] = useState("10");
   const [tradeDuration, setTradeDuration] = useState("5");
