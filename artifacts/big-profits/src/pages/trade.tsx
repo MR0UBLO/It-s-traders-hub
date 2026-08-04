@@ -1061,7 +1061,9 @@ useEffect(() => {
 </TableCell>
                           <TableCell className="font-mono text-xs">{fmt(trade.entryPrice, dp(trade.symbol))}</TableCell>
                          
-                        
+                        <TableCell className="font-mono text-sm">
+  {timeLeft[trade.id] ?? "--"}s
+</TableCell>
                          
                       
                           <TableCell className="text-right">
