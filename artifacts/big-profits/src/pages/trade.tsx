@@ -549,6 +549,7 @@ const [timeLeft, setTimeLeft] = useState<Record<number, number>>({});
     ema9: false, ema21: false, sma50: false, sma200: false, volume: true,
   });
   const chartWrapRef = useRef<HTMLDivElement>(null);
+const previousOpenTrades = useRef<any[]>([]);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
