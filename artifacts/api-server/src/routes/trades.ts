@@ -29,7 +29,17 @@ function formatTrade(trade: Record<string, unknown>, userName?: string) {
     takeProfit: trade.takeProfit != null ? Number(trade.takeProfit) : null,
     profitLoss: trade.profitLoss != null ? Number(trade.profitLoss) : null,
     profitLossPercent: trade.profitLossPercent != null ? Number(trade.profitLossPercent) : null,
-    status: trade.status,
+    duration: trade.duration,
+expiryTime: trade.expiryTime
+  ? (trade.expiryTime as Date).toISOString()
+  : null,
+
+payoutPercent:
+  trade.payoutPercent != null
+    ? Number(trade.payoutPercent)
+    : null,
+
+result: trade.result,status: trade.status,
     isCopied: trade.isCopied,
     copiedFromUserId: trade.copiedFromUserId ?? null,
     createdAt: (trade.createdAt as Date).toISOString(),
@@ -67,6 +77,13 @@ router.get("/open", requireAuth, async (req: AuthRequest, res) => {
 
     const formattedTrades = trades.map((t) => {
       const formatted = formatTrade(t as unknown as Record<string, unknown>);
+const expiry = new Date(t.expiryTime).getTime();
+const now = Date.now();
+
+formatted.timeLeft = Math.max(
+  0,
+  Math.floor((expiry - now) / 1000)
+);
       try {
         const price = getCurrentPrice(t.symbol);
         const entryPrice = Number(t.entryPrice);
