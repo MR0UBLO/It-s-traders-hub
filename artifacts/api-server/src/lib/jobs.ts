@@ -4,8 +4,15 @@ import { updateAllPrices } from "./market.js";
 import { generateAllSignals } from "./ai-engine.js";
 import { getCandles, TIMEFRAMES } from "./candle-engine.js";
 import { socketIO } from "./socket.js";
-import { db, signalsTable } from "@workspace/db";
-import { SYMBOLS } from "./market.js";
+import {
+  db,
+  signalsTable,
+  tradesTable,
+  walletsTable,
+  demoWalletsTable,
+} from "@workspace/db";
+import { SYMBOLS, getCurrentPrice } from "./market.js";
+import { eq, and, lte, sql } from "drizzle-orm";
 
 let priceTickInterval: ReturnType<typeof setInterval> | null = null;
 
