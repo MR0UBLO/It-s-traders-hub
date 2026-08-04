@@ -26,6 +26,9 @@ import NotFound from "@/pages/not-found";
 
 import { AppLayout } from "@/components/layout";
 import { useAuth } from "@/hooks/use-auth";
+import { useEffect } from "react";
+import { getSocket } from "@/lib/socket";
+import { toast } from "@/hooks/use-toast";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -71,7 +74,20 @@ function Router() {
 }
 
 export default function App() {
-  return (
+ useEffect(() => {
+  const socket = getSocket();
+
+  socket.on("notification", (data: any) => {
+    toast({
+      title: data.title,
+      description: data.message,
+    });
+  });
+
+  return () => {
+    socket.off("notification");
+  };
+}, []); return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Router />
