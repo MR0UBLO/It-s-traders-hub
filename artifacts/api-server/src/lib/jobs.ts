@@ -46,6 +46,67 @@ export function startBackgroundJobs(): void {
   // ── 3. AI signal generation: every 30 seconds ────────────────────────────────
   cron.schedule("*/30 * * * * *", () => void generateAndStoreSignals(), { name: "ai-signals" });
 
+// ── 4. Binary Options Auto Expiry (every second) ──────────────────────────────
+setInterval(async () => {
+  try {
+    const openTrades = await db
+      .select()
+      .from(tradesTable)
+      .where(
+        and(
+          eq(tradesTable.status, "open"),
+          lte(tradesTable.expiryTime, new Date())
+        )
+      );
+
+    for (const trade of openTrades) {
+      const price = getCurrentPrice(trade.symbol);
+
+      const closePrice =
+        trade.direction === "buy"
+          ? price.bid
+          : price.ask;
+
+      const win =
+        trade.direction === "buy"
+          ? closePrice > Number(trade.entryPrice)
+          : closePrice < Number(trade.entryPrice);
+
+      const stake = Number(trade.amount);
+      const payoutPercent = Number(trade.payoutPercent);
+
+      const profit = win
+        ? (stake * payoutPercent) / 100
+        : -stake;
+
+      const walletTable =
+        trade.accountType === "demo"
+          ? demoWalletsTable
+          : walletsTable;
+
+      if (win) {
+        await db.update(walletTable)
+          .set({
+            balance: sql`${walletTable.balance} + ${stake + profit}`,
+            totalProfit: sql`${walletTable.totalProfit} + ${profit}`,
+          })
+          .where(eq(walletTable.userId, trade.userId));
+      }
+
+      await db.update(tradesTable)
+        .set({
+          status: "closed",
+          result: win ? "WIN" : "LOSS",
+          closePrice: String(closePrice),
+          profitLoss: String(profit),
+          closedAt: new Date(),
+        })
+        .where(eq(tradesTable.id, trade.id));
+    }
+  } catch (err) {
+    logger.error({ err }, "Binary expiry job failed");
+  }
+}, 1000);
   logger.info("All background jobs scheduled");
 }
 
