@@ -306,27 +306,39 @@ router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
     const entryPrice = Number(trade.entryPrice);
     const amt = Number(trade.amount);
 
-    const multiplier = 50;
+    // Binary Options settlement
+const payoutPercent = Number(trade.payoutPercent ?? 95);
 
-
-
+let result: "WIN" | "LOSS";
 let pl: number;
-if (trade.direction === "buy") {
-  pl = amt * multiplier * ((closePrice - entryPrice) / entryPrice);
+let payout: number;
+
+const isWin =
+  trade.direction === "buy"
+    ? closePrice > entryPrice
+    : closePrice < entryPrice;
+
+if (isWin) {
+  result = "WIN";
+  pl = amt * (payoutPercent / 100);
+  payout = amt + pl;
 } else {
-  pl = amt * multiplier * ((entryPrice - closePrice) / entryPrice);
+  result = "LOSS";
+  pl = -amt;
+  payout = 0;
 }
-    const plPercent = (pl / amt) * 100;
-    const payout = Math.max(0, amt + pl);
+
+const plPercent = (pl / amt) * 100;
 
     // Update trade record
     const [updated] = await db.update(tradesTable).set({
-      status: "closed",
-      closePrice: String(closePrice),
-      profitLoss: String(parseFloat(pl.toFixed(4))),
-      profitLossPercent: String(parseFloat(plPercent.toFixed(4))),
-      closedAt: new Date(),
-    }).where(eq(tradesTable.id, tradeId)).returning();
+  status: "closed",
+  result,
+  closePrice: String(closePrice),
+  profitLoss: String(parseFloat(pl.toFixed(4))),
+  profitLossPercent: String(parseFloat(plPercent.toFixed(4))),
+  closedAt: new Date(),
+}).where(eq(tradesTable.id, tradeId)).returning();
 
     // Credit the correct wallet
     const walletTable = trade.accountType === "demo" ? demoWalletsTable : walletsTable;
