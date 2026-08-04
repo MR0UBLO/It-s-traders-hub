@@ -16,7 +16,7 @@ import Leaderboard from "@/pages/leaderboard";
 import CopyTrading from "@/pages/copy-trading";
 import AutoTrading from "@/pages/auto-trading";
 import Deposits from "@/pages/deposits";
-import Wallet from "@/pages/wallet";
+
 import Withdraw from "@/pages/withdraw";
 import Portfolio from "@/pages/portfolio";
 import Admin from "@/pages/admin";
