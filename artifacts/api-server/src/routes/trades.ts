@@ -233,7 +233,9 @@ const payoutPercent = 95;
             ticketNumber: generateTicket(),
             symbol,
             direction,
-            amount: String(amt),duration: tradeDuration,
+            amount: String(amt),
+
+duration: tradeDuration,
 expiryTime,
 payoutPercent: String(payoutPercent),
 result: null,
