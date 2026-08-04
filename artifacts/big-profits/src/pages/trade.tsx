@@ -981,24 +981,15 @@ const handleClose = (id: number) => {
                               {(trade.direction ?? "buy").toUpperCase()}
                             </span>
                           </TableCell>
-                          <TableCell className="font-mono text-xs text-muted-foreground">{n(trade.lotSize).toFixed(2)}</TableCell>
-                          <TableCell className="font-mono text-xs">
+                          
+                         <TableCell className="font-mono text-xs">
   {`$${n(amt).toFixed(2)} USD`}
 </TableCell>
                           <TableCell className="font-mono text-xs">{fmt(trade.entryPrice, dp(trade.symbol))}</TableCell>
-                          <TableCell className="font-mono text-xs text-muted-foreground">{cur != null ? fmt(cur, dp(trade.symbol)) : "—"}</TableCell>
-                          <TableCell className="font-mono text-xs text-red-400">{trade.stopLoss   != null ? fmt(trade.stopLoss,   dp(trade.symbol)) : "—"}</TableCell>
-                          <TableCell className="font-mono text-xs text-green-400">{trade.takeProfit != null ? fmt(trade.takeProfit, dp(trade.symbol)) : "—"}</TableCell>
-                          <TableCell className="text-right font-mono font-bold text-sm">
-                            <motion.span
-  key={Math.round(floatPL * 100)}
-  initial={{ opacity: 0.6 }}
-  animate={{ opacity: 1 }}
-  className={floatPL >= 0 ? "text-green-400" : "text-red-400"}
->
-  {floatPL >= 0 ? "+" : ""}${n(floatPL).toFixed(2)} USD
-</motion.span>
-                          </TableCell>
+                         
+                        
+                         
+                      
                           <TableCell className="text-right">
                             <Button size="sm" variant="outline" onClick={() => handleClose(trade.id)} disabled={closeTrade.isPending}
                               className="h-6 text-xs gap-1 border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
