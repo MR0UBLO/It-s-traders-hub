@@ -880,7 +880,53 @@ const handleClose = (id: number) => {
 </div>
 
             {/* SL / TP */}
-   
+   {/* Binary Options Info */}
+<div className="space-y-3">
+
+  <div className="grid grid-cols-2 gap-2">
+
+    <div className="bg-background/50 rounded-xl p-3 text-center border border-border">
+      <p className="text-[10px] uppercase text-muted-foreground">
+        Expiry
+      </p>
+      <p className="font-bold text-lg">
+        {tradeDuration}s
+      </p>
+    </div>
+
+    <div className="bg-background/50 rounded-xl p-3 text-center border border-border">
+      <p className="text-[10px] uppercase text-muted-foreground">
+        Expected Payout
+      </p>
+      <p className="font-bold text-green-400 text-lg">
+        ${(Number(amount) * 1.95).toFixed(2)}
+      </p>
+    </div>
+
+  </div>
+
+  <div className="bg-background/40 rounded-xl p-3 border border-border">
+    <div className="flex justify-between text-sm">
+      <span className="text-muted-foreground">Investment</span>
+      <span>${Number(amount).toFixed(2)}</span>
+    </div>
+
+    <div className="flex justify-between text-sm mt-2">
+      <span className="text-muted-foreground">Profit (95%)</span>
+      <span className="text-green-400">
+        +${(Number(amount) * 0.95).toFixed(2)}
+      </span>
+    </div>
+
+    <div className="flex justify-between text-sm mt-2">
+      <span className="text-muted-foreground">Total Return</span>
+      <span className="font-bold">
+        ${(Number(amount) * 1.95).toFixed(2)}
+      </span>
+    </div>
+  </div>
+
+</div>
             {/* Market info */}
             <div className="bg-background/40 rounded-xl px-3 py-2 space-y-1.5 text-xs">
               {[
