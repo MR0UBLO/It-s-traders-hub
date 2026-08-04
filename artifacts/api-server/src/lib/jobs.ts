@@ -101,12 +101,24 @@ setInterval(async () => {
           profitLoss: String(profit),
           closedAt: new Date(),
         })
-        .where(eq(tradesTable.id, trade.id));socketIO.emitTradeClosed({
-  tradeId: trade.id,
-  userId: trade.userId,
+        .where(eq(tradesTable.id, trade.id));socketIO.emitTradeUpdate(trade.userId, {
+  id: trade.id,
+  status: "closed",
   result: win ? "WIN" : "LOSS",
-  profit: profit,
-  payout: win ? stake + profit : 0,
+  profitLoss: profit,
+  closePrice,
+});
+
+socketIO.emitWalletUpdate(trade.userId, {
+  accountType: trade.accountType,
+});
+
+socketIO.emitNotification(trade.userId, {
+  type: "trade_closed",
+  title: win ? "Trade Won" : "Trade Lost",
+  message: `${trade.symbol} ${trade.direction.toUpperCase()} ${win ? "won" : "lost"} ${Math.abs(profit).toFixed(2)} USD`,
+  amount: profit,
+  result: win ? "WIN" : "LOSS",
 });
     }
   } catch (err) {
