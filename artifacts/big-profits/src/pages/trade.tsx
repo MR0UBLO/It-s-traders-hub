@@ -915,7 +915,9 @@ const handleClose = (id: number) => {
               disabled={createTrade.isPending}
               className={`w-full h-11 font-bold text-sm ${direction === "buy" ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"} text-white shadow-lg`}
             >
-              {createTrade.isPending ? "Processing…" : `${direction === "buy" ? "Buy" : "Sell"} ${symbol}`}
+              {createTrade.isPending
+    ? "Opening..."
+    : `${direction === "buy" ? "UP" : "DOWN"} • Stake $${amount}`}
             </Button>
           </motion.div>
         </div>
