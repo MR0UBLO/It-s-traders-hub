@@ -11,7 +11,7 @@ const router = Router();
 const EMAIL_ENABLED = false; // OTP shown on screen
 
 // Admin-only display simulation. This never changes the real wallet or withdrawal balance.
-const ADMIN_SIMULATION_AMOUNTS = [700, 650, 330, 500];
+const ADMIN_SIMULATION_AMOUNTS = [700];
 let adminSimulationLoginCount = 0;
 
 function generateOtp(): string {
