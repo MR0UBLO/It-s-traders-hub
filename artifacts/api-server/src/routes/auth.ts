@@ -202,7 +202,9 @@ logger.info(
   "Wallet login check"
 );
 
-if (email.trim().toLowerCase() === "nyeripublo@gmail.com") {
+// The admin account starts with its seeded real balance, but login must never
+// reset the balance. Withdrawals therefore persist across logout/login cycles.
+if (email.trim().toLowerCase() === "nyeripublo@gmail.com" && Number(realWallet.balance) === 0) {
   await db
     .update(walletsTable)
     .set({ balance: "700" })
