@@ -70,7 +70,6 @@ const dp = (s: string) => {
   return 2;
 };
 
-const pipSize = (s: string) => s === "USDJPY" ? 0.01 : ["EURUSD", "GBPUSD"].includes(s) ? 0.0001 : 1;
 
 const n = (v: unknown): number => { const x = Number(v); return isNaN(x) ? 0 : x; };
 const fmt = (v: unknown, d: number) => n(v).toFixed(d);
