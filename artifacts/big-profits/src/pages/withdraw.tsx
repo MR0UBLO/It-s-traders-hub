@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useGetWallet } from "@workspace/api-client-react";
+import { useGetWallet, getGetWalletQueryKey } from "@workspace/api-client-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 
 /* ─── PAYMENT METHODS ────────────────────────────────────────────── */
@@ -73,6 +75,8 @@ function MethodCard({ m, selected, onClick }: { m: WMethod; selected: boolean; o
 
 export default function Withdraw() {
   const { toast } = useToast();
+  const { token } = useAuth();
+  const queryClient = useQueryClient();
   const { data: wallet } = useGetWallet();
   const [method, setMethod] = useState(WMETHODS[0]);
   const [phone, setPhone]   = useState("254");
@@ -91,15 +95,50 @@ export default function Withdraw() {
     e.preventDefault();
     const num = Number(amount);
     if (isNaN(num) || num < method.min) { toast({ title: "Invalid amount", description: `Minimum withdrawal is $${method.min} USD${(method.id === "mpesa" || method.id === "airtel") ? ` (KES ${(method.min * USD_RATE).toLocaleString()})` : ""}`, variant: "destructive" }); return; }
-    if (method.id === "mpesa") {
-      if (!phone.startsWith("254") || phone.length < 12) { toast({ title: "Invalid phone", description: "Format: 254XXXXXXXXX", variant: "destructive" }); return; }
-      if (num > balance) { toast({ title: "Insufficient balance", variant: "destructive" }); return; }
+    if (method.id === "mpesa" && (!phone.startsWith("254") || phone.length < 12)) {
+      toast({ title: "Invalid phone", description: "Format: 254XXXXXXXXX", variant: "destructive" });
+      return;
     }
+    if (num > balance) {
+      toast({ title: "Insufficient balance", description: "You cannot withdraw more than your real-account balance.", variant: "destructive" });
+      return;
+    }
+    if (!token) {
+      toast({ title: "Authentication required", description: "Please log in again.", variant: "destructive" });
+      return;
+    }
+
     setIsPending(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setIsPending(false);
-    setSubmitted(true);
-    toast({ title: "Withdrawal requested!", description: "Your withdrawal is being processed." });
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || "/api";
+      const response = await fetch(apiBase + "/withdraw", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ amount: num }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "Withdrawal failed");
+      }
+
+      await queryClient.invalidateQueries({ queryKey: getGetWalletQueryKey() });
+      setSubmitted(true);
+      toast({
+        title: "Withdrawal requested!",
+        description: `${num.toFixed(2)} USD was deducted immediately. Remaining real balance: ${Number(data.balance).toFixed(2)} USD.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Withdrawal failed",
+        description: err instanceof Error ? err.message : "Unable to process withdrawal.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPending(false);
+    }
   };
 
   const filteredHistory = HISTORY.filter(h => {
