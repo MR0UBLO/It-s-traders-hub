@@ -66,10 +66,17 @@ interface PriceState {
   ask: number;
   open24h: number;
   history: number[];      // last 200 ticks for AI analysis
+  lastTickAt: number;     // wall-clock time of the last simulated movement
 }
 
 const trendStates: Record<string, TrendState> = {};
 const priceStates: Record<string, PriceState> = {};
+
+// All consumers (Markets, Trade, TradingView and trades) read the same
+// server-side simulated price. Movement is time-based rather than request-based,
+// so polling one page cannot make its price drift away from another page.
+const SIMULATION_TICK_MS = 1_000;
+const MAX_CATCH_UP_TICKS = 5;
 
 // ─── Market sessions ─────────────────────────────────────────────────────────
 
@@ -186,14 +193,18 @@ function initSymbol(symbol: Symbol) {
     history.push(price);
   }
 
+  // The simulated market always starts exactly at the configured/live
+  // reference price. Historical values are only chart context; the first
+  // live tick begins from base, not from a random historical endpoint.
   priceStates[symbol] = {
-    bid: price,
-    ask: price + SPREADS[symbol],
+    bid: base,
+    ask: base + SPREADS[symbol],
     open24h: base,
-    history,
+    history: [...history, base].slice(-200),
+    lastTickAt: Date.now(),
   };
 
-  seedCandles(symbol, price);
+  seedCandles(symbol, base);
 }
 
 function ensureInit(symbol: Symbol) {
@@ -207,6 +218,20 @@ function tickSymbol(symbol: Symbol): void {
 
   const trend = trendStates[symbol];
   const state = priceStates[symbol];
+
+  const now = Date.now();
+  const elapsedTicks = Math.min(
+    MAX_CATCH_UP_TICKS,
+    Math.floor((now - state.lastTickAt) / SIMULATION_TICK_MS),
+  );
+
+  // Do not advance the market merely because another component requested it.
+  // Markets and Trade therefore see the same simulated value between ticks.
+  if (elapsedTicks <= 0) return;
+
+  state.lastTickAt += elapsedTicks * SIMULATION_TICK_MS;
+
+  for (let i = 0; i < elapsedTicks; i++) {
   const vol = BASE_VOLATILITY[symbol] * sessionVolatilityBoost(symbol);
 
   // Trend cycle management
@@ -240,7 +265,8 @@ function tickSymbol(symbol: Symbol): void {
   state.history.push(newBid);
   if (state.history.length > 200) state.history.shift();
 
-  tickCandles(symbol, newBid);
+    tickCandles(symbol, newBid);
+  }
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
