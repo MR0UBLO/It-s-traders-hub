@@ -62,6 +62,12 @@ export default function Login() {
       }
 
       setAuth(data.token, data.user);
+      if (data.adminSimulation) {
+        toast({
+          title: `Admin simulation #${data.adminSimulation.loginNumber}`,
+          description: `${Number(data.adminSimulation.balance).toLocaleString()} simulated balance. This amount is not withdrawable.`,
+        });
+      }
       const lastRoute = localStorage.getItem("bp_last_route");
       const SAFE = ["/dashboard","/trade","/markets","/ai-signals","/leaderboard",
         "/copy-trading","/auto-trading","/deposits","/withdraw","/portfolio",
