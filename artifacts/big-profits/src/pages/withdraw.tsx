@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpFromLine, Phone, Banknote, Clock, CheckCircle, Search, Download, Info, RefreshCw, AlertTriangle, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,7 @@ function seeded(seed: number, max: number, min = 0) {
   return min + ((x - Math.floor(x)) * (max - min));
 }
 
-const HISTORY: HistItem[] = Array.from({ length: 15 }, (_, i) => {
+const HISTORY_UNUSED: HistItem[] = Array.from({ length: 0 }, (_, i) => {
   const s = i + 1;
   const method = WMETHODS[i % WMETHODS.length].label;
   const amount = Math.round(seeded(s * 7, 50000, 500));
@@ -78,6 +78,7 @@ export default function Withdraw() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const { data: wallet } = useGetWallet();
+  const [history, setHistory] = useState<HistItem[]>([]);
   const [method, setMethod] = useState(WMETHODS[0]);
   const [phone, setPhone]   = useState("254");
   const [amount, setAmount] = useState("");
@@ -90,6 +91,17 @@ export default function Withdraw() {
   const [typeFilter, setTypeFilter] = useState("all");
 
   const balance = wallet ? Number(wallet.balance) : 0;
+
+  const loadHistory = async () => {
+    if (!token) return;
+    try {
+      const apiBase = import.meta.env.VITE_API_URL || "/api";
+      const response = await fetch(apiBase + "/withdraw/history", { headers: { Authorization: `Bearer ${token}` } });
+      if (response.ok) setHistory(await response.json());
+    } catch { /* keep empty history on temporary load failure */ }
+  };
+
+  useEffect(() => { loadHistory(); }, [token]);
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +129,7 @@ export default function Withdraw() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ amount: num }),
+        body: JSON.stringify({ amount: num, method: method.id, destination: method.id === "mpesa" || method.id === "airtel" ? phone : address || account }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -125,6 +137,7 @@ export default function Withdraw() {
       }
 
       await queryClient.invalidateQueries({ queryKey: getGetWalletQueryKey() });
+      await loadHistory();
       setSubmitted(true);
       toast({
         title: "Withdrawal requested!",
@@ -284,10 +297,10 @@ export default function Withdraw() {
           {/* Summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: "Completed", value: HISTORY.filter(h => h.status === "completed").length, color: "text-green-400" },
-              { label: "Pending", value: HISTORY.filter(h => h.status === "pending").length, color: "text-yellow-400" },
-              { label: "Cancelled", value: HISTORY.filter(h => h.status === "cancelled").length, color: "text-muted-foreground" },
-              { label: "Failed", value: HISTORY.filter(h => h.status === "failed").length, color: "text-red-400" },
+              { label: "Completed", value: history.filter(h => h.status === "completed").length, color: "text-green-400" },
+              { label: "Pending", value: history.filter(h => h.status === "pending").length, color: "text-yellow-400" },
+              { label: "Cancelled", value: history.filter(h => h.status === "cancelled").length, color: "text-muted-foreground" },
+              { label: "Failed", value: history.filter(h => h.status === "failed").length, color: "text-red-400" },
             ].map(({ label, value, color }) => (
               <div key={label} className="glass-card rounded-2xl p-4 text-center">
                 <p className={`text-2xl font-bold ${color}`}>{value}</p>
