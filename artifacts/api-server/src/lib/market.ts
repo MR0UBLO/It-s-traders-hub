@@ -6,12 +6,15 @@ export const SYMBOLS = ["XAUUSD", "EURUSD", "BTCUSD", "GBPUSD", "USDJPY", "ETHUS
 export type Symbol = (typeof SYMBOLS)[number];
 
 let BASE_PRICES: Record<Symbol, number> = {
-  XAUUSD: 2847.5,
-  EURUSD: 1.0842,
-  BTCUSD: 97420.0,
-  GBPUSD: 1.2734,
-  USDJPY: 149.82,
-  ETHUSD: 3842.0,
+  // Current-market fallbacks used only if the external reference feed is
+  // temporarily unavailable. The simulator re-anchors from the live feed
+  // immediately on startup and refreshes the reference every 60 seconds.
+  XAUUSD: 4140.52,
+  EURUSD: 1.1257,
+  BTCUSD: 84820.17,
+  GBPUSD: 1.3246,
+  USDJPY: 157.87,
+  ETHUSD: 2694.0,
 };
 
 // Current-market reference symbols. Prices are fetched server-side so the
