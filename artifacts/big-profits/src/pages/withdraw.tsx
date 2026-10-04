@@ -77,7 +77,10 @@ export default function Withdraw() {
   const { toast } = useToast();
   const { token } = useAuth();
   const queryClient = useQueryClient();
-  const { data: wallet } = useGetWallet(\n    { account: "real" },\n    { query: { queryKey: getGetWalletQueryKey({ account: "real" }), refetchInterval: 5000 } },\n  );
+  const { data: wallet } = useGetWallet(
+    { account: "real" },
+    { query: { queryKey: getGetWalletQueryKey({ account: "real" }), refetchInterval: 5000 } },
+  );
   const [history, setHistory] = useState<HistItem[]>([]);
   const [method, setMethod] = useState(WMETHODS[0]);
   const [phone, setPhone]   = useState("254");
