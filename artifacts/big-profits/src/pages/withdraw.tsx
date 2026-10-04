@@ -77,7 +77,7 @@ export default function Withdraw() {
   const { toast } = useToast();
   const { token } = useAuth();
   const queryClient = useQueryClient();
-  const { data: wallet } = useGetWallet();
+  const { data: wallet } = useGetWallet(\n    { account: "real" },\n    { query: { queryKey: getGetWalletQueryKey({ account: "real" }), refetchInterval: 5000 } },\n  );
   const [history, setHistory] = useState<HistItem[]>([]);
   const [method, setMethod] = useState(WMETHODS[0]);
   const [phone, setPhone]   = useState("254");
@@ -136,7 +136,7 @@ export default function Withdraw() {
         throw new Error(data?.error || "Withdrawal failed");
       }
 
-      await queryClient.invalidateQueries({ queryKey: getGetWalletQueryKey() });
+      await queryClient.invalidateQueries({ queryKey: getGetWalletQueryKey({ account: "real" }) });
       await loadHistory();
       setSubmitted(true);
       toast({
