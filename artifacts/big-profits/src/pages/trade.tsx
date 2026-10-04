@@ -70,6 +70,15 @@ const dp = (s: string) => {
   return 2;
 };
 
+// Instrument-specific quote precision and minimum chart movement.
+// The chart uses the same precision as the Markets page so its price scale,
+// OHLC values, and live price marker cannot display a different pip/point size.
+const priceMinMove = (s: string) => {
+  if (["EURUSD", "GBPUSD"].includes(s)) return 0.00001;
+  if (s === "USDJPY") return 0.001;
+  return 0.01;
+};
+
 
 const n = (v: unknown): number => { const x = Number(v); return isNaN(x) ? 0 : x; };
 const fmt = (v: unknown, d: number) => n(v).toFixed(d);
@@ -167,6 +176,9 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
       upColor:        "#22c55e", downColor:        "#ef4444",
       borderUpColor:  "#22c55e", borderDownColor:  "#ef4444",
       wickUpColor:    "#22c55e", wickDownColor:    "#ef4444",
+      priceFormat: { type: "price", precision: dp(symbol), minMove: priceMinMove(symbol) },
+      priceLineVisible: true,
+      lastValueVisible: true,
     });
     const e9  = chart.addSeries(LineSeries, { color: "#f59e0b", lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
     const e21 = chart.addSeries(LineSeries, { color: "#60a5fa", lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
@@ -260,7 +272,9 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
 console.log("PRICE DATA:", prices);
 
       const p = prices.find((d) => d.symbol === symbol);
-      if (p) setLivePrice({ bid: p.bid, ask: p.ask });
+      if (p) {
+        setLivePrice({ bid: p.bid, ask: p.ask });
+      }
 
       if (!candles.length || !candleSeriesRef.current) return;
 
@@ -270,7 +284,21 @@ console.log("PRICE DATA:", prices);
         .sort((a, b) => a.time - b.time)
         .filter((c) => { if (seen.has(c.time)) return false; seen.add(c.time); return true; });
 
-      const last = deduped[deduped.length - 1];
+      let last = deduped[deduped.length - 1];
+
+      // The Markets page is the source of truth for the simulated price.
+      // Keep the chart's active candle synchronized to that same Bid so the
+      // candle close and live chart price never drift onto a separate range.
+      if (p && last) {
+        last = {
+          ...last,
+          close: p.bid,
+          high: Math.max(last.high, p.bid),
+          low: Math.min(last.low, p.bid),
+        };
+        deduped[deduped.length - 1] = last;
+      }
+
       setOhlc({ o: last.open, h: last.high, l: last.low, c: last.close });
 
       if (!seededRef.current) {
@@ -279,7 +307,6 @@ console.log("PRICE DATA:", prices);
           time:  Math.floor(c.time / 1000) as Time,
           open:  c.open, high: c.high, low: c.low, close: c.close,
         }));
-        console.log("Setting chart data", lwData.length, lwData);
         candleSeriesRef.current.setData(lwData);
         chartRef.current?.timeScale().fitContent();
 
