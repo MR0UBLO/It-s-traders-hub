@@ -8,6 +8,12 @@ const SYMBOL_META: Record<string, { name: string; description: string; color: st
   BTCUSD: { name: "Bitcoin / USD", description: "Cryptocurrency", color: "#F97316" },
 };
 
+function priceDecimals(symbol: string): number {
+  if (["EURUSD", "GBPUSD"].includes(symbol)) return 5;
+  if (symbol === "USDJPY") return 3;
+  return 2;
+}
+
 function MiniSparkline({ up }: { up: boolean }) {
   const path = up
     ? "M0,40 L20,32 L40,35 L60,25 L80,28 L100,15"
@@ -129,8 +135,8 @@ export default function Markets() {
                   <div className="space-y-3">
                     <div className="text-3xl font-bold font-mono tracking-tight">
                       {p.bid.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
+                        minimumFractionDigits: priceDecimals(p.symbol),
+                        maximumFractionDigits: priceDecimals(p.symbol),
                       })}
                     </div>
 
@@ -154,7 +160,7 @@ export default function Markets() {
                           Ask:
                           <span className="text-foreground font-mono">
                             {" "}
-                            {p.ask.toFixed(2)}
+                            {p.ask.toFixed(priceDecimals(p.symbol))}
                           </span>
                         </div>
                       </div>
