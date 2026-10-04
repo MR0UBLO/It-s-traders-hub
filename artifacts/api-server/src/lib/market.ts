@@ -151,7 +151,6 @@ async function refreshLiveMarketReferences(): Promise<void> {
     state.open24h = reference.previousClose;
     state.history.push(reference.price);
     if (state.history.length > 200) state.history.shift();
-    seedCandles(symbol, reference.price);
   }
 }
 
