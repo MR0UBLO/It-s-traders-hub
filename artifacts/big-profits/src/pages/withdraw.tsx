@@ -154,7 +154,7 @@ export default function Withdraw() {
     }
   };
 
-  const filteredHistory = HISTORY.filter(h => {
+  const filteredHistory = history.filter(h => {
     const matchSearch = !search || h.method.toLowerCase().includes(search.toLowerCase()) || h.txId.includes(search.toUpperCase());
     const matchStatus = statusFilter === "all" || h.status === statusFilter;
     return matchSearch && matchStatus;
