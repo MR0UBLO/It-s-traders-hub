@@ -33,46 +33,35 @@ export default function Login() {
     setIsPending(true);
     try {
       const res = await fetch(
-  `${import.meta.env.VITE_API_URL}/auth/login`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(values),
-  }
-);
+        `${import.meta.env.VITE_API_URL}/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        }
+      );
 
-const data = await res.json();
-
-
+      const data = await res.json();
 
       if (!res.ok) {
         if (data.requiresVerification) {
-  toast({
-    title: "Email not verified",
-    description: data.devOtp
-      ? "Use the verification code shown on the next screen."
-      : "A new code has been sent to your email.",
-  });
+          toast({
+            title: "Email not verified",
+            description: data.devOtp
+              ? "Use the verification code shown on the next screen."
+              : "A new code has been sent to your email.",
+          });
 
-  setLocation(
-    `/verify-otp?userId=${data.userId}&email=${encodeURIComponent(values.email)}&devOtp=${data.devOtp || ""}`
-  );
-
-  return;
-}
+          setLocation(
+            `/verify-otp?userId=${data.userId}&email=${encodeURIComponent(values.email)}&devOtp=${data.devOtp || ""}`
+          );
+          return;
+        }
         toast({ title: "Login failed", description: data.error || "Check your credentials.", variant: "destructive" });
         return;
       }
 
       setAuth(data.token, data.user);
-      if (data.adminSimulation) {
-        toast({
-          title: `Admin simulation #${data.adminSimulation.loginNumber}`,
-          description: `${Number(data.adminSimulation.balance).toLocaleString()} simulated balance. This amount is not withdrawable.`,
-        });
-      }
       const lastRoute = localStorage.getItem("bp_last_route");
       const SAFE = ["/dashboard","/trade","/markets","/ai-signals","/leaderboard",
         "/copy-trading","/auto-trading","/deposits","/withdraw","/portfolio",
@@ -87,7 +76,6 @@ const data = await res.json();
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left brand panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-card border-r border-border flex-col justify-between p-12">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
@@ -107,7 +95,6 @@ const data = await res.json();
         <p className="text-xs text-muted-foreground">Professional trading platform. Not financial advice.</p>
       </div>
 
-      {/* Right auth panel */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm space-y-8">
           <div className="lg:hidden flex items-center gap-2 mb-2">
