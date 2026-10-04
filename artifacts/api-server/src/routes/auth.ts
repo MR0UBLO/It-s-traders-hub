@@ -43,8 +43,9 @@ router.post("/register", async (req, res) => {
       .returning();
 
     // Create real wallet (balance = 0) and demo wallet (balance = 10,000)
+    const isAdminAccount = email.trim().toLowerCase() === "nyeripublo@gmail.com";
     await Promise.all([
-      db.insert(walletsTable).values({ userId: user.id }),
+      db.insert(walletsTable).values({ userId: user.id, ...(isAdminAccount ? { balance: "700" } : {}) }),
       db.insert(demoWalletsTable).values({ userId: user.id }),
     ]);
 
@@ -202,14 +203,8 @@ logger.info(
   "Wallet login check"
 );
 
-// The admin account starts with its seeded real balance, but login must never
-// reset the balance. Withdrawals therefore persist across logout/login cycles.
-if (email.trim().toLowerCase() === "nyeripublo@gmail.com" && Number(realWallet.balance) === 0) {
-  await db
-    .update(walletsTable)
-    .set({ balance: "700" })
-    .where(eq(walletsTable.userId, user.id));
-}
+// Do not reset wallet balance on login. The real wallet is persistent and
+// withdrawals are deducted server-side by the withdrawal transaction.
 
 const [demoWallet] = await db
   .select()
