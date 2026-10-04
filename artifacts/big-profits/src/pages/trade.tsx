@@ -64,8 +64,13 @@ const TIMEFRAMES = [
 ];
 
 /* ─── Helpers ────────────────────────────────────────────────────────── */
-const dp = (s: string) =>
-  ["EURUSD", "GBPUSD", "USDJPY"].includes(s) ? 4 : 2;
+const dp = (s: string) => {
+  if (["EURUSD", "GBPUSD"].includes(s)) return 5;
+  if (s === "USDJPY") return 3;
+  return 2;
+};
+
+const pipSize = (s: string) => s === "USDJPY" ? 0.01 : ["EURUSD", "GBPUSD"].includes(s) ? 0.0001 : 1;
 
 const n = (v: unknown): number => { const x = Number(v); return isNaN(x) ? 0 : x; };
 const fmt = (v: unknown, d: number) => n(v).toFixed(d);
