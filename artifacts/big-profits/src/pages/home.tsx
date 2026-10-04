@@ -84,7 +84,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 const FAQS = [
-  { q: "Is TradersHub free to use?", a: "Yes. Creating an account is completely free. You deposit real funds via M-PESA and start trading instantly." },
+  { q: "Is Tradollar free to use?", a: "Yes. Creating an account is completely free. You deposit real funds via M-PESA and start trading instantly." },
   { q: "How does profit and loss work?", a: "When you open a position, your entry price is locked in at the live market rate. P/L is calculated in real time as the market moves. When you close, the net result is applied to your balance." },
   { q: "How do I deposit funds?", a: "Go to the Deposit page, enter your M-PESA phone and amount. You'll receive an STK push on your phone. Funds credit instantly." },
   { q: "What is copy trading?", a: "Copy trading automatically mirrors the trades of top-ranked traders. Navigate to Copy Trading, find a trader, and click Follow." },
@@ -101,7 +101,7 @@ export default function Home() {
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-white" />
             </div>
-            <span className="text-lg font-bold tracking-tight">TradersHub</span>
+            <span className="text-lg font-bold tracking-tight">Tradollar</span>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             {["Features", "Markets", "AI Signals", "FAQ"].map((item) => (
@@ -136,7 +136,7 @@ export default function Home() {
                   </h1>
                 </motion.div>
                 <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.5 }} className="text-lg text-muted-foreground leading-relaxed max-w-lg">
-                  TradersHub gives you a professional trading terminal, real-time AI signals, M-PESA deposits, and copy trading — all in one platform.
+                  Tradollar gives you a professional trading terminal, real-time AI signals, M-PESA deposits, and copy trading — all in one platform.
                 </motion.p>
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25, duration: 0.5 }} className="flex flex-wrap gap-3">
                   <Link href="/register">
@@ -319,7 +319,7 @@ export default function Home() {
                 <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
                   <TrendingUp className="w-3 h-3 text-white" />
                 </div>
-                <span className="font-bold">TradersHub</span>
+                <span className="font-bold">Tradollar</span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">Professional trading platform for serious traders.</p>
             </div>
@@ -343,7 +343,7 @@ export default function Home() {
             ))}
           </div>
           <div className="border-t border-border pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-            <p>© 2026 TradersHub. All rights reserved.</p>
+            <p>© 2026 Tradollar. All rights reserved.</p>
             <p>Trading involves substantial risk of loss. Not financial advice.</p>
           </div>
         </div>

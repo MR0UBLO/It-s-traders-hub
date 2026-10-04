@@ -1,4 +1,4 @@
-# TradersHub
+# Tradollar
 
 A full-stack fintech simulation trading platform where users deposit via real M-PESA and trade virtual assets (XAUUSD, EURUSD, BTCUSD) in a controlled simulation.
 

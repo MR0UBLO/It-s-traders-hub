@@ -76,7 +76,7 @@ app.use(
   "/api/docs",
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec, {
-    customSiteTitle: "TradersHub API Docs",
+    customSiteTitle: "Tradollar API Docs",
     customCss: ".swagger-ui .topbar { display: none }",
   })
 );

@@ -107,7 +107,7 @@ const data = await res.json();
           <div className="w-7 h-7 rounded bg-primary flex items-center justify-center">
             <TrendingUp className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold tracking-tight">TradersHub</span>
+          <span className="font-bold tracking-tight">Tradollar</span>
         </div>
 
         {/* Header */}

@@ -132,7 +132,7 @@ export default function SettingsPage() {
           {activeTab === "appearance" && (
             <div className="space-y-5">
               <h2 className="font-semibold text-lg">Appearance</h2>
-              <p className="text-sm text-muted-foreground">TradersHub uses a dark theme optimised for trading.</p>
+              <p className="text-sm text-muted-foreground">Tradollar uses a dark theme optimised for trading.</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-4 rounded-xl border-2 border-primary bg-card/60 cursor-pointer">
                   <div className="w-full h-16 rounded-lg bg-gradient-to-br from-gray-900 to-gray-800 mb-2" />

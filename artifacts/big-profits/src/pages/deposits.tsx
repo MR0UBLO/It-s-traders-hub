@@ -292,7 +292,7 @@ export default function Deposits() {
                       {method.id === "bank" && (
                         <div className="bg-muted/30 rounded-xl p-4 space-y-2 text-sm">
                           <p className="font-semibold">Bank Transfer Details</p>
-                          {[["Bank","Equity Bank Kenya"],["Account Name","TradersHub Limited"],["Account No.","0123456789"],["Branch","Westlands"],["Swift Code","EQBLKENA"]].map(([l,v]) => (
+                          {[["Bank","Equity Bank Kenya"],["Account Name","Tradollar Limited"],["Account No.","0123456789"],["Branch","Westlands"],["Swift Code","EQBLKENA"]].map(([l,v]) => (
                             <div key={l} className="flex justify-between text-xs"><span className="text-muted-foreground">{l}</span><span className="font-semibold">{v}</span>
                           </div>))}
                         </div>

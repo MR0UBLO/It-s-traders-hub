@@ -244,7 +244,7 @@ function Sidebar() {
               transition={{ duration: 0.15, delay: 0.05 }}
               className="font-bold text-sm whitespace-nowrap"
             >
-              TradersHub
+              Tradollar
             </motion.span>
           )}
         </div>
@@ -534,7 +534,7 @@ function AppHeader({ onMenuToggle }: { onMenuToggle: () => void }) {
           <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
             <TrendingUp className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="font-bold text-sm">TradersHub</span>
+          <span className="font-bold text-sm">Tradollar</span>
         </div>
         <button
           onClick={onMenuToggle}

@@ -142,7 +142,7 @@ export default function Register() {
           <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
             <TrendingUp className="w-4 h-4 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-tight">TradersHub</span>
+          <span className="text-lg font-bold tracking-tight">Tradollar</span>
         </div>
         <div className="space-y-4">
           <h2 className="text-4xl font-bold tracking-tight leading-tight">
@@ -163,7 +163,7 @@ export default function Register() {
             <div className="w-7 h-7 rounded bg-primary flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold tracking-tight">TradersHub</span>
+            <span className="font-bold tracking-tight">Tradollar</span>
           </div>
 
           {step === "register" ? (

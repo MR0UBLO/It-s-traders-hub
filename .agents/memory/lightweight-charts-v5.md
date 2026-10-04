@@ -1,6 +1,6 @@
 ---
 name: Lightweight-charts v5 API changes
-description: Breaking API changes in lightweight-charts v5 vs v4 that affect TradersHub trade page chart.
+description: Breaking API changes in lightweight-charts v5 vs v4 that affect Tradollar trade page chart.
 ---
 
 **Rule:** `chart.addAreaSeries(opts)` was removed in v5. Use `chart.addSeries(AreaSeries, opts)` instead.

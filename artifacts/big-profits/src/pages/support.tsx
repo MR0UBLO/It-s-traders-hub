@@ -13,7 +13,7 @@ const FAQS = [
   { q: "How long does an M-PESA deposit take?", a: "Funds reflect within 30 seconds of completing the STK push on your phone." },
   { q: "Why was my OTP code invalid?", a: "OTP codes expire after 10 minutes. If yours expired, click 'Resend code' on the verification screen to get a new one sent to your email." },
   { q: "Can I withdraw my balance?", a: "Navigate to the Withdraw page to request a withdrawal. Withdrawals are processed within 24 hours back to your registered M-PESA number." },
-  { q: "What markets can I trade?", a: "TradersHub currently supports XAUUSD (Gold), EURUSD (Euro/Dollar), and BTCUSD (Bitcoin). More markets are coming soon." },
+  { q: "What markets can I trade?", a: "Tradollar currently supports XAUUSD (Gold), EURUSD (Euro/Dollar), and BTCUSD (Bitcoin). More markets are coming soon." },
 ];
 
 function FaqItem({ q, a }: { q: string; a: string }) {

@@ -106,8 +106,8 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
       PartyB: MPESA_SHORTCODE,
       PhoneNumber: normalizedPhone,
       CallBackURL: callbackUrl,
-      AccountReference: "TradersHub",
-      TransactionDesc: "TradersHub Wallet Deposit",
+      AccountReference: "Tradollar",
+      TransactionDesc: "Tradollar Wallet Deposit",
     }),
   }
 );

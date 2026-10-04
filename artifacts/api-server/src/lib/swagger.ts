@@ -4,7 +4,7 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "TradersHub API",
+      title: "Tradollar API",
       version: "2.0.0",
       description:
         "Production-grade fintech trading simulator API. Supports JWT auth, real-time WebSocket events, simulated market data with OHLC candles, AI signal generation, M-PESA deposits, copy trading, and leaderboard.",
