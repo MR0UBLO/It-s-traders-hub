@@ -5,7 +5,7 @@ import { seedCandles, tickCandles } from "./candle-engine.js";
 export const SYMBOLS = ["XAUUSD", "EURUSD", "BTCUSD", "GBPUSD", "USDJPY", "ETHUSD"] as const;
 export type Symbol = (typeof SYMBOLS)[number];
 
-const BASE_PRICES: Record<Symbol, number> = {
+let BASE_PRICES: Record<Symbol, number> = {
   XAUUSD: 2847.5,
   EURUSD: 1.0842,
   BTCUSD: 97420.0,
@@ -13,6 +13,20 @@ const BASE_PRICES: Record<Symbol, number> = {
   USDJPY: 149.82,
   ETHUSD: 3842.0,
 };
+
+// Current-market reference symbols. Prices are fetched server-side so the
+// existing simulator starts from the latest available market level and then
+// continues generating its normal simulated ticks between refreshes.
+const LIVE_REFERENCE_TICKERS: Record<Symbol, string> = {
+  XAUUSD: "GC=F",
+  EURUSD: "EURUSD=X",
+  BTCUSD: "BTC-USD",
+  GBPUSD: "GBPUSD=X",
+  USDJPY: "JPY=X",
+  ETHUSD: "ETH-USD",
+};
+
+const LIVE_REFERENCE_REFRESH_MS = 60_000;
 
 const SPREADS: Record<Symbol, number> = {
   XAUUSD: 0.5,
@@ -74,6 +88,78 @@ function sessionVolatilityBoost(symbol: Symbol): number {
   if (isForex && session === "Overlap") return 1.8;
   if (isCrypto) return 1.1; // crypto active 24h
   return 1.0;
+}
+
+// ─── Current market reference ────────────────────────────────────────────────
+
+async function fetchLiveReferencePrice(symbol: Symbol): Promise<{ price: number; previousClose: number } | null> {
+  const ticker = LIVE_REFERENCE_TICKERS[symbol];
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=1d&interval=1m&includePrePost=false`;
+
+  try {
+    const response = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+
+    const payload = await response.json() as {
+      chart?: {
+        result?: Array<{
+          meta?: {
+            regularMarketPrice?: number;
+            chartPreviousClose?: number;
+          };
+        }>;
+      };
+    };
+
+    const meta = payload.chart?.result?.[0]?.meta;
+    const price = Number(meta?.regularMarketPrice);
+    const previousClose = Number(meta?.chartPreviousClose);
+
+    if (!Number.isFinite(price) || price <= 0) return null;
+
+    return {
+      price,
+      previousClose: Number.isFinite(previousClose) && previousClose > 0 ? previousClose : price,
+    };
+  } catch {
+    // Keep the existing simulator running if the external reference is
+    // temporarily unavailable or rate-limited.
+    return null;
+  }
+}
+
+async function refreshLiveMarketReferences(): Promise<void> {
+  const results = await Promise.all(
+    SYMBOLS.map(async (symbol) => [symbol, await fetchLiveReferencePrice(symbol)] as const),
+  );
+
+  for (const [symbol, reference] of results) {
+    if (!reference) continue;
+
+    BASE_PRICES[symbol] = reference.price;
+
+    const state = priceStates[symbol];
+    if (!state) continue;
+
+    // Re-anchor the simulation to the current market level without changing
+    // the existing tick/trend engine or any consumer of MarketPrice.
+    state.bid = reference.price;
+    state.ask = reference.price + SPREADS[symbol];
+    state.open24h = reference.previousClose;
+    state.history.push(reference.price);
+    if (state.history.length > 200) state.history.shift();
+    seedCandles(symbol, reference.price);
+  }
+}
+
+function startLiveReferenceRefresh(): void {
+  void refreshLiveMarketReferences();
+  setInterval(() => {
+    void refreshLiveMarketReferences();
+  }, LIVE_REFERENCE_REFRESH_MS);
 }
 
 // ─── Initialization ───────────────────────────────────────────────────────────
@@ -228,5 +314,7 @@ export function simulateProfitLoss(): number {
   return isWin ? 1 + Math.random() * 11 : -(1 + Math.random() * 4);
 }
 
-// Bootstrap all symbols on module load
+// Bootstrap all symbols on module load, then keep the simulation
+// re-anchored to the latest available market reference.
 for (const sym of SYMBOLS) ensureInit(sym);
+startLiveReferenceRefresh();
