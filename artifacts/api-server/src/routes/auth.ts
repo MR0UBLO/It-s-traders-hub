@@ -10,9 +10,6 @@ const router = Router();
 
 const EMAIL_ENABLED = false; // OTP shown on screen
 
-// Admin-only display simulation. This never changes the real wallet or withdrawal balance.
-const ADMIN_SIMULATION_AMOUNTS = [700];
-let adminSimulationLoginCount = 0;
 
 function generateOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -221,22 +218,10 @@ if (!demoWallet) {
 }
 
     const token = signToken(user.id, user.isAdmin);
-    const isAdminSimulation = user.email.trim().toLowerCase() === "nyeripublo@gmail.com";
-    const adminSimulation = isAdminSimulation
-      ? (() => {
-          const loginNumber = adminSimulationLoginCount++;
-          return {
-            loginNumber: loginNumber + 1,
-            balance: ADMIN_SIMULATION_AMOUNTS[loginNumber % ADMIN_SIMULATION_AMOUNTS.length],
-            withdrawable: false,
-          };
-        })()
-      : null;
 
     res.json({
       token,
       user: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt.toISOString(), isAdmin: user.isAdmin },
-      ...(adminSimulation ? { adminSimulation } : {}),
     });
   } catch (err) {
     logger.error({ err }, "Login error");
