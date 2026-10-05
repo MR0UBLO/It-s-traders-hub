@@ -15,6 +15,7 @@ import signalsRouter from "./signals.js";
 import candlesRouter from "./candles.js";
 import notificationsRouter from "./notifications.js";
 import demoRouter from "./demo.js";
+import autoTradingRouter from "./auto-trading.js";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use("/dashboard", dashboardRouter);
 router.use("/signals", signalsRouter);
 router.use("/notifications", notificationsRouter);
 router.use("/demo", demoRouter);
+router.use("/auto-trading", autoTradingRouter);
 
 export default router;
