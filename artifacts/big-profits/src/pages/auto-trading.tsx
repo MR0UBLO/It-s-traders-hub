@@ -36,7 +36,7 @@ function makeEquity(trades: Array<{ profitLoss?: number | null; closedAt?: strin
   return points.length ? points : [{ day: "Start", equity: 0 }];
 }
 
-const SYMBOLS = ["EURUSD","XAUUSD","BTCUSD","GBPUSD","NASDAQ","ETHUSD"];
+const SYMBOLS = ["EURUSD","XAUUSD","BTCUSD","GBPUSD","USDJPY","ETHUSD"];
 const DIRS    = ["BUY","SELL"] as const;
 
 function makeTrades(n: number, active: boolean) {
