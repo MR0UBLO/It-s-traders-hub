@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bot, Zap, TrendingUp, TrendingDown, BarChart2, Power, AlertTriangle, Shield, RefreshCw, BookOpen, Settings, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAccountStore } from "@/store/account-store";
+import { useQueryClient } from "@tanstack/react-query";
+import { useGetWallet, useGetOpenTrades, useGetTrades, useGetMarketPrices, useCreateTrade, useCloseTrade, getGetWalletQueryKey, getGetOpenTradesQueryKey, getGetTradesQueryKey } from "@workspace/api-client-react";
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis, BarChart, Bar } from "recharts";
 
 /* ─── STRATEGIES ──────────────────────────────────────────────────── */
@@ -24,13 +26,14 @@ function seeded(seed: number, max: number, min = 0) {
   return min + ((x - Math.floor(x)) * (max - min));
 }
 
-function makeEquity(enabled: boolean) {
-  let v = 10000;
-  return Array.from({ length: 30 }, (_, i) => {
-    const delta = enabled ? seeded(i * 7, 220, -60) : seeded(i * 7, 80, -80);
-    v = Math.max(7000, v + delta);
-    return { day: `D${i + 1}`, equity: Math.round(v) };
+function makeEquity(trades: Array<{ profitLoss?: number | null; closedAt?: string | null }>) {
+  const closed = [...trades].filter((t) => t.closedAt).sort((a, b) => new Date(a.closedAt!).getTime() - new Date(b.closedAt!).getTime());
+  let cumulative = 0;
+  const points = closed.slice(-30).map((t, i) => {
+    cumulative += Number(t.profitLoss ?? 0);
+    return { day: `T${i + 1}`, equity: Number(cumulative.toFixed(2)) };
   });
+  return points.length ? points : [{ day: "Start", equity: 0 }];
 }
 
 const SYMBOLS = ["EURUSD","XAUUSD","BTCUSD","GBPUSD","NASDAQ","ETHUSD"];
@@ -73,30 +76,79 @@ export default function AutoTrading() {
   const [trailing, setTrailing]       = useState(false);
   const [breakeven, setBreakeven]     = useState(false);
   const [emergency, setEmergency]     = useState(false);
+  const [investmentAmount, setInvestmentAmount] = useState("10");
   const [tab, setTab]                 = useState<"active"|"closed"|"journal"|"stats">("active");
   const [stratOpen, setStratOpen]     = useState(false);
 
-  const [equity, setEquity] = useState(() => makeEquity(false));
-  useEffect(() => { setEquity(makeEquity(enabled)); }, [enabled]);
-
   const selectedStrat = STRATEGIES.find(s => s.id === strategy)!;
+  const account = isDemo ? "demo" : "real";
+  const queryClient = useQueryClient();
+  const { data: wallet } = useGetWallet({ account }, { query: { queryKey: getGetWalletQueryKey({ account }), refetchInterval: enabled ? 3000 : 10000 } });
+  const { data: openTrades = [], refetch: refetchOpenTrades } = useGetOpenTrades({ account }, { query: { queryKey: getGetOpenTradesQueryKey({ account }), refetchInterval: enabled ? 2000 : 5000 } });
+  const { data: allTrades = [] } = useGetTrades({ account }, { query: { queryKey: getGetTradesQueryKey({ account }), refetchInterval: enabled ? 5000 : 10000 } });
+  const { data: marketPrices = [] } = useGetMarketPrices({ query: { refetchInterval: 3000 } });
+  const createTrade = useCreateTrade();
+  const closeTrade = useCloseTrade();
 
-  const activeTrades = enabled ? makeTrades(Math.floor(Number(maxTrades) * 0.6) || 3, true) : [];
-  const closedTrades = makeTrades(20, false);
+  const activeTrades = openTrades.map((t) => ({ ...t, sym: t.symbol, dir: t.direction.toUpperCase(), lots: Number(t.lotSize ?? 0), pnl: Number(t.profitLoss ?? 0), time: new Date(t.createdAt).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" }) }));
+  const closedTrades = allTrades.filter((t) => t.status === "closed").map((t) => ({ ...t, sym: t.symbol, dir: t.direction.toUpperCase(), lots: Number(t.lotSize ?? 0), pnl: Number(t.profitLoss ?? 0), time: t.closedAt ? new Date(t.closedAt).toLocaleString("en-KE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : new Date(t.createdAt).toLocaleString("en-KE") }));
+  const totalPnL = activeTrades.reduce((sum, t) => sum + t.pnl, 0);
+  const todayPnL = closedTrades.filter((t) => t.closedAt && new Date(t.closedAt).toDateString() === new Date().toDateString()).reduce((sum, t) => sum + t.pnl, 0);
+  const winRate = closedTrades.length ? Math.round(closedTrades.filter((t) => t.pnl > 0).length / closedTrades.length * 100) : 0;
+  const totalProfit = closedTrades.reduce((sum, t) => sum + t.pnl, 0);
+  const equity = useMemo(() => makeEquity(closedTrades), [closedTrades]);
 
-  const totalPnL   = activeTrades.reduce((a, t) => a + t.pnl, 0);
-  const todayPnL   = closedTrades.slice(0, 5).reduce((a, t) => a + t.pnl, 0);
-  const winRate    = Math.round(closedTrades.filter(t => t.pnl > 0).length / closedTrades.length * 100);
-  const totalProfit = closedTrades.reduce((a, t) => a + t.pnl, 0);
+  useEffect(() => {
+    if (!enabled || emergency) return;
+    const runCycle = async () => {
+      const openResult = await refetchOpenTrades();
+      const currentOpen = openResult.data ?? [];
+      for (const trade of currentOpen) {
+        if ((trade as any).timeLeft != null && Number((trade as any).timeLeft) <= 0) {
+          await new Promise<void>((resolve) => closeTrade.mutate({ id: trade.id }, { onSettled: () => resolve() }));
+        }
+      }
+      const refreshed = await refetchOpenTrades();
+      const afterClose = refreshed.data ?? [];
+      const amount = Number(investmentAmount);
+      const limit = Math.max(1, Math.floor(Number(maxTrades) || 1));
+      if (!Number.isFinite(amount) || amount < 1 || afterClose.length >= limit) return;
+      if (!wallet || Number(wallet.balance) < amount) {
+        setEnabled(false);
+        toast({ title: `Insufficient ${isDemo ? "demo" : "real"} balance`, description: "Auto Trading stopped because the selected wallet does not have enough available balance.", variant: "destructive" });
+        return;
+      }
+      const symbol = SYMBOLS[Math.floor(Date.now() / 5000) % SYMBOLS.length];
+      const market = marketPrices.find((p) => p.symbol === symbol);
+      const direction = market && Number(market.changePercent24h) < 0 ? "sell" : "buy";
+      createTrade.mutate({ data: { symbol, direction, amount, lotSize: Number(posSize) || 0.01, accountType: account } });
+      queryClient.invalidateQueries({ queryKey: getGetWalletQueryKey({ account }) });
+      queryClient.invalidateQueries({ queryKey: getGetOpenTradesQueryKey({ account }) });
+      queryClient.invalidateQueries({ queryKey: getGetTradesQueryKey({ account }) });
+    };
+    runCycle().catch(() => undefined);
+    const timer = window.setInterval(() => { runCycle().catch(() => undefined); }, 5000);
+    return () => window.clearInterval(timer);
+  }, [enabled, emergency, investmentAmount, maxTrades, posSize, account, wallet?.balance, marketPrices, refetchOpenTrades, closeTrade, createTrade, queryClient, toast, isDemo]);
 
   const handleToggle = () => {
     if (!enabled) {
-      toast({ title: "Auto Trading activated", description: `${selectedStrat.label} strategy running in ${isDemo ? "Demo" : "Real"} mode.` });
+      const amount = Number(investmentAmount);
+      if (!Number.isFinite(amount) || amount < 1) {
+        toast({ title: "Invalid investment amount", description: "Enter at least $1 USD.", variant: "destructive" });
+        return;
+      }
+      if (!wallet || Number(wallet.balance) < amount) {
+        toast({ title: "Insufficient balance", description: `Your ${isDemo ? "Demo" : "Real"} wallet does not have enough available balance.`, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Auto Trading activated", description: `${selectedStrat.label} running in ${isDemo ? "Demo" : "Real"} mode using the selected wallet ledger.` });
+      setEmergency(false);
+      setEnabled(true);
     } else {
-      toast({ title: "Auto Trading stopped", description: "All open positions remain until closed manually." });
+      toast({ title: "Auto Trading stopped", description: "No new positions will be opened. Existing positions remain recorded until settled." });
+      setEnabled(false);
     }
-    setEnabled(!enabled);
-    setEmergency(false);
   };
 
   const handleEmergency = () => {
@@ -172,6 +224,13 @@ export default function AutoTrading() {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+
+            {/* Investment amount */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Investment Per Trade (USD)</Label>
+              <Input type="number" value={investmentAmount} onChange={e => setInvestmentAmount(e.target.value)} min="1" step="1" className="h-9 bg-background border-border font-mono text-sm" disabled={enabled} />
+              <p className="text-[10px] text-muted-foreground">Each auto trade uses this amount from the selected {isDemo ? "Demo" : "Real"} wallet.</p>
             </div>
 
             {/* Risk settings */}
