@@ -26,6 +26,7 @@ export default function AutoTrading() {
   const [tradeDuration, setTradeDuration] = useState("3600");
   const [strategy, setStrategy] = useState("trend");
   const [speed, setSpeed] = useState("fast");
+  const [startError, setStartError] = useState<string | null>(null);
 
   const authHeaders = {
     "Content-Type": "application/json",
@@ -79,9 +80,10 @@ export default function AutoTrading() {
   const startTrading = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
-      window.location.href = "/login";
+      setStartError("Your login session has expired. Please log in again.");
       return;
     }
+    setStartError(null);
 
     const amount = Number(investmentAmount);
     const duration = Number(tradeDuration);
@@ -98,7 +100,9 @@ export default function AutoTrading() {
     setPhase("scanning");
     setScannerOpen(true);
 
-    const r = await fetch(`${api}/auto-trading/start`, {
+    let r: Response;
+    try {
+      r = await fetch(`${api}/auto-trading/start`, {
       method: "POST",
       headers: authHeaders,
       body: JSON.stringify({
@@ -119,12 +123,17 @@ export default function AutoTrading() {
         breakEven: true,
       }),
     });
+    } catch {
+      setScannerOpen(false);
+      setStartError("Unable to connect to the trading server. Please try again.");
+      return;
+    }
     const d = await r.json();
 
     if (!r.ok) {
       setScannerOpen(false);
       if (r.status === 401) {
-        window.location.href = "/login";
+        setStartError("Your login session is no longer valid. Please log in again.");
         return;
       }
       toast({ title: "AI Trading could not start", description: d.error || "Check the selected wallet balance.", variant: "destructive" });
@@ -178,6 +187,8 @@ export default function AutoTrading() {
             <motion.div className="w-full max-w-md rounded-2xl p-6 border border-zinc-700 bg-zinc-950 text-white shadow-2xl" initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }}>
               <h2 className="text-xl font-bold text-white">Start AI Trading</h2>
               <p className="text-xs text-zinc-300 mt-1">Choose the trade parameters before AI starts scanning.</p>
+
+              {startError && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{startError}</div>}
 
               <div className="space-y-4 mt-5">
                 <div>
