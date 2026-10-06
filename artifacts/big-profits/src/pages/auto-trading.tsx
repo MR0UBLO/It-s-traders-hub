@@ -27,6 +27,7 @@ export default function AutoTrading() {
   const [strategy, setStrategy] = useState("trend");
   const [speed, setSpeed] = useState("fast");
   const [startError, setStartError] = useState<string | null>(null);
+  const [liveStatus, setLiveStatus] = useState<any>(null);
 
   const getAuthHeaders = () => ({
     "Content-Type": "application/json",
@@ -46,6 +47,7 @@ export default function AutoTrading() {
       if (!r.ok) return;
       const d = await r.json();
       setEnabled(Boolean(d.enabled) && d.accountType === account);
+      setLiveStatus(d);
       if (d.config) {
         if (d.config.asset) setAsset(String(d.config.asset));
         if (d.config.investmentAmount !== undefined) setInvestmentAmount(String(d.config.investmentAmount));
@@ -267,10 +269,17 @@ export default function AutoTrading() {
                 {phase === "scanning" ? "Analyzing the repo market engine for a qualifying signal." : "Waiting for a qualifying signal before opening the next trade."}
               </p>
 
-              <div className="mt-5 space-y-2 text-left text-xs text-zinc-300">
+              <div className="mt-5 rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-left text-xs text-zinc-300">
+                <div className="flex justify-between"><span>Status</span><span className="font-semibold text-emerald-400">{enabled ? "LIVE" : "STARTING"}</span></div>
+                <div className="flex justify-between mt-1"><span>AI action</span><span className="font-semibold text-white max-w-[65%] text-right">{liveStatus?.lastAction || "Analyzing market..."}</span></div>
+                <div className="flex justify-between mt-1"><span>Trades opened</span><span className="font-semibold text-white">{liveStatus?.tradesOpened ?? 0}</span></div>
+                <div className="flex justify-between mt-1"><span>Wins / Losses</span><span className="font-semibold text-white">{liveStatus?.wins ?? 0} / {liveStatus?.losses ?? 0}</span></div>
+              </div>
+
+              <div className="mt-3 space-y-2 text-left text-xs text-zinc-300">
                 <div className="flex justify-between"><span>Asset</span><span className="font-mono font-semibold text-white">{asset}</span></div>
                 <div className="flex justify-between"><span>Stake</span><span className="font-mono font-semibold">${Number(investmentAmount).toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Duration</span><span className="font-mono font-semibold">{Math.round(Number(tradeDuration) / 60)} min</span></div>
+                <div className="flex justify-between"><span>Duration</span><span className="font-mono font-semibold">{Number(tradeDuration)} sec</span></div>
                 <div className="flex justify-between"><span>Wallet</span><span className="font-mono font-semibold">{isDemo ? "Demo" : "Real"}</span></div>
               </div>
 
