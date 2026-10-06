@@ -62,52 +62,77 @@ const pipSize = (symbol: string) =>
 
 const ticket = () => `AT-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
-function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sell" } | null {
+function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sell"; confidence: number; reason: string } | null {
   const candidates = runtime.config.asset === "ALL"
     ? SYMBOLS.filter((s) => ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD"].includes(s))
     : [runtime.config.asset];
 
-  let best: { symbol: string; direction: "buy" | "sell"; strength: number } | null = null;
+  let best: { symbol: string; direction: "buy" | "sell"; confidence: number; reason: string } | null = null;
 
   for (const symbol of candidates) {
     if (!SYMBOLS.includes(symbol as typeof SYMBOLS[number])) continue;
 
-    // The AI reads the same shared price history that feeds the charts.
-    // The signal combines RSI, momentum, trend slope, SMA20/SMA50 and volatility
-    // instead of reacting to only the most recent price tick.
+    // Use the same shared candle/price history as the TradingView-style chart.
+    // The AI engine combines EMA/SMA-style trend confirmation with RSI,
+    // momentum and volatility before choosing a direction.
     const signal = generateSignalForSymbol(symbol as typeof SYMBOLS[number]);
-    if (signal.signal === "HOLD") continue;
 
-    if (!best || signal.confidence > best.strength) {
-      best = {
-        symbol,
-        direction: signal.signal === "BUY" ? "buy" : "sell",
-        strength: signal.confidence,
-      };
+    if (signal.signal === "HOLD") {
+      continue;
     }
+
+    const candidate = {
+      symbol,
+      direction: signal.signal === "BUY" ? "buy" as const : "sell" as const,
+      confidence: signal.confidence,
+      reason: signal.reason,
+    };
+
+    if (!best || candidate.confidence > best.confidence) best = candidate;
   }
 
-  return best ? { symbol: best.symbol, direction: best.direction } : null;
+  return best;
 }
 
 async function openAutoTrade(userId: number, runtime: Runtime) {
   const walletTable = runtime.accountType === "demo" ? demoWalletsTable : walletsTable;
   const [wallet] = await db.select().from(walletTable).where(eq(walletTable.userId, userId)).limit(1);
-  if (!wallet) return;
+  if (!wallet) {
+    runtime.lastAction = "Wallet unavailable";
+    runtime.lastActionAt = Date.now();
+    return;
+  }
 
   const balance = Number(wallet.balance);
-  if (balance < 1) return;
-  if (Number(runtime.config.investmentAmount) > balance) return;
+  if (balance < 1) {
+    runtime.lastAction = "Insufficient wallet balance";
+    runtime.lastActionAt = Date.now();
+    return;
+  }
+
+  if (Number(runtime.config.investmentAmount) > balance) {
+    runtime.lastAction = "Selected stake is above wallet balance";
+    runtime.lastActionAt = Date.now();
+    return;
+  }
 
   const open = await db.select().from(tradesTable).where(and(
     eq(tradesTable.userId, userId),
     eq(tradesTable.accountType, runtime.accountType),
     eq(tradesTable.status, "open")
   ));
-  if (open.length >= runtime.config.maxTrades) return;
+  if (open.length >= runtime.config.maxTrades) {
+    runtime.lastAction = `Maximum open trades reached (${runtime.config.maxTrades})`;
+    runtime.lastActionAt = Date.now();
+    return;
+  }
 
   const signal = pickSignal(runtime);
-  if (!signal) return;
+  if (!signal) {
+    runtime.lastAction = "Analyzing chart signals — waiting for confirmation";
+    runtime.lastActionAt = Date.now();
+    return;
+  }
 
   const requested = Number(runtime.config.investmentAmount);
   const amount = Math.max(1, Math.min(Number.isFinite(requested) && requested > 0 ? requested : balance * (runtime.config.riskPct / 100), balance));
@@ -121,9 +146,15 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
     ? entry + runtime.config.takeProfitPips * size
     : entry - runtime.config.takeProfitPips * size;
 
-  await db.update(walletTable)
+  const changed = await db.update(walletTable)
     .set({ balance: sql`${walletTable.balance} - ${amount}` })
-    .where(and(eq(walletTable.userId, userId), sql`${walletTable.balance} >= ${amount}`));
+    .where(and(eq(walletTable.userId, userId), sql`${walletTable.balance} >= ${amount}`))
+    .returning();
+  if (!changed.length) {
+    runtime.lastAction = "Stake could not be reserved from wallet";
+    runtime.lastActionAt = Date.now();
+    return;
+  }
 
   const [created] = await db.insert(tradesTable).values({
     userId,
@@ -146,9 +177,9 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
   }).returning();
 
   runtime.lastActionAt = Date.now();
-  runtime.lastAction = `Opened ${created.direction.toUpperCase()} ${created.symbol} using ${created.amount}`;
+  runtime.lastAction = `Opened ${created.direction.toUpperCase()} ${created.symbol} • stake $${created.amount} • ${created.duration}s`;
   runtime.tradesOpened += 1;
-  logger.info({ userId, accountType: runtime.accountType, tradeId: created.id, symbol: created.symbol, direction: created.direction }, "Auto trade opened");
+  logger.info({ userId, accountType: runtime.accountType, tradeId: created.id, symbol: created.symbol, direction: created.direction, confidence: signal.confidence }, "Auto trade opened");
 }
 
 async function settleOpenTrades(userId: number, runtime: Runtime) {
@@ -277,7 +308,9 @@ export function startAutoTrading(userId: number, accountType: AccountType, confi
     wins: 0,
     losses: 0,
   };
-  const intervalMs = merged.aiSpeed === "fast" ? 3000 : 7000;
+  // A fast cycle scans every second, so a qualifying chart signal is acted on
+  // well inside the requested five-second analysis window.
+  const intervalMs = 1000;
   runtime.timer = setInterval(() => void tick(userId), intervalMs);
   runtimes.set(userId, runtime);
   void tick(userId);
