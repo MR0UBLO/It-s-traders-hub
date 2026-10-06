@@ -164,7 +164,7 @@ export default function AutoTrading() {
 
       <AnimatePresence>
         {configOpen && !enabled && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="w-full max-w-md glass-card rounded-2xl p-6 border border-border shadow-2xl" initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }}>
               <h2 className="text-xl font-bold">Start AI Trading</h2>
               <p className="text-xs text-muted-foreground mt-1">Choose the trade parameters before AI starts scanning.</p>
@@ -235,7 +235,7 @@ export default function AutoTrading() {
 
       <AnimatePresence>
         {scannerOpen && (
-          <motion.div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div className="fixed inset-0 z-[60] flex items-center justify-center bg-black p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="w-full max-w-sm glass-card rounded-2xl p-6 text-center border border-primary/20 shadow-2xl">
               <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 {phase === "scanning" ? <Search className="w-7 h-7 text-primary animate-pulse" /> : <Bot className="w-7 h-7 text-primary" />}
