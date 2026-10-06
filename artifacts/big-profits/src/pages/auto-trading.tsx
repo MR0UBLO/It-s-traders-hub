@@ -61,7 +61,7 @@ export default function AutoTrading() {
     void loadStatus();
     const timer = window.setInterval(() => void loadStatus(), enabled ? 1000 : 5000);
     return () => window.clearInterval(timer);
-  }, [account]);
+  }, [account, enabled]);
 
   const stopTrading = async () => {
     const r = await fetch(`${api}/auto-trading/stop`, {
