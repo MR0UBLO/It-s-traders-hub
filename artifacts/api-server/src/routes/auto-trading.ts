@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
-import { getAutoTradingData, getAutoTradingStatus, startAutoTrading, stopAutoTrading, type AutoTradingConfig } from "../lib/auto-trading.js";
+import { getAutoTradingData, getAutoTradingStatus, startAutoTrading, stopAutoTrading, closeAutoTradingPositions, type AutoTradingConfig } from "../lib/auto-trading.js";
 
 const router = Router();
 const validStrategies = new Set(["trend","scalp","swing","breakout","grid","smc"]);
@@ -50,8 +50,9 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
 router.post("/stop", requireAuth, async (req: AuthRequest, res) => {
   stopAutoTrading(req.userId!);
   const accountType = req.body?.accountType === "demo" ? "demo" : "real";
+  await closeAutoTradingPositions(req.userId!, accountType);
   const data = await getAutoTradingData(req.userId!, accountType);
-  res.json({ enabled: false, accountType, wallet: data.wallet, openTrades: data.openTrades, message: "Auto trading stopped. Existing open positions remain open." });
+  res.json({ enabled: false, accountType, wallet: data.wallet, openTrades: data.openTrades, closedTrades: data.closedTrades, message: "Auto trading stopped and open AI positions were closed." });
 });
 
 export default router;
