@@ -24,6 +24,8 @@ export default function AutoTrading() {
   const [asset, setAsset] = useState("EURUSD");
   const [investmentAmount, setInvestmentAmount] = useState("10");
   const [tradeDuration, setTradeDuration] = useState("3600");
+  const [strategy, setStrategy] = useState("trend");
+  const [speed, setSpeed] = useState("fast");
 
   const authHeaders = {
     "Content-Type": "application/json",
@@ -47,6 +49,7 @@ export default function AutoTrading() {
         if (d.config.asset) setAsset(String(d.config.asset));
         if (d.config.investmentAmount !== undefined) setInvestmentAmount(String(d.config.investmentAmount));
         if (d.config.tradeDuration !== undefined) setTradeDuration(String(d.config.tradeDuration));
+        if (d.config.strategy) setStrategy(String(d.config.strategy));
       }
     } catch {}
   };
@@ -80,8 +83,8 @@ export default function AutoTrading() {
       toast({ title: "Invalid stake", description: "Enter an investment amount greater than zero.", variant: "destructive" });
       return;
     }
-    if (!Number.isFinite(duration) || duration < 60) {
-      toast({ title: "Invalid duration", description: "Trade duration must be at least 1 minute.", variant: "destructive" });
+    if (!Number.isFinite(duration) || duration < 5) {
+      toast({ title: "Invalid duration", description: "Trade duration must be at least 5 seconds.", variant: "destructive" });
       return;
     }
 
@@ -97,7 +100,8 @@ export default function AutoTrading() {
         asset,
         investmentAmount: amount,
         tradeDuration: duration,
-        strategy: "trend",
+        strategy,
+        aiSpeed: speed,
         riskPct: 2,
         lotSize: 0.1,
         dailyTargetPct: 5,
@@ -179,8 +183,22 @@ export default function AutoTrading() {
                 </div>
 
                 <div>
+                  <Label>Trading Strategy</Label>
+                  <select value={strategy} onChange={e => setStrategy(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-background border border-border px-3 text-sm">
+                    <option value="trend">Trend Following</option>
+                    <option value="scalp">Fast Scalping</option>
+                    <option value="swing">Swing Trading</option>
+                    <option value="breakout">Breakout Hunter</option>
+                    <option value="smc">Smart Money</option>
+                  </select>
+                </div>
+
+                <div>
                   <Label>Trade Duration</Label>
                   <select value={tradeDuration} onChange={e => setTradeDuration(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-background border border-border px-3 text-sm">
+                    <option value="5">5 seconds</option>
+                    <option value="10">10 seconds</option>
+                    <option value="30">30 seconds</option>
                     <option value="60">1 minute</option>
                     <option value="300">5 minutes</option>
                     <option value="600">10 minutes</option>
@@ -189,6 +207,14 @@ export default function AutoTrading() {
                     <option value="3600">1 hour</option>
                     <option value="7200">2 hours</option>
                     <option value="14400">4 hours</option>
+                  </select>
+                </div>
+
+                <div>
+                  <Label>AI Speed</Label>
+                  <select value={speed} onChange={e => setSpeed(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-background border border-border px-3 text-sm">
+                    <option value="fast">Fast AI</option>
+                    <option value="slow">Slow AI</option>
                   </select>
                 </div>
 
