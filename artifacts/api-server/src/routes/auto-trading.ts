@@ -29,7 +29,7 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
     if (body.breakEven !== undefined) config.breakEven = Boolean(body.breakEven);
     if (body.asset !== undefined) {
       const asset = String(body.asset).toUpperCase();
-      const validAssets = ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD","ALL"];
+      const validAssets = ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD","NASDAQ","ALL"];
       if (!validAssets.includes(asset)) return res.status(400).json({ error: "Invalid asset" });
       config.asset = asset;
     }
