@@ -167,6 +167,16 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
       timeScale: {
         borderColor: "rgba(255,255,255,0.08)",
         timeVisible: true, secondsVisible: true,
+        tickMarkFormatter: (time) => {
+          const timestamp = typeof time === "number" ? time : 0;
+          return new Intl.DateTimeFormat("en-KE", {
+            timeZone: "Africa/Nairobi",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          }).format(new Date(timestamp * 1000));
+        },
       },
       crosshair: { mode: 1 },
       handleScroll: true, handleScale: true,
@@ -220,7 +230,21 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
       layout: { background: { type: ColorType.Solid, color: "transparent" }, textColor: "#9ca3af", fontSize: 10 },
       grid: { vertLines: { color: "rgba(255,255,255,0.03)" }, horzLines: { color: "rgba(255,255,255,0.03)" } },
       rightPriceScale: { borderColor: "rgba(255,255,255,0.06)", scaleMargins: { top: 0.1, bottom: 0 } },
-      timeScale: { borderColor: "rgba(255,255,255,0.06)", timeVisible: true, secondsVisible: true },
+      timeScale: {
+        borderColor: "rgba(255,255,255,0.06)",
+        timeVisible: true,
+        secondsVisible: true,
+        tickMarkFormatter: (time) => {
+          const timestamp = typeof time === "number" ? time : 0;
+          return new Intl.DateTimeFormat("en-KE", {
+            timeZone: "Africa/Nairobi",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          }).format(new Date(timestamp * 1000));
+        },
+      },
       crosshair: { mode: 1 }, handleScroll: true, handleScale: false,
     });
     const vs = vc.addSeries(HistogramSeries, { color: "#3b82f680", priceFormat: { type: "volume" } });
