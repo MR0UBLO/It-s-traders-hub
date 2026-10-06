@@ -130,7 +130,8 @@ export default function AutoTrading() {
       setStartError("Unable to connect to the trading server. Please try again.");
       return;
     }
-    const d = await r.json();
+    let d: any = {};
+    try { d = await r.json(); } catch { d = {}; }
 
     if (!r.ok) {
       setScannerOpen(false);
