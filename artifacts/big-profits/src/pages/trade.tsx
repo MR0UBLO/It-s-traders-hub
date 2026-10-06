@@ -803,11 +803,11 @@ useEffect(() => {
                       className="absolute top-full left-0 mt-1 z-50 glass-card rounded-xl p-2 shadow-xl min-w-[160px]"
                     >
                       {Object.entries(SYMBOL_GROUPS).map(([group, syms]) => (
-                        <div key={group} className="mb-2 last:mb-0">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-2 mb-1">{group}</p>
+                        <div key={group} className="mb-3 last:mb-0">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-2 py-1 mb-1">{group}</p>
                           {syms.filter((s) => ALL_SYMBOLS.includes(s)).map((s) => (
                             <button key={s} onClick={() => { setSymbol(s); setSymbolMenuOpen(false); }}
-                              className={`w-full text-left px-2 py-1.5 rounded-lg text-sm font-semibold transition-colors hover:bg-accent ${symbol === s ? "bg-primary/10" : ""}`}
+                              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold leading-5 whitespace-nowrap transition-colors hover:bg-accent ${symbol === s ? "bg-primary/10" : ""}`}
                               style={{ color: SYMBOL_COLORS[s] || "inherit" }}
                             >{s}</button>
                           ))}
