@@ -20,6 +20,7 @@ export type AutoTradingConfig = {
   investmentAmount: number;
   tradeDuration: number;
   asset: string;
+  aiSpeed?: "fast" | "slow";
 };
 
 type Runtime = {
@@ -46,6 +47,7 @@ const DEFAULTS: AutoTradingConfig = {
   investmentAmount: 10,
   tradeDuration: 3600,
   asset: "EURUSD",
+  aiSpeed: "fast",
 };
 
 const pipSize = (symbol: string) =>
