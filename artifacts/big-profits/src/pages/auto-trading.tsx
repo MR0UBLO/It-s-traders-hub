@@ -150,6 +150,10 @@ export default function AutoTrading() {
     await loadStatus();
   };
 
+  const openTrades = Array.isArray(liveStatus?.openTrades) ? liveStatus.openTrades : [];
+  const closedTrades = Array.isArray(liveStatus?.closedTrades) ? liveStatus.closedTrades : [];
+  const recentTrades = closedTrades.slice(0, 8);
+
   return (
     <div className="min-h-[70vh] flex items-center justify-center p-4">
       <div className="w-full max-w-md glass-card rounded-3xl border border-border p-6 text-center">
