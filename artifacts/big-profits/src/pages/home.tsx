@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 import {
   TrendingUp, BarChart2, Users, Shield, Zap, Globe,
   ChevronDown, Bot, ArrowRight, Star,
@@ -92,6 +93,7 @@ const FAQS = [
 ];
 
 export default function Home() {
+  const { isAuthenticated } = useAuth();
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-x-hidden">
       {/* ── NAV ── */}
@@ -325,22 +327,22 @@ export default function Home() {
             </div>
             {[
               { title: "Platform", links: [
-                  { label: "Dashboard", href: "/dashboard" },
-                  { label: "Trade", href: "/trade" },
-                  { label: "Markets", href: "/markets" },
-                  { label: "AI Signals", href: "/ai-signals" },
+                  { label: "Dashboard", href: isAuthenticated ? "/dashboard" : "/login" },
+                  { label: "Trade", href: isAuthenticated ? "/trade" : "/login" },
+                  { label: "Markets", href: isAuthenticated ? "/markets" : "/login" },
+                  { label: "AI Signals", href: isAuthenticated ? "/ai-signals" : "/login" },
                 ] },
               { title: "Account", links: [
                   { label: "Register", href: "/register" },
                   { label: "Log In", href: "/login" },
-                  { label: "Deposits", href: "/deposits" },
-                  { label: "Withdraw", href: "/withdraw" },
+                  { label: "Deposits", href: isAuthenticated ? "/deposits" : "/login" },
+                  { label: "Withdraw", href: isAuthenticated ? "/withdraw" : "/login" },
                 ] },
               { title: "Company", links: [
-                  { label: "Support", href: "/support" },
-                  { label: "Leaderboard", href: "/leaderboard" },
-                  { label: "Copy Trading", href: "/copy-trading" },
-                  { label: "Settings", href: "/settings" },
+                  { label: "Support", href: isAuthenticated ? "/support" : "/login" },
+                  { label: "Leaderboard", href: isAuthenticated ? "/leaderboard" : "/login" },
+                  { label: "Copy Trading", href: isAuthenticated ? "/copy-trading" : "/login" },
+                  { label: "Settings", href: isAuthenticated ? "/settings" : "/login" },
                 ] },
             ].map(({ title, links }) => (
               <div key={title}>
