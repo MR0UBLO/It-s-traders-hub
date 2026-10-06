@@ -194,7 +194,7 @@ export default function AutoTrading() {
 
                 <div>
                   <Label>Trading Strategy</Label>
-                  <select value={strategy} onChange={e => setStrategy(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-background border border-border px-3 text-sm">
+                  <select value={strategy} onChange={e => setStrategy(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm text-white [&>option]:bg-zinc-900 [&>option]:text-white">
                     <option value="trend">Trend Following</option>
                     <option value="scalp">Fast Scalping</option>
                     <option value="swing">Swing Trading</option>
@@ -205,7 +205,7 @@ export default function AutoTrading() {
 
                 <div>
                   <Label>Trade Duration</Label>
-                  <select value={tradeDuration} onChange={e => setTradeDuration(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-background border border-border px-3 text-sm">
+                  <select value={tradeDuration} onChange={e => setTradeDuration(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm text-white [&>option]:bg-zinc-900 [&>option]:text-white">
                     <option value="5">5 seconds</option>
                     <option value="10">10 seconds</option>
                     <option value="30">30 seconds</option>
@@ -222,7 +222,7 @@ export default function AutoTrading() {
 
                 <div>
                   <Label>AI Speed</Label>
-                  <select value={speed} onChange={e => setSpeed(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-background border border-border px-3 text-sm">
+                  <select value={speed} onChange={e => setSpeed(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm text-white [&>option]:bg-zinc-900 [&>option]:text-white">
                     <option value="fast">Fast AI</option>
                     <option value="slow">Slow AI</option>
                   </select>
