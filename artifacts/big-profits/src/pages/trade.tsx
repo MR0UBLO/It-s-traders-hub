@@ -82,6 +82,25 @@ const priceMinMove = (s: string) => {
 
 const n = (v: unknown): number => { const x = Number(v); return isNaN(x) ? 0 : x; };
 const fmt = (v: unknown, d: number) => n(v).toFixed(d);
+const formatChartTime = (time: Time) => {
+  let timestamp: number;
+  if (typeof time === "number") {
+    timestamp = time;
+  } else if (typeof time === "string") {
+    timestamp = Math.floor(new Date(time).getTime() / 1000);
+  } else {
+    timestamp = Math.floor(Date.UTC(time.year, time.month - 1, time.day) / 1000);
+  }
+
+  return new Intl.DateTimeFormat("en-KE", {
+    timeZone: "Africa/Nairobi",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(timestamp * 1000));
+};
+
 const fmtKes = (v: unknown) =>
   "$" + n(v).toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -167,16 +186,7 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
       timeScale: {
         borderColor: "rgba(255,255,255,0.08)",
         timeVisible: true, secondsVisible: true,
-        tickMarkFormatter: (time) => {
-          const timestamp = typeof time === "number" ? time : 0;
-          return new Intl.DateTimeFormat("en-KE", {
-            timeZone: "Africa/Nairobi",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: false,
-          }).format(new Date(timestamp * 1000));
-        },
+        tickMarkFormatter: (time) => formatChartTime(time),
       },
       crosshair: { mode: 1 },
       handleScroll: true, handleScale: true,
@@ -234,16 +244,7 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
         borderColor: "rgba(255,255,255,0.06)",
         timeVisible: true,
         secondsVisible: true,
-        tickMarkFormatter: (time) => {
-          const timestamp = typeof time === "number" ? time : 0;
-          return new Intl.DateTimeFormat("en-KE", {
-            timeZone: "Africa/Nairobi",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: false,
-          }).format(new Date(timestamp * 1000));
-        },
+        tickMarkFormatter: (time) => formatChartTime(time),
       },
       crosshair: { mode: 1 }, handleScroll: true, handleScale: false,
     });
