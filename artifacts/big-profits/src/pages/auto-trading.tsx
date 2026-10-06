@@ -104,7 +104,7 @@ export default function AutoTrading() {
     try {
       r = await fetch(`${api}/auto-trading/start`, {
       method: "POST",
-      headers: authHeaders,
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         accountType: account,
         asset,
