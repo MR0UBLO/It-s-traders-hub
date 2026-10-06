@@ -135,7 +135,7 @@ export default function AutoTrading() {
         </div>
 
         <h1 className="text-2xl font-bold">AI Trading</h1>
-        <p className="text-sm text-muted-foreground mt-2">
+        <p className="text-sm text-zinc-300 mt-2">
           {enabled ? "AI is actively monitoring the market for qualifying signals." : "Let AI scan the market and trade from your selected wallet."}
         </p>
 
@@ -165,21 +165,21 @@ export default function AutoTrading() {
       <AnimatePresence>
         {configOpen && !enabled && (
           <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="w-full max-w-md glass-card rounded-2xl p-6 border border-border shadow-2xl" initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }}>
-              <h2 className="text-xl font-bold">Start AI Trading</h2>
-              <p className="text-xs text-muted-foreground mt-1">Choose the trade parameters before AI starts scanning.</p>
+            <motion.div className="w-full max-w-md rounded-2xl p-6 border border-zinc-700 bg-zinc-950 text-white shadow-2xl" initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }}>
+              <h2 className="text-xl font-bold text-white">Start AI Trading</h2>
+              <p className="text-xs text-zinc-300 mt-1">Choose the trade parameters before AI starts scanning.</p>
 
               <div className="space-y-4 mt-5">
                 <div>
                   <Label>Asset</Label>
-                  <select value={asset} onChange={e => setAsset(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-background border border-border px-3 text-sm">
+                  <select value={asset} onChange={e => setAsset(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm text-white">
                     {SYMBOLS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
 
                 <div>
                   <Label>Stake / Investment (USD)</Label>
-                  <Input className="mt-1" type="number" min="1" value={investmentAmount} onChange={e => setInvestmentAmount(e.target.value)} />
+                  <Input className="mt-1 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500" type="number" min="1" value={investmentAmount} onChange={e => setInvestmentAmount(e.target.value)} />
                 </div>
 
                 <div>
@@ -218,8 +218,8 @@ export default function AutoTrading() {
                   </select>
                 </div>
 
-                <div className="rounded-xl bg-muted/20 p-3 text-xs text-muted-foreground">
-                  <div className="flex justify-between"><span>Wallet</span><span className="font-semibold text-foreground">{isDemo ? "Demo" : "Real"}</span></div>
+                <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-3 text-xs text-zinc-300">
+                  <div className="flex justify-between"><span>Wallet</span><span className="font-semibold text-white">{isDemo ? "Demo" : "Real"}</span></div>
                   <div className="flex justify-between mt-1"><span>Market engine</span><span className="font-semibold text-foreground">Live repo engine</span></div>
                 </div>
 
@@ -236,7 +236,7 @@ export default function AutoTrading() {
       <AnimatePresence>
         {scannerOpen && (
           <motion.div className="fixed inset-0 z-[60] flex items-center justify-center bg-black p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="w-full max-w-sm glass-card rounded-2xl p-6 text-center border border-primary/20 shadow-2xl">
+            <motion.div className="w-full max-w-sm rounded-2xl p-6 text-center border border-zinc-700 bg-zinc-950 text-white shadow-2xl">
               <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 {phase === "scanning" ? <Search className="w-7 h-7 text-primary animate-pulse" /> : <Bot className="w-7 h-7 text-primary" />}
               </div>
@@ -245,8 +245,8 @@ export default function AutoTrading() {
                 {phase === "scanning" ? "Analyzing the repo market engine for a qualifying signal." : "Waiting for a qualifying signal before opening the next trade."}
               </p>
 
-              <div className="mt-5 space-y-2 text-left text-xs">
-                <div className="flex justify-between"><span>Asset</span><span className="font-mono font-semibold">{asset}</span></div>
+              <div className="mt-5 space-y-2 text-left text-xs text-zinc-300">
+                <div className="flex justify-between"><span>Asset</span><span className="font-mono font-semibold text-white">{asset}</span></div>
                 <div className="flex justify-between"><span>Stake</span><span className="font-mono font-semibold">${Number(investmentAmount).toFixed(2)}</span></div>
                 <div className="flex justify-between"><span>Duration</span><span className="font-mono font-semibold">{Math.round(Number(tradeDuration) / 60)} min</span></div>
                 <div className="flex justify-between"><span>Wallet</span><span className="font-mono font-semibold">{isDemo ? "Demo" : "Real"}</span></div>
