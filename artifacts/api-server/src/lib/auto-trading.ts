@@ -396,9 +396,18 @@ export async function getAutoTradingData(userId: number, accountType: AccountTyp
     eq(tradesTable.userId, userId),
     eq(tradesTable.accountType, accountType)
   )).orderBy(desc(tradesTable.createdAt)).limit(100);
+  const openTrades = trades.filter((t) => t.status === "open").map((trade) => {
+    const market = getCurrentPrice(trade.symbol);
+    const currentPrice = trade.direction === "buy" ? market.bid : market.ask;
+    return {
+      ...trade,
+      currentPrice,
+      remainingSeconds: Math.max(0, Math.ceil((new Date(trade.expiryTime).getTime() - Date.now()) / 1000)),
+    };
+  });
   return {
     wallet: wallet ? { balance: Number(wallet.balance), totalProfit: Number(wallet.totalProfit), totalDeposited: Number(wallet.totalDeposited) } : null,
-    openTrades: trades.filter((t) => t.status === "open"),
+    openTrades,
     closedTrades: trades.filter((t) => t.status === "closed"),
   };
 }
