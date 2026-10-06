@@ -324,6 +324,46 @@ export function stopAutoTrading(userId: number) {
   runtimes.delete(userId);
 }
 
+// Manual Stop means stop opening new AI trades and close any positions opened by this
+// auto-trading session at the current market price so the rest of the app cannot
+// continue displaying them as active after the user has stopped AI Trading.
+export async function closeAutoTradingPositions(userId: number, accountType: AccountType) {
+  const walletTable = accountType === "demo" ? demoWalletsTable : walletsTable;
+  const openTrades = await db.select().from(tradesTable).where(and(
+    eq(tradesTable.userId, userId),
+    eq(tradesTable.accountType, accountType),
+    eq(tradesTable.status, "open")
+  ));
+
+  for (const trade of openTrades) {
+    const price = getCurrentPrice(trade.symbol);
+    const closePrice = trade.direction === "buy" ? price.bid : price.ask;
+    const amount = Number(trade.amount);
+    const payoutPercent = Number(trade.payoutPercent ?? 95);
+    const win = trade.direction === "buy"
+      ? closePrice > Number(trade.entryPrice)
+      : closePrice < Number(trade.entryPrice);
+    const profitLoss = win ? amount * (payoutPercent / 100) : -amount;
+    const payout = win ? amount + profitLoss : 0;
+
+    const updated = await db.update(tradesTable).set({
+      status: "closed",
+      result: win ? "WIN" : "LOSS",
+      closePrice: String(closePrice),
+      profitLoss: String(Number(profitLoss.toFixed(4))),
+      profitLossPercent: String(Number(((profitLoss / amount) * 100).toFixed(4))),
+      closedAt: new Date(),
+    }).where(and(eq(tradesTable.id, trade.id), eq(tradesTable.status, "open"))).returning();
+
+    if (updated.length) {
+      await db.update(walletTable).set({
+        balance: sql`${walletTable.balance} + ${payout}`,
+        totalProfit: sql`${walletTable.totalProfit} + ${profitLoss}`,
+      }).where(eq(walletTable.userId, userId));
+    }
+  }
+}
+
 export function getAutoTradingStatus(userId: number) {
   const runtime = runtimes.get(userId);
   return runtime ? {
