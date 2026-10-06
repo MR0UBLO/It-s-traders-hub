@@ -399,9 +399,18 @@ export async function getAutoTradingData(userId: number, accountType: AccountTyp
   const openTrades = trades.filter((t) => t.status === "open").map((trade) => {
     const market = getCurrentPrice(trade.symbol);
     const currentPrice = trade.direction === "buy" ? market.bid : market.ask;
+    const entry = Number(trade.entryPrice);
+    const amount = Number(trade.amount);
+    const move = trade.direction === "buy" ? currentPrice - entry : entry - currentPrice;
+    const priceScale = trade.symbol === "EURUSD" || trade.symbol === "GBPUSD" ? 10000 : trade.symbol === "USDJPY" ? 100 : 1;
+    const floatingProfitLoss = Number.isFinite(entry) && entry !== 0
+      ? Number((move * priceScale * amount).toFixed(4))
+      : 0;
     return {
       ...trade,
       currentPrice,
+      floatingProfitLoss,
+      floatingProfitLossPercent: amount > 0 ? Number(((floatingProfitLoss / amount) * 100).toFixed(4)) : 0,
       remainingSeconds: Math.max(0, Math.ceil((new Date(trade.expiryTime).getTime() - Date.now()) / 1000)),
     };
   });
