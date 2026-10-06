@@ -55,7 +55,7 @@ const pipSize = (symbol: string) =>
 const ticket = () => `AT-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
 function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sell" } | null {
-  const candidates = runtime.config.asset === "ALL" ? SYMBOLS.filter((s) => ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD"].includes(s)) : [runtime.config.asset];
+  const candidates = runtime.config.asset === "ALL" ? SYMBOLS.filter((s) => ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD","NASDAQ"].includes(s)) : [runtime.config.asset];
   let best: { symbol: string; direction: "buy" | "sell"; move: number } | null = null;
 
   for (const symbol of candidates) {
