@@ -66,8 +66,8 @@ const AI_INSIGHTS = [
 
 export default function Dashboard() {
   const { mode } = useAccountStore();
-  const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({ account: mode }, { query: { queryKey: getGetDashboardSummaryQueryKey({ account: mode }) } });
-  const { data: trades, isLoading: loadingTrades } = useGetTrades({ account: mode }, { query: { queryKey: getGetTradesQueryKey({ account: mode }) } });
+  const { data: summary, isLoading: loadingSummary } = useGetDashboardSummary({ account: mode }, { query: { queryKey: getGetDashboardSummaryQueryKey({ account: mode }), refetchInterval: 2000 } });
+  const { data: trades, isLoading: loadingTrades } = useGetTrades({ account: mode }, { query: { queryKey: getGetTradesQueryKey({ account: mode }), refetchInterval: 2000 } });
   const { data: prices } = useGetMarketPrices({ query: { queryKey: getGetMarketPricesQueryKey(), refetchInterval: 5000 } });
 
   const recentTrades = trades?.slice(0, 6) || [];
