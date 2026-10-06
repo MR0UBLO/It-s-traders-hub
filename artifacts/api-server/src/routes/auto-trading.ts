@@ -18,7 +18,7 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
     const accountType = body.accountType === "demo" ? "demo" : "real";
     const config: Partial<AutoTradingConfig> = {};
     if (validStrategies.has(body.strategy)) config.strategy = body.strategy;
-    for (const key of ["riskPct","lotSize","dailyTargetPct","dailyLossPct","maxTrades","stopLossPips","takeProfitPips"] as const) {
+    for (const key of ["riskPct","lotSize","dailyTargetPct","dailyLossPct","maxTrades","stopLossPips","takeProfitPips","investmentAmount","tradeDuration"] as const) {
       if (body[key] !== undefined) {
         const value = Number(body[key]);
         if (!Number.isFinite(value) || value <= 0) return res.status(400).json({ error: `Invalid ${key}` });
@@ -27,6 +27,12 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
     }
     if (body.trailingStop !== undefined) config.trailingStop = Boolean(body.trailingStop);
     if (body.breakEven !== undefined) config.breakEven = Boolean(body.breakEven);
+    if (body.asset !== undefined) {
+      const asset = String(body.asset).toUpperCase();
+      const validAssets = ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD","ALL"];
+      if (!validAssets.includes(asset)) return res.status(400).json({ error: "Invalid asset" });
+      config.asset = asset;
+    }
 
     const data = await getAutoTradingData(req.userId!, accountType);
     if (!data.wallet || Number(data.wallet.balance) <= 0) {
