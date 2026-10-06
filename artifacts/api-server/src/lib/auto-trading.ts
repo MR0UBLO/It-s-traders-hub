@@ -1,6 +1,7 @@
 import { db, tradesTable, walletsTable, demoWalletsTable } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { getCurrentPrice, SYMBOLS } from "./market.js";
+import { generateSignalForSymbol } from "./ai-engine.js";
 import { logger } from "./logger.js";
 
 type AccountType = "real" | "demo";
@@ -28,7 +29,6 @@ type Runtime = {
   config: AutoTradingConfig;
   enabled: boolean;
   timer: ReturnType<typeof setInterval> | null;
-  lastPrices: Record<string, number>;
 };
 
 const runtimes = new Map<number, Runtime>();
@@ -57,19 +57,28 @@ const pipSize = (symbol: string) =>
 const ticket = () => `AT-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
 function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sell" } | null {
-  const candidates = runtime.config.asset === "ALL" ? SYMBOLS.filter((s) => ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD","NASDAQ"].includes(s)) : [runtime.config.asset];
-  let best: { symbol: string; direction: "buy" | "sell"; move: number } | null = null;
+  const candidates = runtime.config.asset === "ALL"
+    ? SYMBOLS.filter((s) => ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD"].includes(s))
+    : [runtime.config.asset];
+
+  let best: { symbol: string; direction: "buy" | "sell"; strength: number } | null = null;
 
   for (const symbol of candidates) {
-    const price = getCurrentPrice(symbol);
-    const mid = (price.bid + price.ask) / 2;
-    const previous = runtime.lastPrices[symbol];
-    runtime.lastPrices[symbol] = mid;
-    if (!previous || previous <= 0) continue;
-    const move = (mid - previous) / previous;
-    if (Math.abs(move) < (runtime.config.strategy === "scalp" ? 0.000005 : 0.00001)) continue;
-    const direction = move > 0 ? "buy" : "sell";
-    if (!best || Math.abs(move) > Math.abs(best.move)) best = { symbol, direction, move };
+    if (!SYMBOLS.includes(symbol as typeof SYMBOLS[number])) continue;
+
+    // The AI reads the same shared price history that feeds the charts.
+    // The signal combines RSI, momentum, trend slope, SMA20/SMA50 and volatility
+    // instead of reacting to only the most recent price tick.
+    const signal = generateSignalForSymbol(symbol as typeof SYMBOLS[number]);
+    if (signal.signal === "HOLD") continue;
+
+    if (!best || signal.confidence > best.strength) {
+      best = {
+        symbol,
+        direction: signal.signal === "BUY" ? "buy" : "sell",
+        strength: signal.confidence,
+      };
+    }
   }
 
   return best ? { symbol: best.symbol, direction: best.direction } : null;
@@ -152,7 +161,6 @@ async function tick(userId: number) {
       await openAutoTrade(userId, runtime);
     }
 
-    // Daily protection is enforced from today's realized P/L.
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const closed = await db.select().from(tradesTable).where(and(
@@ -183,12 +191,9 @@ export function startAutoTrading(userId: number, accountType: AccountType, confi
     config: merged,
     enabled: true,
     timer: null,
-    lastPrices: {},
   };
-  // Re-evaluate the selected market every five seconds using the same price engine as the trade chart.
   runtime.timer = setInterval(() => void tick(userId), 5000);
   runtimes.set(userId, runtime);
-  // First scan is immediate; a trade opens only after the engine has enough price movement to produce a signal.
   void tick(userId);
   return merged;
 }
