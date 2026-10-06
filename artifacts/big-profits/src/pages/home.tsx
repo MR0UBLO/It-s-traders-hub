@@ -324,17 +324,32 @@ export default function Home() {
               <p className="text-xs text-muted-foreground leading-relaxed">Professional trading platform for serious traders.</p>
             </div>
             {[
-              { title: "Platform", links: ["Dashboard", "Trade", "Markets", "AI Signals"] },
-              { title: "Account", links: ["Register", "Log In", "Deposits", "Withdraw"] },
-              { title: "Company", links: ["Support", "Leaderboard", "Copy Trading", "Settings"] },
+              { title: "Platform", links: [
+                  { label: "Dashboard", href: "/dashboard" },
+                  { label: "Trade", href: "/trade" },
+                  { label: "Markets", href: "/markets" },
+                  { label: "AI Signals", href: "/ai-signals" },
+                ] },
+              { title: "Account", links: [
+                  { label: "Register", href: "/register" },
+                  { label: "Log In", href: "/login" },
+                  { label: "Deposits", href: "/deposits" },
+                  { label: "Withdraw", href: "/withdraw" },
+                ] },
+              { title: "Company", links: [
+                  { label: "Support", href: "/support" },
+                  { label: "Leaderboard", href: "/leaderboard" },
+                  { label: "Copy Trading", href: "/copy-trading" },
+                  { label: "Settings", href: "/settings" },
+                ] },
             ].map(({ title, links }) => (
               <div key={title}>
                 <p className="text-xs font-semibold uppercase tracking-widest mb-3 text-muted-foreground">{title}</p>
                 <ul className="space-y-2">
-                  {links.map((link) => (
-                    <li key={link}>
-                      <Link href={`/${link.toLowerCase().replace(" ", "-")}`}>
-                        <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer">{link}</span>
+                  {links.map(({ label, href }) => (
+                    <li key={label}>
+                      <Link href={href}>
+                        <span className="text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer">{label}</span>
                       </Link>
                     </li>
                   ))}
