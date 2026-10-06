@@ -17,6 +17,9 @@ export type AutoTradingConfig = {
   takeProfitPips: number;
   trailingStop: boolean;
   breakEven: boolean;
+  investmentAmount: number;
+  tradeDuration: number;
+  asset: string;
 };
 
 type Runtime = {
@@ -40,6 +43,9 @@ const DEFAULTS: AutoTradingConfig = {
   takeProfitPips: 60,
   trailingStop: false,
   breakEven: false,
+  investmentAmount: 10,
+  tradeDuration: 3600,
+  asset: "EURUSD",
 };
 
 const pipSize = (symbol: string) =>
@@ -49,7 +55,7 @@ const pipSize = (symbol: string) =>
 const ticket = () => `AT-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
 function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sell" } | null {
-  const candidates = SYMBOLS.filter((s) => ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD"].includes(s));
+  const candidates = runtime.config.asset === "ALL" ? SYMBOLS.filter((s) => ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD"].includes(s)) : [runtime.config.asset];
   let best: { symbol: string; direction: "buy" | "sell"; move: number } | null = null;
 
   for (const symbol of candidates) {
@@ -74,6 +80,7 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
 
   const balance = Number(wallet.balance);
   if (balance < 1) return;
+  if (Number(runtime.config.investmentAmount) > balance) return;
 
   const open = await db.select().from(tradesTable).where(and(
     eq(tradesTable.userId, userId),
@@ -85,7 +92,8 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
   const signal = pickSignal(runtime);
   if (!signal) return;
 
-  const amount = Math.max(1, Math.min(balance * (runtime.config.riskPct / 100), balance));
+  const requested = Number(runtime.config.investmentAmount);
+  const amount = Math.max(1, Math.min(Number.isFinite(requested) && requested > 0 ? requested : balance * (runtime.config.riskPct / 100), balance));
   const price = getCurrentPrice(signal.symbol);
   const entry = signal.direction === "buy" ? price.ask : price.bid;
   const size = pipSize(signal.symbol);
@@ -107,8 +115,8 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
     symbol: signal.symbol,
     direction: signal.direction,
     amount: String(Number(amount.toFixed(4))),
-    duration: 3600,
-    expiryTime: new Date(Date.now() + 3600 * 1000),
+    duration: runtime.config.tradeDuration,
+    expiryTime: new Date(Date.now() + runtime.config.tradeDuration * 1000),
     payoutPercent: "95",
     result: null,
     lotSize: String(runtime.config.lotSize),
