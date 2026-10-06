@@ -35,7 +35,7 @@ export default function AutoTrading() {
 
   const { data: wallet } = useGetWallet(
     { account },
-    { query: { queryKey: getGetWalletQueryKey({ account }), refetchInterval: enabled ? 3000 : 10000 } }
+    { query: { queryKey: getGetWalletQueryKey({ account }), refetchInterval: enabled ? 2000 : 10000 } }
   );
 
   const loadStatus = async () => {
@@ -141,7 +141,7 @@ export default function AutoTrading() {
     }
 
     setEnabled(true);
-    window.setTimeout(() => setPhase("monitoring"), 2200);
+    window.setTimeout(() => setPhase("monitoring"), 5000);
     toast({ title: "AI Trading started", description: `Using the ${isDemo ? "Demo" : "Real"} wallet and ${asset} market engine.` });
     await loadStatus();
   };
@@ -166,6 +166,7 @@ export default function AutoTrading() {
           <div className="rounded-xl bg-muted/20 p-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Balance</p>
             <p className="font-semibold mt-1">${Number(wallet?.balance ?? 0).toFixed(2)}</p>
+            <p className="text-[11px] mt-1 text-zinc-400">P/L: <span className={Number(wallet?.totalProfit ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}>${Number(wallet?.totalProfit ?? 0).toFixed(2)}</span></p>
           </div>
         </div>
 
