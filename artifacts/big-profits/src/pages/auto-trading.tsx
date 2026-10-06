@@ -304,6 +304,7 @@ export default function AutoTrading() {
                       <span>Entry: <b className="text-zinc-200">{Number(trade.entryPrice).toFixed(5)}</b></span>
                       <span>Status: <b className="text-emerald-300">OPEN</b></span>
                       <span>Current: <b className="text-zinc-200">{trade.currentPrice != null ? Number(trade.currentPrice).toFixed(5) : "—"}</b></span>
+                      <span>Live P/L: <b className={Number(trade.floatingProfitLoss ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}>{Number(trade.floatingProfitLoss ?? 0) >= 0 ? "+" : ""}${Number(trade.floatingProfitLoss ?? 0).toFixed(2)}</b></span>
                       <span>Remaining: <b className="text-white">{trade.remainingSeconds != null ? trade.remainingSeconds + "s" : "—"}</b></span>
                     </div>
                   </div>
