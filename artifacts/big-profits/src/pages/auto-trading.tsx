@@ -59,7 +59,7 @@ export default function AutoTrading() {
 
   useEffect(() => {
     void loadStatus();
-    const timer = window.setInterval(() => void loadStatus(), 5000);
+    const timer = window.setInterval(() => void loadStatus(), enabled ? 1000 : 5000);
     return () => window.clearInterval(timer);
   }, [account]);
 
@@ -76,7 +76,8 @@ export default function AutoTrading() {
     }
     setEnabled(false);
     setScannerOpen(false);
-    toast({ title: "AI Trading stopped" });
+    await loadStatus();
+    toast({ title: "AI Trading stopped", description: "Open AI positions were closed and the live feed was updated." });
   };
 
   const startTrading = async () => {
@@ -284,7 +285,38 @@ export default function AutoTrading() {
                 <div className="flex justify-between"><span>Wallet</span><span className="font-mono font-semibold">{isDemo ? "Demo" : "Real"}</span></div>
               </div>
 
-              <Button variant="outline" className="w-full mt-5" onClick={() => setScannerOpen(false)}>Close</Button>
+              <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-left">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-white">LIVE TRADE FEED</span>
+                  <span className="text-[10px] text-zinc-400">{openTrades.length} open</span>
+                </div>
+                {openTrades.length > 0 ? openTrades.map((trade: any) => (
+                  <div key={trade.id} className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2 mb-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-bold text-emerald-300">{String(trade.direction).toUpperCase()} {trade.symbol}</span>
+                      <span className="font-mono text-white">${Number(trade.amount).toFixed(2)}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1 mt-2 text-[10px] text-zinc-400">
+                      <span>Entry: <b className="text-zinc-200">{Number(trade.entryPrice).toFixed(5)}</b></span>
+                      <span>Status: <b className="text-emerald-300">OPEN</b></span>
+                      <span>Current: <b className="text-zinc-200">{trade.currentPrice != null ? Number(trade.currentPrice).toFixed(5) : "—"}</b></span>
+                      <span>Remaining: <b className="text-white">{trade.remainingSeconds != null ? trade.remainingSeconds + "s" : "—"}</b></span>
+                    </div>
+                  </div>
+                )) : <p className="text-[11px] text-zinc-400">No trade is currently open. AI is scanning for the next qualifying signal.</p>}
+
+                <div className="mt-3 border-t border-zinc-800 pt-2">
+                  <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">Recent results</p>
+                  {recentTrades.length > 0 ? recentTrades.map((trade: any) => (
+                    <div key={trade.id} className="flex items-center justify-between py-1.5 text-[10px]">
+                      <span className="text-zinc-300">{String(trade.direction).toUpperCase()} {trade.symbol}</span>
+                      <span className={trade.result === "WIN" ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{trade.result} {Number(trade.profitLoss ?? 0) >= 0 ? "+" : ""}${Number(trade.profitLoss ?? 0).toFixed(2)}</span>
+                    </div>
+                  )) : <p className="text-[11px] text-zinc-500">No completed trades yet.</p>}
+                </div>
+              </div>
+
+                            <Button variant="outline" className="w-full mt-5" onClick={() => setScannerOpen(false)}>Close</Button>
             </motion.div>
           </motion.div>
         )}
