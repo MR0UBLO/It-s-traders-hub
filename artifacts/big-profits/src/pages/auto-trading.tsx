@@ -77,6 +77,12 @@ export default function AutoTrading() {
   };
 
   const startTrading = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
+
     const amount = Number(investmentAmount);
     const duration = Number(tradeDuration);
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -117,6 +123,10 @@ export default function AutoTrading() {
 
     if (!r.ok) {
       setScannerOpen(false);
+      if (r.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
       toast({ title: "AI Trading could not start", description: d.error || "Check the selected wallet balance.", variant: "destructive" });
       return;
     }
