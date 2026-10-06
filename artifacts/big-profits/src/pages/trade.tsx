@@ -83,14 +83,12 @@ const priceMinMove = (s: string) => {
 const n = (v: unknown): number => { const x = Number(v); return isNaN(x) ? 0 : x; };
 const fmt = (v: unknown, d: number) => n(v).toFixed(d);
 const formatChartTime = (time: Time) => {
-  let timestamp: number;
-  if (typeof time === "number") {
-    timestamp = time;
-  } else if (typeof time === "string") {
-    timestamp = Math.floor(new Date(time).getTime() / 1000);
-  } else {
-    timestamp = Math.floor(Date.UTC(time.year, time.month - 1, time.day) / 1000);
-  }
+  const timestamp =
+    typeof time === "number"
+      ? time
+      : typeof time === "string"
+        ? Math.floor(new Date(`${time}T00:00:00Z`).getTime() / 1000)
+        : Math.floor(Date.UTC(time.year, time.month - 1, time.day) / 1000);
 
   return new Intl.DateTimeFormat("en-KE", {
     timeZone: "Africa/Nairobi",
