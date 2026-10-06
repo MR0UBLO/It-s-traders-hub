@@ -172,7 +172,7 @@ export default function AutoTrading() {
               <div className="space-y-4 mt-5">
                 <div>
                   <Label>Asset</Label>
-                  <select value={asset} onChange={e => setAsset(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm text-white">
+                  <select value={asset} onChange={e => setAsset(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm text-white [&>option]:bg-zinc-900 [&>option]:text-white">
                     {SYMBOLS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
