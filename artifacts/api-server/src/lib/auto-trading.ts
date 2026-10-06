@@ -142,6 +142,69 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
   logger.info({ userId, accountType: runtime.accountType, tradeId: created.id, symbol: created.symbol, direction: created.direction }, "Auto trade opened");
 }
 
+async function settleOpenTrades(userId: number, runtime: Runtime) {
+  const walletTable = runtime.accountType === "demo" ? demoWalletsTable : walletsTable;
+  const openTrades = await db.select().from(tradesTable).where(and(
+    eq(tradesTable.userId, userId),
+    eq(tradesTable.accountType, runtime.accountType),
+    eq(tradesTable.status, "open")
+  ));
+
+  for (const trade of openTrades) {
+    const now = Date.now();
+    const expiry = new Date(trade.expiryTime).getTime();
+    const price = getCurrentPrice(trade.symbol);
+    const closePrice = trade.direction === "buy" ? price.bid : price.ask;
+
+    const stopHit = trade.stopLoss != null && (
+      trade.direction === "buy"
+        ? closePrice <= Number(trade.stopLoss)
+        : closePrice >= Number(trade.stopLoss)
+    );
+    const targetHit = trade.takeProfit != null && (
+      trade.direction === "buy"
+        ? closePrice >= Number(trade.takeProfit)
+        : closePrice <= Number(trade.takeProfit)
+    );
+
+    if (!stopHit && !targetHit && now < expiry) continue;
+
+    const amount = Number(trade.amount);
+    const payoutPercent = Number(trade.payoutPercent ?? 95);
+    const win = targetHit || (
+      !stopHit &&
+      (trade.direction === "buy" ? closePrice > Number(trade.entryPrice) : closePrice < Number(trade.entryPrice))
+    );
+    const profitLoss = win ? amount * (payoutPercent / 100) : -amount;
+    const payout = win ? amount + profitLoss : 0;
+
+    const updated = await db.update(tradesTable).set({
+      status: "closed",
+      result: win ? "WIN" : "LOSS",
+      closePrice: String(closePrice),
+      profitLoss: String(Number(profitLoss.toFixed(4))),
+      profitLossPercent: String(Number(((profitLoss / amount) * 100).toFixed(4))),
+      closedAt: new Date(),
+    }).where(and(eq(tradesTable.id, trade.id), eq(tradesTable.status, "open"))).returning();
+
+    if (updated.length) {
+      await db.update(walletTable).set({
+        balance: sql`${walletTable.balance} + ${payout}`,
+        totalProfit: sql`${walletTable.totalProfit} + ${profitLoss}`,
+      }).where(eq(walletTable.userId, userId));
+
+      logger.info({
+        userId,
+        accountType: runtime.accountType,
+        tradeId: trade.id,
+        symbol: trade.symbol,
+        result: win ? "WIN" : "LOSS",
+        profitLoss,
+      }, "Auto trade settled");
+    }
+  }
+}
+
 async function tick(userId: number) {
   const runtime = runtimes.get(userId);
   if (!runtime?.enabled) return;
@@ -150,6 +213,8 @@ async function tick(userId: number) {
     const walletTable = runtime.accountType === "demo" ? demoWalletsTable : walletsTable;
     const [wallet] = await db.select().from(walletTable).where(eq(walletTable.userId, userId)).limit(1);
     if (!wallet) return;
+
+    await settleOpenTrades(userId, runtime);
 
     const open = await db.select().from(tradesTable).where(and(
       eq(tradesTable.userId, userId),
@@ -192,7 +257,8 @@ export function startAutoTrading(userId: number, accountType: AccountType, confi
     enabled: true,
     timer: null,
   };
-  runtime.timer = setInterval(() => void tick(userId), 5000);
+  const intervalMs = merged.aiSpeed === "fast" ? 3000 : 7000;
+  runtime.timer = setInterval(() => void tick(userId), intervalMs);
   runtimes.set(userId, runtime);
   void tick(userId);
   return merged;
