@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, Zap, TrendingUp, TrendingDown, BarChart2, Power, AlertTriangle, Shield, RefreshCw, BookOpen, Settings, ChevronDown } from "lucide-react";
+import { Bot, Zap, TrendingUp, TrendingDown, BarChart2, Power, AlertTriangle, Shield, RefreshCw, BookOpen, Settings, ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +49,11 @@ export default function AutoTrading() {
   const [breakeven, setBreakeven]     = useState(false);
   const [emergency, setEmergency]     = useState(false);
   const [investmentAmount, setInvestmentAmount] = useState("10");
+  const [tradeDuration, setTradeDuration] = useState("3600");
+  const [asset, setAsset] = useState("EURUSD");
+  const [configOpen, setConfigOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerPhase, setScannerPhase] = useState<"scanning"|"monitoring">("scanning");
   const [tab, setTab]                 = useState<"active"|"closed"|"journal"|"stats">("active");
   const [stratOpen, setStratOpen]     = useState(false);
 
@@ -78,6 +83,9 @@ export default function AutoTrading() {
         setTp(String(d.config.takeProfitPips));
         setTrailing(Boolean(d.config.trailingStop));
         setBreakeven(Boolean(d.config.breakEven));
+        if (d.config.investmentAmount !== undefined) setInvestmentAmount(String(d.config.investmentAmount));
+        if (d.config.tradeDuration !== undefined) setTradeDuration(String(d.config.tradeDuration));
+        if (d.config.asset) setAsset(String(d.config.asset));
       }
     } catch {}
   };
@@ -114,15 +122,35 @@ export default function AutoTrading() {
         return;
       }
       setServerEnabled(false);
+      setScannerOpen(false);
       toast({ title: "Auto Trading stopped", description: "Existing open positions remain recorded and can settle normally." });
       return;
     }
+    setConfigOpen(true);
+  };
 
+  const startConfiguredTrading = async () => {
+    const amount = Number(investmentAmount);
+    const duration = Number(tradeDuration);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast({ title: "Enter a valid investment amount", description: "The stake must be greater than zero.", variant: "destructive" });
+      return;
+    }
+    if (!Number.isFinite(duration) || duration < 60) {
+      toast({ title: "Enter a valid trade duration", description: "Trade duration must be at least 1 minute.", variant: "destructive" });
+      return;
+    }
+    setConfigOpen(false);
+    setScannerPhase("scanning");
+    setScannerOpen(true);
     const r = await fetch(`${api}/auto-trading/start`, {
       method: "POST", headers: authHeaders,
       body: JSON.stringify({
         accountType: account,
         strategy,
+        investmentAmount: amount,
+        tradeDuration: duration,
+        asset,
         riskPct: Number(riskPct),
         lotSize: Number(posSize),
         dailyTargetPct: Number(dailyTarget),
@@ -136,12 +164,15 @@ export default function AutoTrading() {
     });
     const d = await r.json();
     if (!r.ok) {
+      setScannerOpen(false);
       toast({ title: "Auto Trading could not start", description: d.error || "The selected wallet has insufficient balance.", variant: "destructive" });
       return;
     }
     setServerEnabled(true);
     setEmergency(false);
-    toast({ title: "Auto Trading activated", description: `${selectedStrat.label} is now running against the ${account === "demo" ? "Demo" : "Real"} wallet.` });
+    setScannerPhase("scanning");
+    window.setTimeout(() => setScannerPhase("monitoring"), 2200);
+    toast({ title: "AI Trading started", description: `${selectedStrat.label} is scanning ${asset} opportunities using the ${account === "demo" ? "Demo" : "Real"} wallet.` });
     await loadAutoStatus();
   };
 
@@ -190,6 +221,54 @@ export default function AutoTrading() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {configOpen && !enabled && (
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="w-full max-w-md glass-card rounded-2xl p-6 shadow-2xl border border-border" initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }}>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Bot className="w-5 h-5 text-primary" /></div>
+                <div><h2 className="text-lg font-bold">Start AI Trading</h2><p className="text-xs text-muted-foreground">Set the parameters the AI will use for each trade.</p></div>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-1.5"><Label className="text-xs text-muted-foreground uppercase tracking-wider">Asset</Label>
+                  <select value={asset} onChange={e => setAsset(e.target.value)} className="w-full h-10 rounded-xl bg-background border border-border px-3 text-sm">
+                    {SYMBOLS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5"><Label className="text-xs text-muted-foreground uppercase tracking-wider">Stake (USD)</Label><Input type="number" min="1" step="1" value={investmentAmount} onChange={e => setInvestmentAmount(e.target.value)} /></div>
+                  <div className="space-y-1.5"><Label className="text-xs text-muted-foreground uppercase tracking-wider">Duration</Label>
+                    <select value={tradeDuration} onChange={e => setTradeDuration(e.target.value)} className="w-full h-10 rounded-xl bg-background border border-border px-3 text-sm">
+                      <option value="60">1 minute</option><option value="300">5 minutes</option><option value="600">10 minutes</option><option value="900">15 minutes</option><option value="1800">30 minutes</option><option value="3600">1 hour</option><option value="7200">2 hours</option><option value="14400">4 hours</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="rounded-xl bg-muted/20 p-3 text-xs text-muted-foreground"><div className="flex justify-between"><span>Account</span><span className="font-semibold text-foreground">{isDemo ? "Demo" : "Real"}</span></div><div className="flex justify-between mt-1"><span>Strategy</span><span className="font-semibold text-foreground">{selectedStrat.label}</span></div><div className="flex justify-between mt-1"><span>AI target</span><span className="font-semibold text-primary">90% signal target</span></div></div>
+                <div className="flex gap-3 pt-1"><Button variant="outline" className="flex-1" onClick={() => setConfigOpen(false)}>Cancel</Button><Button className="flex-1" onClick={() => void startConfiguredTrading()}><Power className="w-4 h-4 mr-2" />Start AI Trading</Button></div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {scannerOpen && (
+          <motion.div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="w-full max-w-sm glass-card rounded-2xl p-6 text-center border border-primary/20 shadow-2xl">
+              <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">{scannerPhase === "scanning" ? <Search className="w-7 h-7 text-primary animate-pulse" /> : <Bot className="w-7 h-7 text-primary" />}</div>
+              <h2 className="text-lg font-bold">{scannerPhase === "scanning" ? "AI is scanning the markets" : "AI is monitoring the market"}</h2>
+              <p className="text-sm text-muted-foreground mt-2">{scannerPhase === "scanning" ? `Checking ${asset} for a qualifying opportunity...` : `Waiting for a qualifying ${asset} signal before opening the next trade.`}</p>
+              <div className="mt-5 space-y-2 text-left">
+                <div className="flex items-center justify-between text-xs"><span>Asset</span><span className="font-mono font-semibold">{asset}</span></div>
+                <div className="flex items-center justify-between text-xs"><span>Stake</span><span className="font-mono font-semibold">${Number(investmentAmount).toFixed(2)}</span></div>
+                <div className="flex items-center justify-between text-xs"><span>Duration</span><span className="font-mono font-semibold">{Math.round(Number(tradeDuration)/60)} min</span></div>
+                <div className="flex items-center justify-between text-xs"><span>Signal target</span><span className="font-mono font-semibold text-primary">90%</span></div>
+              </div>
+              <Button variant="outline" className="w-full mt-5" onClick={() => setScannerOpen(false)}>Close</Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Settings panel */}
         <div className="space-y-4">
