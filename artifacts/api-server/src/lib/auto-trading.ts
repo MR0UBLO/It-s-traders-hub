@@ -185,9 +185,9 @@ export function startAutoTrading(userId: number, accountType: AccountType, confi
     timer: null,
     lastPrices: {},
   };
-  runtime.timer = setInterval(() => void tick(userId), 5000);
+  // Re-evaluate the selected market every five seconds using the same price engine as the trade chart.\n  runtime.timer = setInterval(() => void tick(userId), 5000);
   runtimes.set(userId, runtime);
-  void tick(userId);
+  // First scan is immediate; a trade opens only after the engine has enough price movement to produce a signal.\n  void tick(userId);
   return merged;
 }
 
