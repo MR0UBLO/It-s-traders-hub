@@ -26,7 +26,7 @@ import NotFound from "@/pages/not-found";
 
 import { AppLayout } from "@/components/layout";
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { getSocket } from "@/lib/socket";
 import { toast } from "@/hooks/use-toast";
 
@@ -35,11 +35,48 @@ const queryClient = new QueryClient({
 });
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) {
+  const { token, user, setAuth, isAuthenticated } = useAuth();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const verifySession = async () => {
+      if (!token) {
+        if (!cancelled) setChecking(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) throw new Error("Session expired");
+
+        const verifiedUser = await response.json();
+        if (!cancelled && verifiedUser) setAuth(token, verifiedUser);
+      } catch {
+        if (!cancelled) {
+          localStorage.removeItem("bp_token");
+          localStorage.removeItem("bp_user");
+        }
+      } finally {
+        if (!cancelled) setChecking(false);
+      }
+    };
+
+    verifySession();
+    return () => { cancelled = true; };
+  }, [token, setAuth]);
+
+  if (checking) return null;
+
+  if (!isAuthenticated || !user) {
     window.location.href = "/login";
     return null;
   }
+
   return <AppLayout><Component /></AppLayout>;
 }
 
