@@ -35,7 +35,7 @@ const queryClient = new QueryClient({
 });
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  const { token, user, setAuth, isAuthenticated } = useAuth();
+  const { token, user, setAuth, logout, isAuthenticated } = useAuth();
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
@@ -52,15 +52,22 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!response.ok) throw new Error("Session expired");
+        if (response.status === 401) {
+          if (!cancelled) {
+            localStorage.removeItem("bp_token");
+            localStorage.removeItem("bp_user");
+            logout();
+          }
+          return;
+        }
+
+        // Do not destroy a valid local session because of a temporary API/network failure.
+        if (!response.ok) return;
 
         const verifiedUser = await response.json();
         if (!cancelled && verifiedUser) setAuth(token, verifiedUser);
       } catch {
-        if (!cancelled) {
-          localStorage.removeItem("bp_token");
-          localStorage.removeItem("bp_user");
-        }
+        // Keep the existing session on transient connectivity failures.
       } finally {
         if (!cancelled) setChecking(false);
       }
