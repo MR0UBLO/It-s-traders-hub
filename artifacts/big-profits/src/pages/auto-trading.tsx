@@ -28,10 +28,10 @@ export default function AutoTrading() {
   const [speed, setSpeed] = useState("fast");
   const [startError, setStartError] = useState<string | null>(null);
 
-  const authHeaders = {
+  const getAuthHeaders = () => ({
     "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-  };
+    Authorization: `Bearer ${localStorage.getItem("bp_token") || ""}`,
+  });
 
   const { data: wallet } = useGetWallet(
     { account },
@@ -41,7 +41,7 @@ export default function AutoTrading() {
   const loadStatus = async () => {
     try {
       const r = await fetch(`${api}/auto-trading/status?account=${account}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem("bp_token") || ""}` },
       });
       if (!r.ok) return;
       const d = await r.json();
@@ -64,7 +64,7 @@ export default function AutoTrading() {
   const stopTrading = async () => {
     const r = await fetch(`${api}/auto-trading/stop`, {
       method: "POST",
-      headers: authHeaders,
+      headers: getAuthHeaders(),
       body: JSON.stringify({ accountType: account }),
     });
     const d = await r.json();
@@ -78,7 +78,7 @@ export default function AutoTrading() {
   };
 
   const startTrading = async () => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("bp_token");
     if (!token) {
       setStartError("Your login session has expired. Please log in again.");
       return;
