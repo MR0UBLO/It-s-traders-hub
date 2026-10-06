@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccountStore } from "@/store/account-store";
 import { useGetWallet, getGetWalletQueryKey } from "@workspace/api-client-react";
 
-const SYMBOLS = ["EURUSD", "XAUUSD", "BTCUSD", "GBPUSD", "NASDAQ", "ETHUSD"];
+const SYMBOLS = ["EURUSD", "XAUUSD", "BTCUSD", "GBPUSD", "USDJPY", "ETHUSD"];
 
 export default function AutoTrading() {
   const { mode } = useAccountStore();
