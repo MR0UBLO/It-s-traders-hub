@@ -29,6 +29,12 @@ type Runtime = {
   config: AutoTradingConfig;
   enabled: boolean;
   timer: ReturnType<typeof setInterval> | null;
+  startedAt: number;
+  lastActionAt: number | null;
+  lastAction: string;
+  tradesOpened: number;
+  wins: number;
+  losses: number;
 };
 
 const runtimes = new Map<number, Runtime>();
@@ -139,6 +145,9 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
     isCopied: false,
   }).returning();
 
+  runtime.lastActionAt = Date.now();
+  runtime.lastAction = `Opened ${created.direction.toUpperCase()} ${created.symbol} using ${created.amount}`;
+  runtime.tradesOpened += 1;
   logger.info({ userId, accountType: runtime.accountType, tradeId: created.id, symbol: created.symbol, direction: created.direction }, "Auto trade opened");
 }
 
@@ -193,6 +202,10 @@ async function settleOpenTrades(userId: number, runtime: Runtime) {
         totalProfit: sql`${walletTable.totalProfit} + ${profitLoss}`,
       }).where(eq(walletTable.userId, userId));
 
+      if (win) runtime.wins += 1;
+      else runtime.losses += 1;
+      runtime.lastActionAt = Date.now();
+      runtime.lastAction = `Closed ${trade.symbol}: ${win ? "WIN" : "LOSS"} (${profitLoss.toFixed(2)})`;
       logger.info({
         userId,
         accountType: runtime.accountType,
@@ -251,11 +264,18 @@ async function tick(userId: number) {
 export function startAutoTrading(userId: number, accountType: AccountType, config: Partial<AutoTradingConfig> = {}) {
   stopAutoTrading(userId);
   const merged = { ...DEFAULTS, ...config };
+  const now = Date.now();
   const runtime: Runtime = {
     accountType,
     config: merged,
     enabled: true,
     timer: null,
+    startedAt: now,
+    lastActionAt: null,
+    lastAction: "Starting AI analysis",
+    tradesOpened: 0,
+    wins: 0,
+    losses: 0,
   };
   const intervalMs = merged.aiSpeed === "fast" ? 3000 : 7000;
   runtime.timer = setInterval(() => void tick(userId), intervalMs);
@@ -277,10 +297,22 @@ export function getAutoTradingStatus(userId: number) {
     enabled: runtime.enabled,
     accountType: runtime.accountType,
     config: runtime.config,
+    startedAt: runtime.startedAt,
+    lastActionAt: runtime.lastActionAt,
+    lastAction: runtime.lastAction,
+    tradesOpened: runtime.tradesOpened,
+    wins: runtime.wins,
+    losses: runtime.losses,
   } : {
     enabled: false,
     accountType: "real" as AccountType,
     config: DEFAULTS,
+    startedAt: null,
+    lastActionAt: null,
+    lastAction: "AI is idle",
+    tradesOpened: 0,
+    wins: 0,
+    losses: 0,
   };
 }
 
