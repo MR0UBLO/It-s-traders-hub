@@ -593,8 +593,6 @@ const [timeLeft, setTimeLeft] = useState<Record<number, number>>({});
   const [lotSize,   setLotSize]   = useState("0.01");
   const [amount, setAmount] = useState("10");
   const [tradeDuration, setTradeDuration] = useState("5");
-  const [stopLoss,  setStopLoss]  = useState("");
-  const [takeProfit,setTakeProfit]= useState("");
   const [activeTab, setActiveTab] = useState<"positions" | "history" | "analytics">("positions");
   const [symbolMenuOpen,    setSymbolMenuOpen]    = useState(false);
   const [indicatorMenuOpen, setIndicatorMenuOpen] = useState(false);
@@ -626,16 +624,6 @@ const previousOpenTrades = useRef<any[]>([]);
   const totalFloatPL = useMemo(() => (openTrades ?? []).reduce((sum: number, t: any) => sum + n(t.profitLoss), 0), [openTrades]);
   const balance = n(wallet?.balance);
 
-  /* Auto-fill SL/TP */
-  useEffect(() => {
-    if (!currentPrice) return;
-    const price = direction === "buy" ? n(currentPrice.ask) : n(currentPrice.bid);
-    const slOff = price * 0.005;
-    const tpOff = price * 0.01;
-    setStopLoss((direction === "buy" ? price - slOff : price + slOff).toFixed(decimals));
-    setTakeProfit((direction === "buy" ? price + tpOff : price - tpOff).toFixed(decimals));
-  }, [direction, symbol]);
-
   /* Open trade */
   const handleOpen = () => {
     const numAmt = Number(amount);
@@ -644,8 +632,6 @@ const previousOpenTrades = useRef<any[]>([]);
     if (isNaN(numLot) || numLot <= 0)  { toast({ title: "Invalid lot size", variant: "destructive" }); return; }
     if (!currentPrice)                  { toast({ title: "Price unavailable", variant: "destructive" }); return; }
 
-    const slNum = stopLoss   ? Number(stopLoss)   : null;
-    const tpNum = takeProfit ? Number(takeProfit) : null;
     const entryPrice = direction === "buy" ? n(currentPrice.ask) : n(currentPrice.bid);
 
     const payload: any = {
@@ -656,8 +642,6 @@ const previousOpenTrades = useRef<any[]>([]);
   duration: Number(tradeDuration),
   accountType: mode,
 };
-    if (slNum != null) payload.stopLoss = slNum;
-    if (tpNum != null) payload.takeProfit = tpNum;
 
     createTrade.mutate({ data: payload }, {
       onSuccess: () => {
