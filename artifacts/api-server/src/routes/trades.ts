@@ -149,8 +149,11 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
   return;
 }
 
-    const slNum = stopLoss != null ? Number(stopLoss) : null;
-    const tpNum = takeProfit != null ? Number(takeProfit) : null;
+    // Duration-based trades use expiry as the only exit condition.
+    // Ignore any stale/legacy SL/TP values so hidden client state can never
+    // trigger direction validation errors on a duration trade.
+    const slNum = null;
+    const tpNum = null;
     const lotSizeNum = lotSize != null ? Number(lotSize) : null;
 
     if (slNum !== null && isNaN(slNum)) {
