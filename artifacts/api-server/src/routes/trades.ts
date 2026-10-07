@@ -5,6 +5,7 @@ import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
 import { getCurrentPrice, SYMBOLS } from "../lib/market.js";
 import { logger } from "../lib/logger.js";
 import { sql } from "drizzle-orm";
+import { calculateBinarySettlement } from "../lib/binary-settlement.js";
 
 const router = Router();
 
@@ -309,46 +310,53 @@ router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
     // Binary Options settlement
 const payoutPercent = Number(trade.payoutPercent ?? 95);
 
-let result: "WIN" | "LOSS";
-let pl: number;
-let payout: number;
-
 const isWin =
   trade.direction === "buy"
     ? closePrice > entryPrice
     : closePrice < entryPrice;
 
-if (isWin) {
-  result = "WIN";
-  pl = amt * (payoutPercent / 100);
-  payout = amt + pl;
-} else {
-  result = "LOSS";
-  pl = -amt;
-  payout = 0;
-}
-
+const result: "WIN" | "LOSS" = isWin ? "WIN" : "LOSS";
+const { profit: pl, returnAmount: payout } = calculateBinarySettlement(amt, payoutPercent, isWin);
 const plPercent = (pl / amt) * 100;
 
-    // Update trade record
-    const [updated] = await db.update(tradesTable).set({
-  status: "closed",
-  result,
-  closePrice: String(closePrice),
-  profitLoss: String(parseFloat(pl.toFixed(4))),
-  profitLossPercent: String(parseFloat(plPercent.toFixed(4))),
-  closedAt: new Date(),
-}).where(eq(tradesTable.id, tradeId)).returning();
+const walletTable = trade.accountType === "demo" ? demoWalletsTable : walletsTable;
 
-    // Credit the correct wallet
-    const walletTable = trade.accountType === "demo" ? demoWalletsTable : walletsTable;
-    await db.update(walletTable).set({
-      balance: sql`${walletTable.balance} + ${payout}`,
-      totalProfit: sql`${walletTable.totalProfit} + ${pl}`,
-    }).where(eq(walletTable.userId, req.userId!));
+// Settle the trade and wallet together. The status condition prevents the
+// manual close endpoint and the expiry worker from paying the same trade twice.
+const updated = await db.transaction(async (tx) => {
+  const [closedTrade] = await tx.update(tradesTable).set({
+    status: "closed",
+    result,
+    closePrice: String(closePrice),
+    profitLoss: String(pl),
+    profitLossPercent: String(parseFloat(plPercent.toFixed(4))),
+    closedAt: new Date(),
+  }).where(
+    and(
+      eq(tradesTable.id, tradeId),
+      eq(tradesTable.userId, req.userId!),
+      eq(tradesTable.status, "open"),
+    )
+  ).returning();
+
+  if (!closedTrade) {
+    throw new Error("TRADE_ALREADY_SETTLED");
+  }
+
+  await tx.update(walletTable).set({
+    balance: sql`${walletTable.balance} + ${payout}`,
+    totalProfit: sql`${walletTable.totalProfit} + ${pl}`,
+  }).where(eq(walletTable.userId, req.userId!));
+
+  return closedTrade;
+});
 
     res.json(formatTrade(updated as unknown as Record<string, unknown>));
   } catch (err) {
+    if (err instanceof Error && err.message === "TRADE_ALREADY_SETTLED") {
+      res.status(409).json({ error: "Trade has already been settled" });
+      return;
+    }
     logger.error({ err }, "Close trade error");
     res.status(500).json({ error: "Internal server error" });
   }
