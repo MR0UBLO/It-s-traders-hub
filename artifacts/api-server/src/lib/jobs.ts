@@ -12,6 +12,7 @@ import {
   demoWalletsTable,
 } from "@workspace/db";
 import { SYMBOLS, getCurrentPrice } from "./market.js";
+import { calculateBinarySettlement } from "./binary-settlement.js";
 import { eq, and, lte, sql } from "drizzle-orm";
 
 let priceTickInterval: ReturnType<typeof setInterval> | null = null;
@@ -73,35 +74,43 @@ setInterval(async () => {
           : closePrice < Number(trade.entryPrice);
 
       const stake = Number(trade.amount);
-      const payoutPercent = Number(trade.payoutPercent);
-
-      const profit = win
-        ? (stake * payoutPercent) / 100
-        : -stake;
+      const payoutPercent = Number(trade.payoutPercent ?? 95);
+      const { profit, returnAmount } = calculateBinarySettlement(stake, payoutPercent, win);
 
       const walletTable =
         trade.accountType === "demo"
           ? demoWalletsTable
           : walletsTable;
 
-      if (win) {
-        await db.update(walletTable)
+      // Atomically mark the trade closed before crediting its wallet. The
+      // status condition guarantees that an already-settled trade cannot be
+      // paid again if the expiry worker overlaps another close request.
+      const settledTrade = await db.transaction(async (tx) => {
+        const [closedTrade] = await tx.update(tradesTable)
           .set({
-            balance: sql`${walletTable.balance} + ${stake + profit}`,
+            status: "closed",
+            result: win ? "WIN" : "LOSS",
+            closePrice: String(closePrice),
+            profitLoss: String(profit),
+            profitLossPercent: String(parseFloat(((profit / stake) * 100).toFixed(4))),
+            closedAt: new Date(),
+          })
+          .where(and(eq(tradesTable.id, trade.id), eq(tradesTable.status, "open")))
+          .returning();
+
+        if (!closedTrade) return null;
+
+        await tx.update(walletTable)
+          .set({
+            balance: sql`${walletTable.balance} + ${returnAmount}`,
             totalProfit: sql`${walletTable.totalProfit} + ${profit}`,
           })
           .where(eq(walletTable.userId, trade.userId));
-      }
 
-      await db.update(tradesTable)
-        .set({
-          status: "closed",
-          result: win ? "WIN" : "LOSS",
-          closePrice: String(closePrice),
-          profitLoss: String(profit),
-          closedAt: new Date(),
-        })
-        .where(eq(tradesTable.id, trade.id));socketIO.emitTradeUpdate(trade.userId, {
+        return closedTrade;
+      });
+
+      if (!settledTrade) continue;socketIO.emitTradeUpdate(trade.userId, {
   id: trade.id,
   status: "closed",
   result: win ? "WIN" : "LOSS",
