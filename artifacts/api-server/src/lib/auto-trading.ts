@@ -9,6 +9,7 @@ type AccountType = "real" | "demo";
 type Strategy = "trend" | "scalp" | "swing" | "breakout" | "grid" | "smc";
 
 export type AutoTradingConfig = {
+  eaId?: string;
   strategy: Strategy;
   riskPct: number;
   lotSize: number;
