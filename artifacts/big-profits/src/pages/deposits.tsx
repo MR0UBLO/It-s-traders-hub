@@ -24,7 +24,6 @@ const USD_RATE = 130; // 1 USD = 130 KES
 
 const METHODS: PayMethod[] = [
   { id: "mpesa",    label: "M-PESA",         logo: "M",  color: "#00a651", min: 10,  max: 1000, fee: "Free",  time: "Instant",    currency: "USD", type: "mobile" },
-  { id: "airtel",   label: "Airtel Money",   logo: "A",  color: "#e40000", min: 10,  max: 1000, fee: "Free",  time: "Instant",    currency: "USD", type: "mobile" },
   { id: "visa",     label: "Visa",           logo: "V",  color: "#1a1f71", min: 10,  max: 5000, fee: "1.5%",  time: "Instant",    currency: "USD", type: "card"   },
   { id: "master",   label: "Mastercard",     logo: "MC", color: "#eb001b", min: 10,  max: 5000, fee: "1.5%",  time: "Instant",    currency: "USD", type: "card"   },
   { id: "bank",     label: "Bank Transfer",  logo: "B",  color: "#2563eb", min: 10,  max: 9999, fee: "Free",  time: "1-2 days",   currency: "USD", type: "bank"   },
