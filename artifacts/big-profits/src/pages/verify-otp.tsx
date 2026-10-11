@@ -66,7 +66,7 @@ const data = await res.json();
       }
 
       setAuth(data.token, data.user);
-      setLocation("/dashboard");
+      setLocation("/welcome-back");
     } catch {
       toast({ title: "Network error", description: "Please try again.", variant: "destructive" });
     } finally {
