@@ -139,7 +139,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       res.status(400).json({ error: "direction must be 'buy' or 'sell'" });
       return;
     }
-    const amt = Number(amount);
+    const amt = Math.round((Number(amount) + Number.EPSILON) * 100) / 100;
     if (isNaN(amt) || amt <= 0) {
       res.status(400).json({ error: "Invalid amount" });
       return;
