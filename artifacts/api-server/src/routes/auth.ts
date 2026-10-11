@@ -18,9 +18,17 @@ function generateOtp(): string {
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
   try {
-    const { email, password, name } = req.body;
-    if (!email || !password || !name) {
-      res.status(400).json({ error: "email, password, and name are required" });
+    const { email, password, name, phoneNumber, termsAccepted } = req.body;
+    if (!email || !password || !name || typeof phoneNumber !== "string" || !phoneNumber.trim()) {
+      res.status(400).json({ error: "email, password, name, and phone number are required" });
+      return;
+    }
+    if (phoneNumber.trim().length < 7 || phoneNumber.trim().length > 30) {
+      res.status(400).json({ error: "Enter a valid phone number" });
+      return;
+    }
+    if (termsAccepted !== true) {
+      res.status(400).json({ error: "You must agree to the Terms and Conditions" });
       return;
     }
     if (password.length < 6) {
@@ -40,7 +48,7 @@ router.post("/register", async (req, res) => {
 
     const [user] = await db
       .insert(usersTable)
-      .values({ email, passwordHash, name, otpCode, otpExpiresAt, emailVerified: false })
+      .values({ email, passwordHash, name, phoneNumber: phoneNumber.trim(), termsAcceptedAt: new Date(), otpCode, otpExpiresAt, emailVerified: false })
       .returning();
 
     // Create real wallet (balance = 0) and demo wallet (balance = 10,000)
