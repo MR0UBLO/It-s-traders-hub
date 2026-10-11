@@ -473,8 +473,8 @@ console.log("PRICE DATA:", prices);
   return (
     <div className="flex flex-col h-full">
       {/* Market-chart drawing tools */}
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-border/30 flex-wrap shrink-0">
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1">Tools</span>
+      <div className="flex items-center gap-1 px-3 py-2 border-b border-border/30 flex-nowrap shrink-0 overflow-x-auto overscroll-x-contain" style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "thin" }}>
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1 shrink-0">Tools · swipe</span>
         {([
           { id: "select" as const, label: "Select / edit", icon: MousePointer2 },
           { id: "trendline" as const, label: "Trend line", icon: Pencil },
@@ -485,11 +485,11 @@ console.log("PRICE DATA:", prices);
         ]).map(({ id, label, icon: Icon }) => (
           <button key={id} type="button" title={label} aria-label={label}
             onClick={() => { setDrawingTool(id); setDrawingStart(null); setSelectedDrawing(null); }}
-            className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors ${drawingTool === id ? "border-primary/60 bg-primary/15 text-primary" : "border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+            className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors ${drawingTool === id ? "border-primary/60 bg-primary/15 text-primary" : "border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground"}`}
           ><Icon className="h-3.5 w-3.5" /><span>{label}</span></button>
         ))}
-        {selectedDrawing !== null && <button type="button" title="Delete selected drawing" onClick={() => { setDrawings(items => items.filter(d => d.id !== selectedDrawing)); setSelectedDrawing(null); }} className="inline-flex items-center gap-1 rounded-md border border-rose-500/50 px-2 py-1 text-xs text-rose-400"><Trash2 className="h-3.5 w-3.5" /><span>Delete</span></button>}
-        <button type="button" title="Clear all drawings" onClick={() => { setDrawings([]); setDrawingStart(null); setSelectedDrawing(null); }} className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"><Trash2 className="h-3.5 w-3.5" /><span>Clear all</span></button>
+        {selectedDrawing !== null && <button type="button" title="Delete selected drawing" onClick={() => { setDrawings(items => items.filter(d => d.id !== selectedDrawing)); setSelectedDrawing(null); }} className="inline-flex shrink-0 items-center gap-1 rounded-md border border-rose-500/50 px-2 py-1 text-xs text-rose-400"><Trash2 className="h-3.5 w-3.5" /><span>Delete</span></button>}
+        <button type="button" title="Clear all drawings" onClick={() => { setDrawings([]); setDrawingStart(null); setSelectedDrawing(null); }} className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"><Trash2 className="h-3.5 w-3.5" /><span>Clear all</span></button>
         {drawingStart && <span className="text-[10px] text-amber-400">Tap the second anchor to finish</span>}
         {drawingTool === "select" && <span className="text-[10px] text-muted-foreground">Select a drawing, then drag an anchor to edit</span>}
       </div>
