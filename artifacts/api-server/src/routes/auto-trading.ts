@@ -60,7 +60,7 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
     if (body.aiSpeed === "fast" || body.aiSpeed === "slow") config.aiSpeed = body.aiSpeed;
     if (body.asset !== undefined) {
       const asset = String(body.asset).toUpperCase();
-      const validAssets = [...SYMBOLS, "ALL"];
+      const validAssets: string[] = [...SYMBOLS, "ALL"];
       if (!validAssets.includes(asset)) return res.status(400).json({ error: "Invalid asset" });
       config.asset = asset;
     }
