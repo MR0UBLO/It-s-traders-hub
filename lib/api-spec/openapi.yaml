@@ -468,7 +468,7 @@ components:
 
     RegisterInput:
       type: object
-      required: [email, password, name]
+      required: [email, password, name, phoneNumber, termsAccepted]
       properties:
         email:
           type: string
@@ -478,6 +478,13 @@ components:
           minLength: 6
         name:
           type: string
+        phoneNumber:
+          type: string
+          minLength: 7
+          maxLength: 30
+        termsAccepted:
+          type: boolean
+          const: true
 
     LoginInput:
       type: object
