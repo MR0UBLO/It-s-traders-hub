@@ -257,4 +257,72 @@ router.get("/me", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
+
+// PUT /api/auth/profile — update the authenticated user's display name.
+router.put("/profile", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    if (!name || name.length > 80) {
+      res.status(400).json({ error: "Name must be between 1 and 80 characters" });
+      return;
+    }
+    const [user] = await db.update(usersTable)
+      .set({ name })
+      .where(eq(usersTable.id, req.userId!))
+      .returning();
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        createdAt: user.createdAt.toISOString(),
+        isAdmin: user.isAdmin,
+      },
+    });
+  } catch (err) {
+    logger.error({ err }, "Update profile error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/auth/change-password — verify the current password before replacing it.
+router.post("/change-password", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: "Current password and new password are required" });
+      return;
+    }
+    if (newPassword.length < 6 || newPassword.length > 128) {
+      res.status(400).json({ error: "New password must be between 6 and 128 characters" });
+      return;
+    }
+    if (currentPassword === newPassword) {
+      res.status(400).json({ error: "Choose a new password different from your current password" });
+      return;
+    }
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.userId!)).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+    const matches = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!matches) {
+      res.status(400).json({ error: "Current password is incorrect" });
+      return;
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, user.id));
+    res.json({ success: true, message: "Password updated successfully" });
+  } catch (err) {
+    logger.error({ err }, "Change password error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;
