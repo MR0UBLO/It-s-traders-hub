@@ -2,8 +2,7 @@ import { db, tradesTable, walletsTable, demoWalletsTable } from "@workspace/db";
 import { eq, and, lte, sql } from "drizzle-orm";
 import { getCurrentPrice } from "./market.js";
 import { logger } from "./logger.js";
-
-const PAYOUT = 0.95;
+import { calculateBinarySettlement } from "./binary-settlement.js";
 
 export function startTradeEngine() {
   setInterval(async () => {
@@ -36,42 +35,52 @@ export function startTradeEngine() {
             : closePrice < entry;
 
         const amount = Number(trade.amount);
-
-        const profit = win ? amount * PAYOUT : -amount;
-
-        const payout = win
-          ? amount + amount * PAYOUT
-          : 0;
-
-        await db
-          .update(tradesTable)
-          .set({
-            status: "closed",
-            result: win ? "win" : "loss",
-            closePrice: String(closePrice),
-            profitLoss: String(profit),
-            closedAt: new Date(),
-          })
-          .where(eq(tradesTable.id, trade.id));
+        const { profit, returnAmount: payout } = calculateBinarySettlement(
+          amount,
+          Number(trade.payoutPercent ?? 95),
+          win,
+        );
 
         const walletTable =
           trade.accountType === "demo"
             ? demoWalletsTable
             : walletsTable;
 
-        if (payout > 0) {
-          await db
+        // The background jobs module also checks expired trades. Only the
+        // worker that successfully changes open -> closed may credit the wallet.
+        // Keep both operations in one transaction to prevent duplicate payouts.
+        const settled = await db.transaction(async (tx) => {
+          const [closedTrade] = await tx
+            .update(tradesTable)
+            .set({
+              status: "closed",
+              result: win ? "WIN" : "LOSS",
+              closePrice: String(closePrice),
+              profitLoss: String(profit),
+              profitLossPercent: String(Number(((profit / amount) * 100).toFixed(4))),
+              closedAt: new Date(),
+            })
+            .where(and(eq(tradesTable.id, trade.id), eq(tradesTable.status, "open")))
+            .returning();
+
+          if (!closedTrade) return false;
+
+          await tx
             .update(walletTable)
             .set({
               balance: sql`${walletTable.balance} + ${payout}`,
               totalProfit: sql`${walletTable.totalProfit} + ${profit}`,
             })
             .where(eq(walletTable.userId, trade.userId));
-        }
 
-        logger.info(
-          `Trade ${trade.id} expired (${win ? "WIN" : "LOSS"})`
-        );
+          return true;
+        });
+
+        if (settled) {
+          logger.info(
+            `Trade ${trade.id} expired (${win ? "WIN" : "LOSS"})`
+          );
+        }
       }
     } catch (err) {
       logger.error(err);
