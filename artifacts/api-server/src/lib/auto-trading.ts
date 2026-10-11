@@ -53,7 +53,7 @@ const DEFAULTS: AutoTradingConfig = {
   trailingStop: false,
   breakEven: false,
   investmentAmount: 10,
-  tradeDuration: 3600,
+  tradeDuration: 4,
   asset: "EURUSD",
   aiSpeed: "fast",
 };
@@ -65,9 +65,7 @@ const pipSize = (symbol: string) =>
 const ticket = () => `AT-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
 function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sell"; confidence: number; reason: string } | null {
-  const candidates = runtime.config.asset === "ALL"
-    ? SYMBOLS.filter((s) => ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD"].includes(s))
-    : [runtime.config.asset];
+  const candidates = runtime.config.asset === "ALL" ? [...SYMBOLS] : [runtime.config.asset];
 
   let best: { symbol: string; direction: "buy" | "sell"; confidence: number; reason: string } | null = null;
 
@@ -79,7 +77,7 @@ function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sel
     // momentum and volatility before choosing a direction.
     const signal = generateSignalForSymbol(symbol as typeof SYMBOLS[number]);
 
-    if (signal.signal === "HOLD") {
+    if (signal.signal === "HOLD" || signal.confidence < 70) {
       continue;
     }
 
@@ -302,7 +300,8 @@ async function tick(userId: number) {
 
 export function startAutoTrading(userId: number, accountType: AccountType, config: Partial<AutoTradingConfig> = {}) {
   stopAutoTrading(userId);
-  const merged = { ...DEFAULTS, ...config };
+  const requestedDuration = Number(config.tradeDuration ?? DEFAULTS.tradeDuration);
+  const merged = { ...DEFAULTS, ...config, tradeDuration: Math.max(1, Math.min(4, Math.floor(Number.isFinite(requestedDuration) ? requestedDuration : 4))) };
   const now = Date.now();
   const runtime: Runtime = {
     accountType,
