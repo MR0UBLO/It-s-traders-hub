@@ -162,6 +162,7 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
   const pollingRef       = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [ohlc, setOhlc]         = useState<{ o: number; h: number; l: number; c: number } | null>(null);
+  const [, setDrawingRenderTick] = useState(0);
   const [livePrice, setLivePrice] = useState<{ bid: number; ask: number } | null>(null);
   type DrawingTool = "select" | "trendline" | "horizontal" | "vertical" | "rectangle" | "fibonacci";
   type ChartDrawing = { id: number; type: Exclude<DrawingTool, "select">; time1: Time; price1: number; time2: Time; price2: number };
@@ -222,6 +223,9 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
     sma200Ref.current       = s200;
     seededRef.current       = false;
     lastCandlesRef.current  = [];
+
+    // Redraw SVG drawings whenever the visible chart range changes (zoom/scroll).
+    chart.timeScale().subscribeVisibleLogicalRangeChange(() => setDrawingRenderTick((tick) => tick + 1));
 
     chart.subscribeCrosshairMove((param) => {
       if (candleSeriesRef.current && param.seriesData) {
@@ -586,7 +590,7 @@ console.log("PRICE DATA:", prices);
         <svg
           className="absolute inset-0 w-full h-full"
           aria-label="Chart drawing tools and market-coordinate annotations"
-          style={{ zIndex: 5, pointerEvents: "auto", cursor: drawingTool === "select" ? "grab" : "crosshair", touchAction: "none", overflow: "hidden" }}
+          style={{ zIndex: 5, pointerEvents: drawingTool === "select" ? "none" : "auto", cursor: drawingTool === "select" ? "grab" : "crosshair", touchAction: "none", overflow: "hidden" }}
           onClick={handleDrawingClick}
           onPointerDown={handleDrawingPointerDown}
           onPointerMove={handleDrawingPointerMove}
