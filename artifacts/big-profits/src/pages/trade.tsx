@@ -473,8 +473,8 @@ console.log("PRICE DATA:", prices);
   return (
     <div className="flex flex-col h-full">
       {/* Market-chart drawing tools */}
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-border/30 flex-nowrap shrink-0 overflow-x-auto overscroll-x-contain" style={{ WebkitOverflowScrolling: "touch", scrollbarWidth: "thin" }}>
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1 shrink-0">Tools · swipe</span>
+      <div className="flex items-center gap-1 px-3 py-2 border-b border-border/30 flex-wrap shrink-0">
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1 shrink-0">Drawing tools</span>
         {([
           { id: "select" as const, label: "Select / edit", icon: MousePointer2 },
           { id: "trendline" as const, label: "Trend line", icon: Pencil },
