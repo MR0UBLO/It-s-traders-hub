@@ -1,9 +1,18 @@
+import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
 import { getAutoTradingData, getAutoTradingStatus, startAutoTrading, stopAutoTrading, closeAutoTradingPositions, type AutoTradingConfig } from "../lib/auto-trading.js";
 
 const router = Router();
 const validStrategies = new Set(["trend","scalp","swing","breakout","grid","smc"]);
+
+function validSharedPassword(supplied: unknown): boolean {
+  const expected = process.env.AUTO_TRADING_EA_PASSWORD;
+  if (!expected || typeof supplied !== "string") return false;
+  const suppliedBuffer = Buffer.from(supplied);
+  const expectedBuffer = Buffer.from(expected);
+  return suppliedBuffer.length === expectedBuffer.length && timingSafeEqual(suppliedBuffer, expectedBuffer);
+}
 
 router.get("/status", requireAuth, async (req: AuthRequest, res) => {
   const account = req.query.account === "demo" ? "demo" : "real";
@@ -16,17 +25,37 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
   try {
     const body = req.body ?? {};
     const accountType = body.accountType === "demo" ? "demo" : "real";
-    const config: Partial<AutoTradingConfig> = {};
+
+    if (!process.env.AUTO_TRADING_EA_PASSWORD) {
+      return res.status(503).json({ error: "The shared EA password has not been configured by the administrator." });
+    }
+    if (!validSharedPassword(body.eaPassword)) {
+      return res.status(403).json({ error: "Incorrect EA password." });
+    }
+
+    const eaId = typeof body.eaId === "string" ? body.eaId : "";
+    const match = /^EA-(\d{3})$/.exec(eaId);
+    if (!match || Number(match[1]) < 1 || Number(match[1]) > 120) {
+      return res.status(400).json({ error: "Select a valid EA from the list." });
+    }
+    const minimumInvestment = 10 + (Number(match[1]) % 10) * 10;
+    const investmentAmount = Number(body.investmentAmount);
+    if (!Number.isFinite(investmentAmount) || investmentAmount < minimumInvestment) {
+      return res.status(400).json({ error: "This EA requires a minimum investment of $" + minimumInvestment.toFixed(2) + "." });
+    }
+
+    const config: Partial<AutoTradingConfig> = { eaId, investmentAmount };
     if (validStrategies.has(body.strategy)) config.strategy = body.strategy;
-    for (const key of ["riskPct","lotSize","dailyTargetPct","dailyLossPct","maxTrades","stopLossPips","takeProfitPips","investmentAmount","tradeDuration"] as const) {
+    for (const key of ["riskPct","lotSize","dailyTargetPct","dailyLossPct","maxTrades","stopLossPips","takeProfitPips","tradeDuration"] as const) {
       if (body[key] !== undefined) {
         const value = Number(body[key]);
-        if (!Number.isFinite(value) || value <= 0) return res.status(400).json({ error: `Invalid ${key}` });
+        if (!Number.isFinite(value) || value <= 0) return res.status(400).json({ error: "Invalid " + key });
         config[key] = value;
       }
     }
     if (body.trailingStop !== undefined) config.trailingStop = Boolean(body.trailingStop);
     if (body.breakEven !== undefined) config.breakEven = Boolean(body.breakEven);
+    if (body.aiSpeed === "fast" || body.aiSpeed === "slow") config.aiSpeed = body.aiSpeed;
     if (body.asset !== undefined) {
       const asset = String(body.asset).toUpperCase();
       const validAssets = ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD","NASDAQ","ALL"];
@@ -35,14 +64,14 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
     }
 
     const data = await getAutoTradingData(req.userId!, accountType);
-    if (!data.wallet || Number(data.wallet.balance) <= 0) {
-      return res.status(400).json({ error: `Cannot start auto trading: ${accountType} wallet has no available balance.` });
+    if (!data.wallet || Number(data.wallet.balance) < investmentAmount) {
+      return res.status(400).json({ error: "Insufficient " + accountType + " wallet balance for this investment." });
     }
 
-    const merged = startAutoTrading(req.userId!, accountType, config);
+    startAutoTrading(req.userId!, accountType, config);
     const status = getAutoTradingStatus(req.userId!);
-    res.json({ ...status, accountType, wallet: data.wallet, message: `Auto trading started on the ${accountType} wallet.` });
-  } catch (err) {
+    res.json({ ...status, accountType, wallet: data.wallet, message: "Auto trading started on the " + accountType + " wallet." });
+  } catch {
     res.status(500).json({ error: "Unable to start auto trading" });
   }
 });
