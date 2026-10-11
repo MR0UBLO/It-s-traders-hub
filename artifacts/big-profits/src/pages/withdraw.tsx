@@ -32,7 +32,7 @@ const WMETHODS: WMethod[] = [
   { id: "sol",      label: "Solana (SOL)",   logo: "◎",  color: "#9945ff", min: 10,  max: 9999, fee: "Free",       time: "Under 1min",  currency: "USD", type: "crypto" },
 ];
 
-type HistItem = { id: string; method: string; amount: number; currency: string; status: "completed"|"pending"|"cancelled"|"failed"; date: Date; txId: string };
+type HistItem = { id: string; method: string; amount: number; currency: string; status: "completed"|"pending"|"processing"|"cancelled"|"failed"; date: Date; txId: string };
 
 function seeded(seed: number, max: number, min = 0) {
   const x = Math.sin(seed + 1) * 43758.5453;
@@ -55,6 +55,7 @@ function StatusBadge({ status }: { status: HistItem["status"] }) {
   const cls = {
     completed: "bg-green-500/10 text-green-400 border-green-500/20",
     pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    processing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
     cancelled: "bg-muted text-muted-foreground border-border",
     failed: "bg-red-500/10 text-red-400 border-red-500/20",
   }[status];
@@ -302,6 +303,7 @@ export default function Withdraw() {
             {[
               { label: "Completed", value: history.filter(h => h.status === "completed").length, color: "text-green-400" },
               { label: "Pending", value: history.filter(h => h.status === "pending").length, color: "text-yellow-400" },
+              { label: "Processing", value: history.filter(h => h.status === "processing").length, color: "text-blue-400" },
               { label: "Cancelled", value: history.filter(h => h.status === "cancelled").length, color: "text-muted-foreground" },
               { label: "Failed", value: history.filter(h => h.status === "failed").length, color: "text-red-400" },
             ].map(({ label, value, color }) => (
@@ -316,7 +318,7 @@ export default function Withdraw() {
             <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-border">
               <p className="font-semibold text-sm">Withdrawal History</p>
               <div className="flex gap-2 flex-wrap">
-                {(["all","completed","pending","cancelled","failed"] as const).map(s => (
+                {(["all","completed","pending","processing","cancelled","failed"] as const).map(s => (
                   <button key={s} onClick={() => setStatusFilter(s)} className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all capitalize ${statusFilter === s ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/30"}`}>{s}</button>
                 ))}
                 <div className="relative">
