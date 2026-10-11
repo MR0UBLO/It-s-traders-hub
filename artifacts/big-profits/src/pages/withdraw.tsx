@@ -284,7 +284,7 @@ export default function Withdraw() {
                   {/* Risk warning */}
                   <div className="flex items-start gap-2 text-[10px] text-muted-foreground bg-muted/20 rounded-lg p-2.5">
                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-yellow-400" />
-                    Withdrawals are subject to review. Processing time: {method.time}.
+                    Withdrawals are subject to review for 1 hour.
                   </div>
 
                   <Button type="submit" className="w-full h-12 font-semibold text-white text-base" style={{ backgroundColor: method.color }} disabled={isPending}>
