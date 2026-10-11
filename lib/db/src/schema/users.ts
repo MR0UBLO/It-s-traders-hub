@@ -7,6 +7,8 @@ export const usersTable = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   name: text("name").notNull(),
+  phoneNumber: text("phone_number"),
+  termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
   isAdmin: boolean("is_admin").notNull().default(false),
   emailVerified: boolean("email_verified").notNull().default(false),
   otpCode: text("otp_code"),
