@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
 import { getAutoTradingData, getAutoTradingStatus, startAutoTrading, stopAutoTrading, closeAutoTradingPositions, type AutoTradingConfig } from "../lib/auto-trading.js";
+import { SYMBOLS } from "../lib/market.js";
 
 const router = Router();
 const validStrategies = new Set(["trend","scalp","swing","breakout","grid","smc"]);
@@ -50,6 +51,7 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
       if (body[key] !== undefined) {
         const value = Number(body[key]);
         if (!Number.isFinite(value) || value <= 0) return res.status(400).json({ error: "Invalid " + key });
+        if (key === "tradeDuration" && (!Number.isInteger(value) || value > 4)) return res.status(400).json({ error: "EA trade duration must be 1 to 4 seconds." });
         config[key] = value;
       }
     }
@@ -58,7 +60,7 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
     if (body.aiSpeed === "fast" || body.aiSpeed === "slow") config.aiSpeed = body.aiSpeed;
     if (body.asset !== undefined) {
       const asset = String(body.asset).toUpperCase();
-      const validAssets = ["EURUSD","GBPUSD","USDJPY","XAUUSD","BTCUSD","ETHUSD","NASDAQ","ALL"];
+      const validAssets = [...SYMBOLS, "ALL"];
       if (!validAssets.includes(asset)) return res.status(400).json({ error: "Invalid asset" });
       config.asset = asset;
     }
