@@ -64,7 +64,7 @@ export default function Register() {
       // If response includes a token, email was not required — log in directly
       if (data.token) {
         setAuth(data.token, data.user);
-        setLocation("/dashboard");
+        setLocation("/first-deposit");
         return;
       }
 
@@ -101,7 +101,7 @@ export default function Register() {
       }
 
       setAuth(data.token, data.user);
-      setLocation("/dashboard");
+      setLocation("/first-deposit");
     } catch {
       toast({ title: "Network error", description: "Please try again.", variant: "destructive" });
     } finally {
