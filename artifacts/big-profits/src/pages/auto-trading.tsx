@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, Power, Search, Wallet, Clock3 } from "lucide-react";
+import { Bot, Power, Search, Wallet, ShieldCheck, Activity, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,35 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccountStore } from "@/store/account-store";
 import { useGetWallet, getGetWalletQueryKey } from "@workspace/api-client-react";
 
-const SYMBOLS = ["EURUSD", "XAUUSD", "BTCUSD", "GBPUSD", "USDJPY", "ETHUSD"];
+const ASSETS = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "BTCUSD", "ETHUSD", "NASDAQ", "ALL"];
+const STRATEGIES = [
+  { label: "Trend Following", value: "trend" }, { label: "Fast Scalping", value: "scalp" },
+  { label: "Swing Trader", value: "swing" }, { label: "Breakout Hunter", value: "breakout" },
+  { label: "Grid Navigator", value: "grid" }, { label: "Smart Money", value: "smc" },
+] as const;
+const NAMES = [
+  "Atlas Trend Rider","Gold Falcon","Pip Navigator","Quantum Scalper","London Breakout",
+  "New York Momentum","Smart Money Flow","Orion Swing","Phoenix Reversal","Bullion Hunter",
+  "Velocity FX","Apex Trend","Blue Wave Trader","Steady Pip","Nova Breakout","Titan Scalper",
+  "Eagle Eye FX","Candle Compass","Momentum Forge","Silver Arrow","Aurora Grid","Rapid Pips",
+  "Zenith Trader","Market Pulse","Vortex Momentum","Delta Trend","Night Hawk FX","Prime Breakout",
+  "Cobalt Swing","Lionheart Gold","Alpha Structure","Orbit Scalper","Summit FX","Marlin Trend",
+  "Redwood Trader","Stellar Gold","Precision Pip","Falcon Wave","Equinox Strategy","Pioneer FX",
+];
+const RISKS = ["Low", "Moderate", "High"] as const;
+type EA = { id: string; name: string; strategy: string; strategyLabel: string; asset: string; risk: typeof RISKS[number]; minInvestment: number; description: string };
+const EAS: EA[] = Array.from({ length: 120 }, (_, index) => {
+  const n = index + 1;
+  const strategy = STRATEGIES[(n * 7 + Math.floor(n / 3)) % STRATEGIES.length];
+  const asset = ASSETS[(n * 5 + Math.floor(n / 4)) % ASSETS.length];
+  const suffix = n > NAMES.length ? " " + ["Pro", "Prime", "Elite"][Math.floor((n - 1) / NAMES.length) % 3] + " " + Math.ceil(n / NAMES.length) : "";
+  return {
+    id: "EA-" + String(n).padStart(3, "0"), name: NAMES[(n - 1) % NAMES.length] + suffix,
+    strategy: strategy.value, strategyLabel: strategy.label, asset, risk: RISKS[(n * 11) % RISKS.length],
+    minInvestment: 10 + (n % 10) * 10,
+    description: strategy.label + " strategy for " + (asset === "ALL" ? "multiple markets" : asset) + ".",
+  };
+});
 
 export default function AutoTrading() {
   const { mode } = useAccountStore();
@@ -16,316 +44,115 @@ export default function AutoTrading() {
   const account = isDemo ? "demo" : "real";
   const { toast } = useToast();
   const api = import.meta.env.VITE_API_URL;
-
+  const [search, setSearch] = useState("");
+  const [selectedEA, setSelectedEA] = useState<EA | null>(null);
+  const [amount, setAmount] = useState("10");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [enabled, setEnabled] = useState(false);
-  const [configOpen, setConfigOpen] = useState(false);
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [phase, setPhase] = useState<"scanning" | "monitoring">("scanning");
-  const [asset, setAsset] = useState("EURUSD");
-  const [investmentAmount, setInvestmentAmount] = useState("10");
-  const [tradeDuration, setTradeDuration] = useState("3600");
-  const [strategy, setStrategy] = useState("trend");
-  const [speed, setSpeed] = useState("fast");
-  const [startError, setStartError] = useState<string | null>(null);
-  const [liveStatus, setLiveStatus] = useState<any>(null);
-
-  const getAuthHeaders = () => ({
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("bp_token") || ""}`,
-  });
-
-  const { data: wallet } = useGetWallet(
-    { account },
-    { query: { queryKey: getGetWalletQueryKey({ account }), refetchInterval: enabled ? 2000 : 10000 } }
-  );
+  const [status, setStatus] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const authHeaders = () => ({ "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("bp_token") || "") });
+  const { data: wallet } = useGetWallet({ account }, { query: { queryKey: getGetWalletQueryKey({ account }), refetchInterval: enabled ? 2000 : 10000 } });
 
   const loadStatus = async () => {
     try {
-      const r = await fetch(`${api}/auto-trading/status?account=${account}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("bp_token") || ""}` },
-      });
-      if (!r.ok) return;
-      const d = await r.json();
-      setEnabled(Boolean(d.enabled) && d.accountType === account);
-      setLiveStatus(d);
-      if (d.config) {
-        if (d.config.asset) setAsset(String(d.config.asset));
-        if (d.config.investmentAmount !== undefined) setInvestmentAmount(String(d.config.investmentAmount));
-        if (d.config.tradeDuration !== undefined) setTradeDuration(String(d.config.tradeDuration));
-        if (d.config.strategy) setStrategy(String(d.config.strategy));
-      }
-    } catch {}
+      const response = await fetch(api + "/auto-trading/status?account=" + account, { headers: { Authorization: "Bearer " + (localStorage.getItem("bp_token") || "") } });
+      if (!response.ok) return;
+      const data = await response.json();
+      setStatus(data);
+      setEnabled(Boolean(data.enabled) && data.accountType === account);
+    } catch { /* retain the last known status on network errors */ }
   };
-
   useEffect(() => {
     void loadStatus();
-    const timer = window.setInterval(() => void loadStatus(), enabled ? 1000 : 5000);
+    const timer = window.setInterval(() => void loadStatus(), enabled ? 1500 : 5000);
     return () => window.clearInterval(timer);
   }, [account, enabled]);
 
-  const stopTrading = async () => {
-    const r = await fetch(`${api}/auto-trading/stop`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ accountType: account }),
-    });
-    const d = await r.json();
-    if (!r.ok) {
-      toast({ title: "Unable to stop AI Trading", description: d.error || "Please try again.", variant: "destructive" });
-      return;
-    }
-    setEnabled(false);
-    setScannerOpen(false);
-    await loadStatus();
-    toast({ title: "AI Trading stopped", description: "Open AI positions were closed and the live feed was updated." });
-  };
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return q ? EAS.filter(ea => [ea.id, ea.name, ea.strategyLabel, ea.asset, ea.risk].some(v => v.toLowerCase().includes(q))) : EAS;
+  }, [search]);
+
+  const chooseEA = (ea: EA) => { setSelectedEA(ea); setAmount(String(ea.minInvestment)); setPassword(""); setError(null); };
 
   const startTrading = async () => {
-    const token = localStorage.getItem("bp_token");
-    if (!token) {
-      setStartError("Your login session has expired. Please log in again.");
-      return;
-    }
-    setStartError(null);
-
-    const amount = Number(investmentAmount);
-    const duration = Number(tradeDuration);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      toast({ title: "Invalid stake", description: "Enter an investment amount greater than zero.", variant: "destructive" });
-      return;
-    }
-    if (!Number.isFinite(duration) || duration < 5) {
-      toast({ title: "Invalid duration", description: "Trade duration must be at least 5 seconds.", variant: "destructive" });
-      return;
-    }
-
-    setConfigOpen(false);
-    setPhase("scanning");
-    setScannerOpen(true);
-
-    let r: Response;
+    if (!selectedEA) return;
+    if (!localStorage.getItem("bp_token")) { setError("Your login session has expired. Please log in again."); return; }
+    const investment = Number(amount);
+    if (!Number.isFinite(investment) || investment < selectedEA.minInvestment) { setError("Minimum investment for this EA is $" + selectedEA.minInvestment + "."); return; }
+    if (!password.trim()) { setError("Enter the shared EA password to continue."); return; }
+    setSubmitting(true);
     try {
-      r = await fetch(`${api}/auto-trading/start`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        accountType: account,
-        asset,
-        investmentAmount: amount,
-        tradeDuration: duration,
-        strategy,
-        aiSpeed: speed,
-        riskPct: 2,
-        lotSize: 0.1,
-        dailyTargetPct: 5,
-        dailyLossPct: 3,
-        maxTrades: 5,
-        stopLossPips: 30,
-        takeProfitPips: 60,
-        trailingStop: true,
-        breakEven: true,
-      }),
-    });
-    } catch {
-      setScannerOpen(false);
-      setStartError("Unable to connect to the trading server. Please try again.");
-      return;
-    }
-    let d: any = {};
-    try { d = await r.json(); } catch { d = {}; }
-
-    if (!r.ok) {
-      setScannerOpen(false);
-      if (r.status === 401) {
-        setStartError("Your login session is no longer valid. Please log in again.");
-        return;
-      }
-      toast({ title: "AI Trading could not start", description: d.error || "Check the selected wallet balance.", variant: "destructive" });
-      return;
-    }
-
-    setEnabled(true);
-    window.setTimeout(() => setPhase("monitoring"), 5000);
-    toast({ title: "AI Trading started", description: `Using the ${isDemo ? "Demo" : "Real"} wallet and ${asset} market engine.` });
-    await loadStatus();
+      const response = await fetch(api + "/auto-trading/start", {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({
+          accountType: account, eaId: selectedEA.id, eaPassword: password,
+          asset: selectedEA.asset, investmentAmount: investment,
+          tradeDuration: selectedEA.strategy === "scalp" ? 5 : selectedEA.strategy === "trend" ? 30 : 60,
+          strategy: selectedEA.strategy, aiSpeed: selectedEA.strategy === "scalp" ? "fast" : "slow",
+          riskPct: selectedEA.risk === "High" ? 4 : selectedEA.risk === "Moderate" ? 2 : 1,
+          lotSize: 0.1, dailyTargetPct: 5, dailyLossPct: 3, maxTrades: 5,
+          stopLossPips: 30, takeProfitPips: 60, trailingStop: true, breakEven: true,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) { setError(data.error || "The EA could not be started."); return; }
+      const name = selectedEA.name;
+      setSelectedEA(null); setPassword(""); setEnabled(true);
+      await loadStatus();
+      toast({ title: name + " started", description: "Running on your " + (isDemo ? "Demo" : "Real") + " wallet. Trading involves risk." });
+    } catch { setError("Unable to connect to the trading server. Please try again."); }
+    finally { setSubmitting(false); }
   };
 
-  const openTrades = Array.isArray(liveStatus?.openTrades) ? liveStatus.openTrades : [];
-  const closedTrades = Array.isArray(liveStatus?.closedTrades) ? liveStatus.closedTrades : [];
-  const recentTrades = closedTrades.slice(0, 8);
+  const stopTrading = async () => {
+    try {
+      const response = await fetch(api + "/auto-trading/stop", { method: "POST", headers: authHeaders(), body: JSON.stringify({ accountType: account }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) { toast({ title: "Unable to stop EA", description: data.error || "Please try again.", variant: "destructive" }); return; }
+      setEnabled(false); await loadStatus(); toast({ title: "EA stopped", description: "Auto Trading has been stopped." });
+    } catch { toast({ title: "Unable to stop EA", description: "Check your connection and try again.", variant: "destructive" }); }
+  };
 
-  return (
-    <div className="min-h-[70vh] flex items-center justify-center p-4">
-      <div className="w-full max-w-md glass-card rounded-3xl border border-border p-6 text-center">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-          <Bot className="w-8 h-8 text-primary" />
-        </div>
+  const activeEA = EAS.find(ea => ea.id === status?.config?.eaId);
+  const openTrades = Array.isArray(status?.openTrades) ? status.openTrades : [];
+  const closedTrades = Array.isArray(status?.closedTrades) ? status.closedTrades : [];
 
-        <h1 className="text-2xl font-bold">AI Trading</h1>
-        <p className="text-sm text-zinc-300 mt-2">
-          {enabled ? "AI is actively monitoring the market for qualifying signals." : "Let AI scan the market and trade from your selected wallet."}
-        </p>
-
-        <div className="grid grid-cols-2 gap-3 mt-6 text-left">
-          <div className="rounded-xl bg-muted/20 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Account</p>
-            <p className="font-semibold mt-1">{isDemo ? "Demo" : "Real"}</p>
-          </div>
-          <div className="rounded-xl bg-muted/20 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Balance</p>
-            <p className="font-semibold mt-1">${Number(wallet?.balance ?? 0).toFixed(2)}</p>
-            <p className="text-[11px] mt-1 text-zinc-400">P/L: <span className={Number(wallet?.totalProfit ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}>${Number(wallet?.totalProfit ?? 0).toFixed(2)}</span></p>
-          </div>
-        </div>
-
-        {!enabled ? (
-          <Button className="w-full h-12 mt-6 text-base" onClick={() => setConfigOpen(true)}>
-            <Power className="w-5 h-5 mr-2" />
-            Start AI Trading
-          </Button>
-        ) : (
-          <Button variant="destructive" className="w-full h-12 mt-6 text-base" onClick={() => void stopTrading()}>
-            Stop AI Trading
-          </Button>
-        )}
+  return <div className="mx-auto max-w-7xl p-4 md:p-6 space-y-6">
+    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div><div className="flex items-center gap-2 text-primary mb-2"><Bot className="h-6 w-6"/><span className="text-xs font-bold uppercase tracking-[0.2em]">Tradollar Automation</span></div><h1 className="text-3xl font-bold tracking-tight">Auto Trading EAs</h1><p className="mt-2 text-sm text-muted-foreground">Choose an Expert Advisor, set your investment, and enter the shared EA password to start.</p></div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-border bg-card p-3 min-w-32"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Wallet className="h-4 w-4"/>{isDemo ? "Demo" : "Real"} balance</div><p className="mt-1 text-xl font-bold">{"$"}{Number(wallet?.balance ?? 0).toFixed(2)}</p></div>
+        <div className="rounded-xl border border-border bg-card p-3 min-w-32"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Activity className="h-4 w-4"/>Available EAs</div><p className="mt-1 text-xl font-bold">120</p></div>
       </div>
-
-      <AnimatePresence>
-        {configOpen && !enabled && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="w-full max-w-md rounded-2xl p-6 border border-zinc-700 bg-zinc-950 text-white shadow-2xl" initial={{ scale: 0.96, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 12 }}>
-              <h2 className="text-xl font-bold text-white">Start AI Trading</h2>
-              <p className="text-xs text-zinc-300 mt-1">Choose the trade parameters before AI starts scanning.</p>
-
-              {startError && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{startError}</div>}
-
-              <div className="space-y-4 mt-5">
-                <div>
-                  <Label>Asset</Label>
-                  <select value={asset} onChange={e => setAsset(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm text-white [&>option]:bg-zinc-900 [&>option]:text-white">
-                    {SYMBOLS.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <Label>Stake / Investment (USD)</Label>
-                  <Input className="mt-1 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500" type="number" min="1" value={investmentAmount} onChange={e => setInvestmentAmount(e.target.value)} />
-                </div>
-
-                <div>
-                  <Label>Trading Strategy</Label>
-                  <select value={strategy} onChange={e => setStrategy(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm text-white [&>option]:bg-zinc-900 [&>option]:text-white">
-                    <option value="trend">Trend Following</option>
-                    <option value="scalp">Fast Scalping</option>
-                    <option value="swing">Swing Trading</option>
-                    <option value="breakout">Breakout Hunter</option>
-                    <option value="smc">Smart Money</option>
-                  </select>
-                </div>
-
-                <div>
-                  <Label>Trade Duration</Label>
-                  <select value={tradeDuration} onChange={e => setTradeDuration(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm text-white [&>option]:bg-zinc-900 [&>option]:text-white">
-                    <option value="5">5 seconds</option>
-                    <option value="10">10 seconds</option>
-                    <option value="30">30 seconds</option>
-                    <option value="60">1 minute</option>
-                    <option value="300">5 minutes</option>
-                    <option value="600">10 minutes</option>
-                    <option value="900">15 minutes</option>
-                    <option value="1800">30 minutes</option>
-                    <option value="3600">1 hour</option>
-                    <option value="7200">2 hours</option>
-                    <option value="14400">4 hours</option>
-                  </select>
-                </div>
-
-                <div>
-                  <Label>AI Speed</Label>
-                  <select value={speed} onChange={e => setSpeed(e.target.value)} className="w-full h-10 mt-1 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-sm text-white [&>option]:bg-zinc-900 [&>option]:text-white">
-                    <option value="fast">Fast AI</option>
-                    <option value="slow">Slow AI</option>
-                  </select>
-                </div>
-
-                <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-3 text-xs text-zinc-300">
-                  <div className="flex justify-between"><span>Wallet</span><span className="font-semibold text-white">{isDemo ? "Demo" : "Real"}</span></div>
-                  <div className="flex justify-between mt-1"><span>Market engine</span><span className="font-semibold text-foreground">Live repo engine</span></div>
-                </div>
-
-                <div className="flex gap-3">
-                  <Button variant="outline" className="flex-1" onClick={() => setConfigOpen(false)}>Cancel</Button>
-                  <Button className="flex-1" onClick={() => void startTrading()}>Start AI</Button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {scannerOpen && (
-          <motion.div className="fixed inset-0 z-[60] flex items-center justify-center bg-black p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="w-full max-w-sm rounded-2xl p-6 text-center border border-zinc-700 bg-zinc-950 text-white shadow-2xl">
-              <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                {phase === "scanning" ? <Search className="w-7 h-7 text-primary animate-pulse" /> : <Bot className="w-7 h-7 text-primary" />}
-              </div>
-              <h2 className="text-lg font-bold">{phase === "scanning" ? "AI is scanning the markets" : "AI is monitoring the market"}</h2>
-              <p className="text-sm text-muted-foreground mt-2">
-                {phase === "scanning" ? "Analyzing the repo market engine for a qualifying signal." : "Waiting for a qualifying signal before opening the next trade."}
-              </p>
-
-              <div className="mt-5 rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-left text-xs text-zinc-300">
-                <div className="flex justify-between"><span>Status</span><span className="font-semibold text-emerald-400">{enabled ? "LIVE" : "STARTING"}</span></div>
-                <div className="flex justify-between mt-1"><span>AI action</span><span className="font-semibold text-white max-w-[65%] text-right">{liveStatus?.lastAction || "Analyzing market..."}</span></div>
-                <div className="flex justify-between mt-1"><span>Trades opened</span><span className="font-semibold text-white">{liveStatus?.tradesOpened ?? 0}</span></div>
-                <div className="flex justify-between mt-1"><span>Wins / Losses</span><span className="font-semibold text-white">{liveStatus?.wins ?? 0} / {liveStatus?.losses ?? 0}</span></div>
-              </div>
-
-              <div className="mt-3 space-y-2 text-left text-xs text-zinc-300">
-                <div className="flex justify-between"><span>Asset</span><span className="font-mono font-semibold text-white">{asset}</span></div>
-                <div className="flex justify-between"><span>Stake</span><span className="font-mono font-semibold">${Number(investmentAmount).toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Duration</span><span className="font-mono font-semibold">{Number(tradeDuration)} sec</span></div>
-                <div className="flex justify-between"><span>Wallet</span><span className="font-mono font-semibold">{isDemo ? "Demo" : "Real"}</span></div>
-              </div>
-
-              <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-left">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-white">LIVE TRADE FEED</span>
-                  <span className="text-[10px] text-zinc-400">{openTrades.length} open</span>
-                </div>
-                {openTrades.length > 0 ? openTrades.map((trade: any) => (
-                  <div key={trade.id} className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2 mb-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="font-bold text-emerald-300">{String(trade.direction).toUpperCase()} {trade.symbol}</span>
-                      <span className="font-mono text-white">${Number(trade.amount).toFixed(2)}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1 mt-2 text-[10px] text-zinc-400">
-                      <span>Entry: <b className="text-zinc-200">{Number(trade.entryPrice).toFixed(5)}</b></span>
-                      <span>Status: <b className="text-emerald-300">OPEN</b></span>
-                      <span>Current: <b className="text-zinc-200">{trade.currentPrice != null ? Number(trade.currentPrice).toFixed(5) : "—"}</b></span>
-                      <span>Live P/L: <b className={Number(trade.floatingProfitLoss ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}>{Number(trade.floatingProfitLoss ?? 0) >= 0 ? "+" : ""}${Number(trade.floatingProfitLoss ?? 0).toFixed(2)}</b></span>
-                      <span>Remaining: <b className="text-white">{trade.remainingSeconds != null ? trade.remainingSeconds + "s" : "—"}</b></span>
-                    </div>
-                  </div>
-                )) : <p className="text-[11px] text-zinc-400">No trade is currently open. AI is scanning for the next qualifying signal.</p>}
-
-                <div className="mt-3 border-t border-zinc-800 pt-2">
-                  <p className="text-[10px] uppercase tracking-wider text-zinc-500 mb-2">Recent results</p>
-                  {recentTrades.length > 0 ? recentTrades.map((trade: any) => (
-                    <div key={trade.id} className="flex items-center justify-between py-1.5 text-[10px]">
-                      <span className="text-zinc-300">{String(trade.direction).toUpperCase()} {trade.symbol}</span>
-                      <span className={trade.result === "WIN" ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{trade.result} {Number(trade.profitLoss ?? 0) >= 0 ? "+" : ""}${Number(trade.profitLoss ?? 0).toFixed(2)}</span>
-                    </div>
-                  )) : <p className="text-[11px] text-zinc-500">No completed trades yet.</p>}
-                </div>
-              </div>
-
-                            <Button variant="outline" className="w-full mt-5" onClick={() => setScannerOpen(false)}>Close</Button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
-  );
+
+    {enabled && <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 md:p-5">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><div className="flex items-center gap-2 text-sm font-semibold text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"/>EA session active</div><h2 className="mt-1 text-lg font-bold">{activeEA?.name || "Auto Trading EA"}</h2><p className="text-sm text-muted-foreground">{status?.config?.asset || "EURUSD"} · Investment {"$"}{Number(status?.config?.investmentAmount ?? 0).toFixed(2)} · {isDemo ? "Demo wallet" : "Real wallet"}</p><p className="mt-1 text-xs text-muted-foreground">{status?.lastAction || "Monitoring market signals"} · {status?.tradesOpened ?? 0} trades opened · {status?.wins ?? 0} wins / {status?.losses ?? 0} losses</p></div><Button variant="destructive" onClick={() => void stopTrading()}><Power className="mr-2 h-4 w-4"/>Stop Trading</Button></div>
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3"><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Open trades</p><p className="text-lg font-bold">{openTrades.length}</p></div><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Closed trades</p><p className="text-lg font-bold">{closedTrades.length}</p></div><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Wallet P/L</p><p className="text-lg font-bold">{"$"}{Number(wallet?.totalProfit ?? 0).toFixed(2)}</p></div><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Started</p><p className="text-lg font-bold">{status?.startedAt ? new Date(Number(status.startedAt)).toLocaleTimeString() : "—"}</p></div></div>
+    </div>}
+
+    <div className="flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search EAs by name, ID, strategy or market..." className="pl-9"/></div><div className="flex items-center gap-2 rounded-xl border border-border px-3 text-sm text-muted-foreground"><ShieldCheck className="h-4 w-4 text-primary"/>One shared EA password</div></div>
+
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {filtered.map((ea, index) => <motion.div key={ea.id} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:Math.min(index % 12,8)*0.025}} className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-4 hover:border-primary/40 transition-colors">
+        <div className="flex items-start gap-3"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Bot className="h-6 w-6"/></div><div className="min-w-0 flex-1"><h2 className="font-bold leading-tight">{ea.name}</h2><p className="mt-1 text-xs text-muted-foreground">{ea.id} · {ea.strategyLabel}</p></div><span className={"rounded-full px-2 py-1 text-[10px] font-semibold " + (ea.risk === "Low" ? "bg-emerald-500/10 text-emerald-400" : ea.risk === "Moderate" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400")}>{ea.risk} risk</span></div>
+        <p className="text-sm text-muted-foreground">{ea.description}</p><div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-3"><div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Market</p><p className="mt-1 text-sm font-semibold">{ea.asset === "ALL" ? "Multiple markets" : ea.asset}</p></div><div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Minimum investment</p><p className="mt-1 text-sm font-semibold">{"$"}{ea.minInvestment.toFixed(2)}</p></div></div>
+        <Button className="w-full mt-auto" disabled={enabled} onClick={() => chooseEA(ea)}><Power className="mr-2 h-4 w-4"/>{enabled ? "Stop active EA first" : "Start Trading"}</Button>
+      </motion.div>)}
+    </div>
+    {filtered.length === 0 && <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">No EAs match that search.</div>}
+    <div className="flex items-start gap-2 rounded-xl border border-border p-4 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary"/><p>Trading involves risk and losses are possible. EA profiles are a catalogue; this app uses its existing simulated market engine, not an external broker connection or a guarantee of results.</p></div>
+
+    <AnimatePresence>{selectedEA && <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={() => !submitting && setSelectedEA(null)}>
+      <motion.div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-950 p-5 text-white shadow-2xl" initial={{opacity:0,y:12,scale:0.97}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:12,scale:0.97}} onClick={event => event.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-widest text-primary">{selectedEA.id}</p><h2 className="mt-1 text-xl font-bold">{selectedEA.name}</h2><p className="mt-1 text-sm text-zinc-400">{selectedEA.strategyLabel} · {selectedEA.asset}</p></div><button aria-label="Close" className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white" disabled={submitting} onClick={() => setSelectedEA(null)}><X className="h-4 w-4"/></button></div>
+        <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm"><div className="flex justify-between"><span className="text-zinc-400">Minimum investment</span><span className="font-bold">{"$"}{selectedEA.minInvestment.toFixed(2)}</span></div><div className="mt-2 flex justify-between"><span className="text-zinc-400">Wallet</span><span className="font-semibold">{isDemo ? "Demo" : "Real"}</span></div></div>
+        {error && <div role="alert" className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
+        <div className="mt-4 space-y-4"><div><Label className="text-zinc-200">Investment amount (USD)</Label><Input autoFocus type="number" min={selectedEA.minInvestment} step="0.01" value={amount} onChange={event => setAmount(event.target.value)} className="mt-1 border-zinc-700 bg-zinc-900 text-white"/><p className="mt-1 text-xs text-zinc-500">Enter at least {"$"}{selectedEA.minInvestment.toFixed(2)}.</p></div><div><Label className="text-zinc-200">Shared EA password</Label><Input type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Enter EA password" className="mt-1 border-zinc-700 bg-zinc-900 text-white"/></div><div className="flex gap-3"><Button variant="outline" className="flex-1" disabled={submitting} onClick={() => setSelectedEA(null)}>Cancel</Button><Button className="flex-1" disabled={submitting} onClick={() => void startTrading()}>{submitting ? "Starting..." : "Confirm & Start"}</Button></div></div>
+      </motion.div>
+    </motion.div>}</AnimatePresence>
+  </div>;
 }
