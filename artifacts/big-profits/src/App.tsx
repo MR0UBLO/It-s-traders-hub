@@ -22,6 +22,7 @@ import Portfolio from "@/pages/portfolio";
 import Admin from "@/pages/admin";
 import SettingsPage from "@/pages/settings";
 import Support from "@/pages/support";
+import About from "@/pages/about";
 import NotFound from "@/pages/not-found";
 
 import { AppLayout } from "@/components/layout";
@@ -111,6 +112,7 @@ function Router() {
       <Route path="/admin"><ProtectedRoute component={Admin} /></Route>
       <Route path="/settings"><ProtectedRoute component={SettingsPage} /></Route>
       <Route path="/support"><ProtectedRoute component={Support} /></Route>
+      <Route path="/about"><ProtectedRoute component={About} /></Route>
 
       <Route component={NotFound} />
     </Switch>
