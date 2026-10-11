@@ -16,6 +16,7 @@ import Leaderboard from "@/pages/leaderboard";
 import CopyTrading from "@/pages/copy-trading";
 import AutoTrading from "@/pages/auto-trading";
 import Deposits from "@/pages/deposits";
+import FirstDeposit from "@/pages/first-deposit";
 
 import Withdraw from "@/pages/withdraw";
 import Portfolio from "@/pages/portfolio";
@@ -96,6 +97,7 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/verify-otp" component={VerifyOtp} />
 
+      <Route path="/first-deposit"><ProtectedRoute component={FirstDeposit} /></Route>
       <Route path="/dashboard"><ProtectedRoute component={Dashboard} /></Route>
       <Route path="/trade"><ProtectedRoute component={Trade} /></Route>
       <Route path="/markets"><ProtectedRoute component={Markets} /></Route>
