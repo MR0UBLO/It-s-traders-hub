@@ -72,7 +72,7 @@ export default function Login() {
       const SAFE = ["/dashboard","/trade","/markets","/ai-signals","/leaderboard",
         "/copy-trading","/auto-trading","/deposits","/withdraw","/portfolio",
         "/settings","/support"];
-      setLocation(lastRoute && SAFE.includes(lastRoute) ? lastRoute : "/dashboard");
+      setLocation("/welcome-back");
     } catch {
       toast({ title: "Network error", description: "Please try again.", variant: "destructive" });
     } finally {
