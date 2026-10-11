@@ -25,7 +25,6 @@ export default function FirstDeposit() {
             <X className="mr-2 h-4 w-4" /> Cancel — Continue to Dashboard
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">Depositing is optional. You can continue to the website without depositing now.</p>
       </div>
     </div>
   );
