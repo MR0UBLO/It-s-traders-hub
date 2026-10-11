@@ -467,7 +467,7 @@ console.log("PRICE DATA:", prices);
     if (dragEndpointRef.current) return;
     // Drawing tools place anchors on taps; only select mode uses empty-space drags to pan.
     if (drawingTool !== "select") return;
-    if (event.target !== event.currentTarget) return;
+    if (event.target !== event.currentTarget && (event.target as Element).getAttribute("data-chart-gesture-layer") !== "true") return;
     const chart = chartRef.current;
     if (!chart) return;
     chartPanRef.current = {
@@ -605,7 +605,7 @@ console.log("PRICE DATA:", prices);
           }}
         >
           {/* Catch gestures on empty plot space while keeping drawing shapes interactive. */}
-          <rect x="0" y="0" width="100%" height="100%" fill="transparent" pointerEvents="all" />
+          <rect data-chart-gesture-layer="true" x="0" y="0" width="100%" height="100%" fill="transparent" pointerEvents="all" />
           {drawings.map((drawing) => {
             const p = drawingCoords(drawing);
             if (!p) return null;
