@@ -166,6 +166,7 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
   type DrawingTool = "select" | "trendline" | "horizontal" | "vertical" | "rectangle" | "fibonacci";
   type ChartDrawing = { id: number; type: Exclude<DrawingTool, "select">; time1: Time; price1: number; time2: Time; price2: number };
   const [drawingTool, setDrawingTool] = useState<DrawingTool>("select");
+  const [drawingMenuOpen, setDrawingMenuOpen] = useState(false);
   const [drawings, setDrawings] = useState<ChartDrawing[]>([]);
   const [drawingStart, setDrawingStart] = useState<{ time: Time; price: number } | null>(null);
   const [selectedDrawing, setSelectedDrawing] = useState<number | null>(null);
@@ -472,28 +473,56 @@ console.log("PRICE DATA:", prices);
 
   return (
     <div className="flex flex-col h-full">
-      {/* Market-chart drawing tools */}
-      <div className="flex items-center gap-1 px-3 py-2 border-b border-border/30 flex-wrap shrink-0">
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1 shrink-0">Drawing tools</span>
-        {([
-          { id: "select" as const, label: "Select / edit", icon: MousePointer2 },
-          { id: "trendline" as const, label: "Trend line", icon: Pencil },
-          { id: "horizontal" as const, label: "Horizontal level", icon: Minus },
-          { id: "vertical" as const, label: "Vertical line", icon: Minus },
-          { id: "rectangle" as const, label: "Price zone", icon: Square },
-          { id: "fibonacci" as const, label: "Fibonacci retracement", icon: Layers },
-        ]).map(({ id, label, icon: Icon }) => (
-          <button key={id} type="button" title={label} aria-label={label}
-            onClick={() => { setDrawingTool(id); setDrawingStart(null); setSelectedDrawing(null); }}
-            className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors ${drawingTool === id ? "border-primary/60 bg-primary/15 text-primary" : "border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground"}`}
-          ><Icon className="h-3.5 w-3.5" /><span>{label}</span></button>
-        ))}
-        {selectedDrawing !== null && <button type="button" title="Delete selected drawing" onClick={() => { setDrawings(items => items.filter(d => d.id !== selectedDrawing)); setSelectedDrawing(null); }} className="inline-flex shrink-0 items-center gap-1 rounded-md border border-rose-500/50 px-2 py-1 text-xs text-rose-400"><Trash2 className="h-3.5 w-3.5" /><span>Delete</span></button>}
-        <button type="button" title="Clear all drawings" onClick={() => { setDrawings([]); setDrawingStart(null); setSelectedDrawing(null); }} className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"><Trash2 className="h-3.5 w-3.5" /><span>Clear all</span></button>
-        {drawingStart && <span className="text-[10px] text-amber-400">Tap the second anchor to finish</span>}
-        {drawingTool === "select" && <span className="text-[10px] text-muted-foreground">Select a drawing, then drag an anchor to edit</span>}
+      {/* Drawing tools menu */}
+      <div className="relative flex items-center gap-2 px-3 py-2 border-b border-border/30 shrink-0">
+        <div className="relative">
+          <button type="button" aria-label="Drawings" aria-expanded={drawingMenuOpen}
+            onClick={() => setDrawingMenuOpen(open => !open)}
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${drawingMenuOpen ? "border-primary/60 bg-primary/15 text-primary" : "border-border/60 text-foreground hover:bg-accent"}`}>
+            <Pencil className="h-4 w-4" />
+            <span>Drawings</span>
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${drawingMenuOpen ? "rotate-180" : ""}`} />
+          </button>
+          <AnimatePresence>
+            {drawingMenuOpen && (
+              <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                className="absolute left-0 top-full z-50 mt-2 w-[min(290px,calc(100vw-2rem))] rounded-xl border border-border bg-background p-2 shadow-2xl">
+                <p className="px-2 pb-2 pt-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Drawing tools</p>
+                {([
+                  { id: "select" as const, label: "Select / edit", icon: MousePointer2 },
+                  { id: "trendline" as const, label: "Trend line", icon: Pencil },
+                  { id: "horizontal" as const, label: "Horizontal level", icon: Minus },
+                  { id: "vertical" as const, label: "Vertical line", icon: Minus },
+                  { id: "rectangle" as const, label: "Price zone", icon: Square },
+                  { id: "fibonacci" as const, label: "Fibonacci retracement", icon: Layers },
+                ]).map(({ id, label, icon: Icon }) => (
+                  <button key={id} type="button" title={label} aria-label={label}
+                    onClick={() => { setDrawingTool(id); setDrawingStart(null); setSelectedDrawing(null); setDrawingMenuOpen(false); }}
+                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${drawingTool === id ? "bg-primary/15 text-primary" : "text-foreground hover:bg-accent"}`}>
+                    <Icon className="h-4 w-4 shrink-0" /><span className="flex-1">{label}</span>
+                    {drawingTool === id && <span className="text-[10px] font-semibold uppercase">Active</span>}
+                  </button>
+                ))}
+                <div className="my-2 border-t border-border/70" />
+                <button type="button" disabled={selectedDrawing === null}
+                  onClick={() => { setDrawings(items => items.filter(d => d.id !== selectedDrawing)); setSelectedDrawing(null); setDrawingMenuOpen(false); }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-rose-400 transition-colors hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-40">
+                  <Trash2 className="h-4 w-4 shrink-0" /><span>Delete selected drawing</span>
+                </button>
+                <button type="button" disabled={drawings.length === 0}
+                  onClick={() => { setDrawings([]); setDrawingStart(null); setSelectedDrawing(null); setDrawingMenuOpen(false); }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40">
+                  <Trash2 className="h-4 w-4 shrink-0" /><span>Clear all drawings</span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {drawingStart ? "Tap the chart to place the second anchor" : drawingTool === "select" ? "Select / edit" : `Active: ${drawingTool === "trendline" ? "Trend line" : drawingTool === "horizontal" ? "Horizontal level" : drawingTool === "vertical" ? "Vertical line" : drawingTool === "rectangle" ? "Price zone" : "Fibonacci retracement"} · tap chart to draw`}
+        </span>
       </div>
-      {/* OHLC bar */}
+            {/* OHLC bar */}
       <div className="flex items-center gap-3 px-3 pt-2 pb-1 text-[11px] font-mono flex-wrap gap-y-1 border-b border-border/30">
         {ohlc ? (
           <>
