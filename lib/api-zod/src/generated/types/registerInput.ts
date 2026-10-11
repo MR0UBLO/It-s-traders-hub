@@ -11,4 +11,7 @@ export interface RegisterInput {
   /** @minLength 6 */
   password: string;
   name: string;
+  /** @minLength 7 @maxLength 30 */
+  phoneNumber: string;
+  termsAccepted: true;
 }
