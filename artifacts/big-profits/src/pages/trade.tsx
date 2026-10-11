@@ -591,7 +591,7 @@ console.log("PRICE DATA:", prices);
         <svg
           className="absolute inset-0 w-full h-full"
           aria-label="Chart drawing tools and market-coordinate annotations"
-          style={{ zIndex: 5, pointerEvents: "auto", cursor: drawingTool === "select" ? "grab" : "crosshair", touchAction: "none", overflow: "hidden" }}
+          style={{ zIndex: 5, pointerEvents: drawingTool === "select" ? "none" : "auto", cursor: drawingTool === "select" ? "grab" : "crosshair", touchAction: drawingTool === "select" ? "pan-x pan-y pinch-zoom" : "none", overflow: "hidden" }}
           onClick={handleDrawingClick}
           onPointerDown={handleDrawingPointerDown}
           onPointerMove={handleDrawingPointerMove}
@@ -605,7 +605,7 @@ console.log("PRICE DATA:", prices);
           }}
         >
           {/* Catch gestures on empty plot space while keeping drawing shapes interactive. */}
-          <rect data-chart-gesture-layer="true" x="0" y="0" width="100%" height="100%" fill="transparent" pointerEvents="all" />
+          {drawingTool !== "select" && (() => { const chart = chartRef.current; const host = containerRef.current; if (!chart || !host) return null; const scale = chart.timeScale(); const plotLeft = Math.max(0, host.clientWidth - scale.width()); const plotBottom = Math.max(0, host.clientHeight - scale.height()); return <rect data-chart-gesture-layer="true" x={plotLeft} y="0" width={scale.width()} height={plotBottom} fill="transparent" pointerEvents="all" />; })()}
           {drawings.map((drawing) => {
             const p = drawingCoords(drawing);
             if (!p) return null;
