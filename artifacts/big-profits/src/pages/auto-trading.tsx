@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccountStore } from "@/store/account-store";
 import { useGetWallet, getGetWalletQueryKey } from "@workspace/api-client-react";
 
-const ASSETS = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "BTCUSD", "ETHUSD", "NASDAQ", "ALL"];
+const ASSETS = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "BTCUSD", "ETHUSD", "ALL"];
 const STRATEGIES = [
   { label: "Trend Following", value: "trend" }, { label: "Fast Scalping", value: "scalp" },
   { label: "Swing Trader", value: "swing" }, { label: "Breakout Hunter", value: "breakout" },
@@ -28,13 +28,13 @@ type EA = { id: string; name: string; strategy: string; strategyLabel: string; a
 const EAS: EA[] = Array.from({ length: 120 }, (_, index) => {
   const n = index + 1;
   const strategy = STRATEGIES[(n * 7 + Math.floor(n / 3)) % STRATEGIES.length];
-  const asset = ASSETS[(n * 5 + Math.floor(n / 4)) % ASSETS.length];
+  const asset = "ALL";
   const suffix = n > NAMES.length ? " " + ["Pro", "Prime", "Elite"][Math.floor((n - 1) / NAMES.length) % 3] + " " + Math.ceil(n / NAMES.length) : "";
   return {
     id: "EA-" + String(n).padStart(3, "0"), name: NAMES[(n - 1) % NAMES.length] + suffix,
     strategy: strategy.value, strategyLabel: strategy.label, asset, risk: RISKS[(n * 11) % RISKS.length],
     minInvestment: 10 + (n % 10) * 10,
-    description: strategy.label + " strategy for " + (asset === "ALL" ? "multiple markets" : asset) + ".",
+    description: strategy.label + " strategy scans all supported markets and selects the strongest confirmed signal.",
   };
 });
 
@@ -90,8 +90,8 @@ export default function AutoTrading() {
         body: JSON.stringify({
           accountType: account, eaId: selectedEA.id, eaPassword: password,
           asset: selectedEA.asset, investmentAmount: investment,
-          tradeDuration: selectedEA.strategy === "scalp" ? 5 : selectedEA.strategy === "trend" ? 30 : 60,
-          strategy: selectedEA.strategy, aiSpeed: selectedEA.strategy === "scalp" ? "fast" : "slow",
+          tradeDuration: 4,
+          strategy: selectedEA.strategy, aiSpeed: "fast",
           riskPct: selectedEA.risk === "High" ? 4 : selectedEA.risk === "Moderate" ? 2 : 1,
           lotSize: 0.1, dailyTargetPct: 5, dailyLossPct: 3, maxTrades: 5,
           stopLossPips: 30, takeProfitPips: 60, trailingStop: true, breakEven: true,
@@ -139,12 +139,12 @@ export default function AutoTrading() {
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {filtered.map((ea, index) => <motion.div key={ea.id} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:Math.min(index % 12,8)*0.025}} className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-4 hover:border-primary/40 transition-colors">
         <div className="flex items-start gap-3"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Bot className="h-6 w-6"/></div><div className="min-w-0 flex-1"><h2 className="font-bold leading-tight">{ea.name}</h2><p className="mt-1 text-xs text-muted-foreground">{ea.id} · {ea.strategyLabel}</p></div><span className={"rounded-full px-2 py-1 text-[10px] font-semibold " + (ea.risk === "Low" ? "bg-emerald-500/10 text-emerald-400" : ea.risk === "Moderate" ? "bg-amber-500/10 text-amber-400" : "bg-red-500/10 text-red-400")}>{ea.risk} risk</span></div>
-        <p className="text-sm text-muted-foreground">{ea.description}</p><div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-3"><div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Market</p><p className="mt-1 text-sm font-semibold">{ea.asset === "ALL" ? "Multiple markets" : ea.asset}</p></div><div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Minimum investment</p><p className="mt-1 text-sm font-semibold">{"$"}{ea.minInvestment.toFixed(2)}</p></div></div>
+        <p className="text-sm text-muted-foreground">{ea.description}</p><div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-3"><div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Market</p><p className="mt-1 text-sm font-semibold">{ea.asset === "ALL" ? "All supported markets" : ea.asset}</p></div><div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Minimum investment</p><p className="mt-1 text-sm font-semibold">{"$"}{ea.minInvestment.toFixed(2)}</p></div></div>
         <Button className="w-full mt-auto" disabled={enabled} onClick={() => chooseEA(ea)}><Power className="mr-2 h-4 w-4"/>{enabled ? "Stop active EA first" : "Start Trading"}</Button>
       </motion.div>)}
     </div>
     {filtered.length === 0 && <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">No EAs match that search.</div>}
-    <div className="flex items-start gap-2 rounded-xl border border-border p-4 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary"/><p>Trading involves risk and losses are possible. EA profiles are a catalogue; this app uses its existing simulated market engine, not an external broker connection or a guarantee of results.</p></div>
+    <div className="flex items-start gap-2 rounded-xl border border-border p-4 text-xs text-muted-foreground"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary"/><p>EAs scan all supported markets every second using shared price ticks and 5s/15s candle confirmation. Trades last 1–4 seconds; weak or conflicting signals are skipped. Signal strength is not a measured win rate or a guarantee of profit.</p></div>
 
     <AnimatePresence>{selectedEA && <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={() => !submitting && setSelectedEA(null)}>
       <motion.div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-950 p-5 text-white shadow-2xl" initial={{opacity:0,y:12,scale:0.97}} animate={{opacity:1,y:0,scale:1}} exit={{opacity:0,y:12,scale:0.97}} onClick={event => event.stopPropagation()}>
