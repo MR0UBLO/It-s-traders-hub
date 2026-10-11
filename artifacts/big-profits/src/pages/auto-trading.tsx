@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccountStore } from "@/store/account-store";
 import { useGetWallet, getGetWalletQueryKey } from "@workspace/api-client-react";
 
-const ASSETS = ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "BTCUSD", "ETHUSD", "ALL"];
 const STRATEGIES = [
   { label: "Trend Following", value: "trend" }, { label: "Fast Scalping", value: "scalp" },
   { label: "Swing Trader", value: "swing" }, { label: "Breakout Hunter", value: "breakout" },
