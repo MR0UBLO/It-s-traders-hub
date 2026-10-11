@@ -89,7 +89,7 @@ export default function Deposits() {
   const [pendingAmount, setPendingAmount] = useState(0);
   const [receipt, setReceipt]     = useState<string | null>(null);
   const [search, setSearch]       = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("mobile");
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPolling = () => { if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; } };
@@ -179,14 +179,14 @@ export default function Deposits() {
         <div className="lg:col-span-2 space-y-4">
           {/* Method type filter */}
           <div className="flex gap-1 bg-muted/30 rounded-xl p-1">
-            {[["all","All"],["mobile","Mobile"],["card","Card/E-wallet"],["bank","Bank"],["crypto","Crypto"]].map(([v, l]) => (
+            {[["mobile","Mobile"],["card","Card/E-wallet"],["bank","Bank"],["crypto","Crypto"]].map(([v, l]) => (
               <button key={v} onClick={() => setTypeFilter(v)} className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${typeFilter === v ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>{l}</button>
             ))}
           </div>
 
           {/* Method grid */}
           <div className="grid grid-cols-2 gap-2">
-            {METHODS.filter(m => typeFilter === "all" || m.type === typeFilter).map(m => (
+            {METHODS.filter(m => m.type === typeFilter).map(m => (
               <MethodCard key={m.id} m={m} selected={method.id === m.id} onClick={() => { setMethod(m); setDepositState("idle"); setAmount(""); }} />
             ))}
           </div>
