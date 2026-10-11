@@ -68,10 +68,6 @@ export default function Login() {
           description: `${Number(data.adminSimulation.balance).toLocaleString()} simulated balance. This amount is not withdrawable.`,
         });
       }
-      const lastRoute = localStorage.getItem("bp_last_route");
-      const SAFE = ["/dashboard","/trade","/markets","/ai-signals","/leaderboard",
-        "/copy-trading","/auto-trading","/deposits","/withdraw","/portfolio",
-        "/settings","/support"];
       setLocation("/welcome-back");
     } catch {
       toast({ title: "Network error", description: "Please try again.", variant: "destructive" });
