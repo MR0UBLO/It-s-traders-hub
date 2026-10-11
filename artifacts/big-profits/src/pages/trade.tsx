@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowUp, ArrowDown, X, History, Layers, TrendingUp, TrendingDown,
   Maximize2, ChevronDown, BarChart3, Trophy, AlertTriangle, Clock,
+  MousePointer2, Pencil, Minus, Square, Trash2,
 } from "lucide-react";
 import {
   createChart, IChartApi, ISeriesApi, ColorType,
@@ -162,6 +163,9 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
 
   const [ohlc, setOhlc]         = useState<{ o: number; h: number; l: number; c: number } | null>(null);
   const [livePrice, setLivePrice] = useState<{ bid: number; ask: number } | null>(null);
+  const [drawingTool, setDrawingTool] = useState<"select" | "trendline" | "horizontal" | "rectangle">("select");
+  const [drawings, setDrawings] = useState<Array<{ id: number; type: "trendline" | "horizontal" | "rectangle"; x1: number; y1: number; x2: number; y2: number }>>([]);
+  const [drawingStart, setDrawingStart] = useState<{ x: number; y: number } | null>(null);
   const decimals = dp(symbol);
 
   /* Build the main chart once per symbol */
@@ -403,8 +407,53 @@ console.log("PRICE DATA:", prices);
     if (sma200Ref.current) sma200Ref.current.applyOptions({ visible: indicators.sma200 });
   }, [indicators.ema9, indicators.ema21, indicators.sma50, indicators.sma200]);
 
+  const handleDrawingClick = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (drawingTool === "select" || !containerRef.current) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const point = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+    if (drawingTool === "horizontal") {
+      setDrawings((items) => [...items, { id: Date.now(), type: "horizontal", x1: 0, y1: point.y, x2: bounds.width, y2: point.y }]);
+      return;
+    }
+    if (!drawingStart) {
+      setDrawingStart(point);
+      return;
+    }
+    setDrawings((items) => [...items, {
+      id: Date.now(),
+      type: drawingTool,
+      x1: drawingStart.x, y1: drawingStart.y,
+      x2: point.x, y2: point.y,
+    }]);
+    setDrawingStart(null);
+  };
+
   return (
     <div className="flex flex-col h-full">
+      {/* Chart drawing tools */}
+      <div className="flex items-center gap-1 px-3 py-2 border-b border-border/30 flex-wrap shrink-0">
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1">Draw</span>
+        {([
+          { id: "select" as const, label: "Cursor", icon: MousePointer2 },
+          { id: "trendline" as const, label: "Trend line", icon: Pencil },
+          { id: "horizontal" as const, label: "Horizontal line", icon: Minus },
+          { id: "rectangle" as const, label: "Rectangle", icon: Square },
+        ]).map(({ id, label, icon: Icon }) => (
+          <button key={id} type="button" title={label} aria-label={label}
+            onClick={() => { setDrawingTool(id); setDrawingStart(null); }}
+            className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors ${drawingTool === id ? "border-primary/60 bg-primary/15 text-primary" : "border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+          >
+            <Icon className="h-3.5 w-3.5" /><span>{label}</span>
+          </button>
+        ))}
+        <button type="button" title="Clear drawings" aria-label="Clear drawings"
+          onClick={() => { setDrawings([]); setDrawingStart(null); }}
+          className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <Trash2 className="h-3.5 w-3.5" /><span>Clear</span>
+        </button>
+        {drawingStart && <span className="text-[10px] text-amber-400">Tap a second point to finish</span>}
+      </div>
       {/* OHLC bar */}
       <div className="flex items-center gap-3 px-3 pt-2 pb-1 text-[11px] font-mono flex-wrap gap-y-1 border-b border-border/30">
         {ohlc ? (
@@ -432,10 +481,28 @@ console.log("PRICE DATA:", prices);
       </div>
 
       <div
-        ref={containerRef}
-        className="w-full"
+        className="relative w-full"
         style={{ flex: indicators.volume ? "3 1 0" : "1 1 0", minHeight: 0 }}
-      />
+      >
+        <div ref={containerRef} className="absolute inset-0 w-full h-full" />
+        <svg
+          className="absolute inset-0 w-full h-full"
+          aria-label="Chart drawings"
+          style={{ pointerEvents: drawingTool === "select" ? "none" : "auto", cursor: drawingTool === "select" ? "default" : "crosshair", touchAction: "none" }}
+          onClick={handleDrawingClick}
+        >
+          {drawings.map((drawing) => (
+            drawing.type === "horizontal" ? (
+              <line key={drawing.id} x1={drawing.x1} y1={drawing.y1} x2={drawing.x2} y2={drawing.y2} stroke="#fbbf24" strokeWidth="1.5" strokeDasharray="6 3" />
+            ) : drawing.type === "trendline" ? (
+              <line key={drawing.id} x1={drawing.x1} y1={drawing.y1} x2={drawing.x2} y2={drawing.y2} stroke="#38bdf8" strokeWidth="2" />
+            ) : (
+              <rect key={drawing.id} x={Math.min(drawing.x1, drawing.x2)} y={Math.min(drawing.y1, drawing.y2)} width={Math.abs(drawing.x2 - drawing.x1)} height={Math.abs(drawing.y2 - drawing.y1)} fill="#a78bfa" fillOpacity="0.10" stroke="#a78bfa" strokeWidth="1.5" />
+            )
+          ))}
+          {drawingStart && <circle cx={drawingStart.x} cy={drawingStart.y} r="4" fill="#38bdf8" stroke="#ffffff" strokeWidth="1" />}
+        </svg>
+      </div>
       {indicators.volume && (
         <div
           ref={volContainerRef}
