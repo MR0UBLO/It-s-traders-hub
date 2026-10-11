@@ -21,10 +21,9 @@ let priceTickInterval: ReturnType<typeof setInterval> | null = null;
 export function startBackgroundJobs(): void {
   logger.info("Starting background jobs");
 
-  // ── Withdrawal processing reminder: after 10 minutes, flag requests for payout review ──
-  // Do not mark a withdrawal completed based only on elapsed time: that status must
-  // reflect a confirmed payout from the payment provider or an authorized operator.
-  cron.schedule("* * * * *", () => void flagAgedWithdrawals(), { name: "withdrawal-processing-review" });
+  // ── Withdrawal lifecycle: pending for 10 minutes, then processing for 2 minutes ──
+  // Check every 15 seconds so status changes happen close to the requested times.
+  cron.schedule("*/15 * * * * *", () => void advanceWithdrawalStatuses(), { name: "withdrawal-status-lifecycle" });
 
   // ── 1. Price tick: every 3 seconds ──────────────────────────────────────────
   priceTickInterval = setInterval(() => {
@@ -160,26 +159,52 @@ export function stopBackgroundJobs(): void {
   logger.info("Background jobs stopped");
 }
 
-async function flagAgedWithdrawals(): Promise<void> {
+async function advanceWithdrawalStatuses(): Promise<void> {
   try {
-    const cutoff = new Date(Date.now() - 10 * 60 * 1000);
-    const aged = await db
+    const now = Date.now();
+    const pendingCutoff = new Date(now - 10 * 60 * 1000);
+    const completedCutoff = new Date(now - 12 * 60 * 1000);
+
+    // First transition: pending -> processing after 10 minutes.
+    const movedToProcessing = await db
       .update(withdrawalsTable)
       .set({ status: "processing" })
       .where(
         and(
           eq(withdrawalsTable.status, "pending"),
-          lte(withdrawalsTable.createdAt, cutoff),
+          lte(withdrawalsTable.createdAt, pendingCutoff),
         ),
       )
       .returning({ id: withdrawalsTable.id, transactionId: withdrawalsTable.transactionId });
 
-    if (aged.length > 0) {
-      logger.info({ count: aged.length, withdrawalIds: aged.map((w) => w.id) },
-        "Withdrawals older than 10 minutes moved to processing; payout confirmation still required");
+    if (movedToProcessing.length > 0) {
+      logger.info(
+        { count: movedToProcessing.length, withdrawalIds: movedToProcessing.map((w) => w.id) },
+        "Withdrawals moved from pending to processing after 10 minutes",
+      );
+    }
+
+    // Second transition: processing -> completed 2 minutes after the 10-minute
+    // pending period (12 minutes after request creation in this lifecycle).
+    const movedToCompleted = await db
+      .update(withdrawalsTable)
+      .set({ status: "completed" })
+      .where(
+        and(
+          eq(withdrawalsTable.status, "processing"),
+          lte(withdrawalsTable.createdAt, completedCutoff),
+        ),
+      )
+      .returning({ id: withdrawalsTable.id, transactionId: withdrawalsTable.transactionId });
+
+    if (movedToCompleted.length > 0) {
+      logger.info(
+        { count: movedToCompleted.length, withdrawalIds: movedToCompleted.map((w) => w.id) },
+        "Withdrawals moved from processing to completed after the additional 2-minute period",
+      );
     }
   } catch (err) {
-    logger.error({ err }, "Withdrawal processing review job failed");
+    logger.error({ err }, "Withdrawal status lifecycle job failed");
   }
 }
 
