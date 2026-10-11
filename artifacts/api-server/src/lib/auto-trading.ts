@@ -3,6 +3,7 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { getCurrentPrice, SYMBOLS } from "./market.js";
 import { generateSignalForSymbol } from "./ai-engine.js";
 import { logger } from "./logger.js";
+import { calculateBinarySettlement } from "./binary-settlement.js";
 
 type AccountType = "real" | "demo";
 type Strategy = "trend" | "scalp" | "swing" | "breakout" | "grid" | "smc";
@@ -215,24 +216,30 @@ async function settleOpenTrades(userId: number, runtime: Runtime) {
       !stopHit &&
       (trade.direction === "buy" ? closePrice > Number(trade.entryPrice) : closePrice < Number(trade.entryPrice))
     );
-    const profitLoss = win ? amount * (payoutPercent / 100) : -amount;
-    const payout = win ? amount + profitLoss : 0;
+    const { profit: profitLoss, returnAmount: payout } = calculateBinarySettlement(amount, payoutPercent, win);
 
-    const updated = await db.update(tradesTable).set({
-      status: "closed",
-      result: win ? "WIN" : "LOSS",
-      closePrice: String(closePrice),
-      profitLoss: String(Number(profitLoss.toFixed(4))),
-      profitLossPercent: String(Number(((profitLoss / amount) * 100).toFixed(4))),
-      closedAt: new Date(),
-    }).where(and(eq(tradesTable.id, trade.id), eq(tradesTable.status, "open"))).returning();
+    // Close and credit the matching real/demo wallet atomically. A conditional
+    // status update ensures concurrent ticks cannot settle the same trade twice.
+    const settled = await db.transaction(async (tx) => {
+      const [closedTrade] = await tx.update(tradesTable).set({
+        status: "closed",
+        result: win ? "WIN" : "LOSS",
+        closePrice: String(closePrice),
+        profitLoss: String(profitLoss),
+        profitLossPercent: String(Number(((profitLoss / amount) * 100).toFixed(4))),
+        closedAt: new Date(),
+      }).where(and(eq(tradesTable.id, trade.id), eq(tradesTable.status, "open"))).returning();
 
-    if (updated.length) {
-      await db.update(walletTable).set({
+      if (!closedTrade) return false;
+
+      await tx.update(walletTable).set({
         balance: sql`${walletTable.balance} + ${payout}`,
         totalProfit: sql`${walletTable.totalProfit} + ${profitLoss}`,
       }).where(eq(walletTable.userId, userId));
+      return true;
+    });
 
+    if (settled) {
       if (win) runtime.wins += 1;
       else runtime.losses += 1;
       runtime.lastActionAt = Date.now();
@@ -343,24 +350,25 @@ export async function closeAutoTradingPositions(userId: number, accountType: Acc
     const win = trade.direction === "buy"
       ? closePrice > Number(trade.entryPrice)
       : closePrice < Number(trade.entryPrice);
-    const profitLoss = win ? amount * (payoutPercent / 100) : -amount;
-    const payout = win ? amount + profitLoss : 0;
+    const { profit: profitLoss, returnAmount: payout } = calculateBinarySettlement(amount, payoutPercent, win);
 
-    const updated = await db.update(tradesTable).set({
-      status: "closed",
-      result: win ? "WIN" : "LOSS",
-      closePrice: String(closePrice),
-      profitLoss: String(Number(profitLoss.toFixed(4))),
-      profitLossPercent: String(Number(((profitLoss / amount) * 100).toFixed(4))),
-      closedAt: new Date(),
-    }).where(and(eq(tradesTable.id, trade.id), eq(tradesTable.status, "open"))).returning();
+    await db.transaction(async (tx) => {
+      const [closedTrade] = await tx.update(tradesTable).set({
+        status: "closed",
+        result: win ? "WIN" : "LOSS",
+        closePrice: String(closePrice),
+        profitLoss: String(profitLoss),
+        profitLossPercent: String(Number(((profitLoss / amount) * 100).toFixed(4))),
+        closedAt: new Date(),
+      }).where(and(eq(tradesTable.id, trade.id), eq(tradesTable.status, "open"))).returning();
 
-    if (updated.length) {
-      await db.update(walletTable).set({
+      if (!closedTrade) return;
+
+      await tx.update(walletTable).set({
         balance: sql`${walletTable.balance} + ${payout}`,
         totalProfit: sql`${walletTable.totalProfit} + ${profitLoss}`,
       }).where(eq(walletTable.userId, userId));
-    }
+    });
   }
 }
 
