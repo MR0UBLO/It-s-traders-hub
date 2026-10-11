@@ -460,9 +460,14 @@ console.log("PRICE DATA:", prices);
     if (!drag) return;
     const point = pointFromEvent(event);
     if (!point) return;
-    setDrawings(items => items.map(d => d.id !== drag.id ? d : drag.endpoint === "start"
-      ? { ...d, time1: point.time, price1: point.price }
-      : { ...d, time2: point.time, price2: point.price }));
+    setDrawings(items => items.map(d => {
+      if (d.id !== drag.id) return d;
+      if (d.type === "horizontal") return { ...d, price1: point.price, price2: point.price };
+      if (d.type === "vertical") return { ...d, time1: point.time, time2: point.time };
+      return drag.endpoint === "start"
+        ? { ...d, time1: point.time, price1: point.price }
+        : { ...d, time2: point.time, price2: point.price };
+    }));
   };
 
   return (
@@ -534,11 +539,11 @@ console.log("PRICE DATA:", prices);
             const active = selectedDrawing === drawing.id;
             const handle = (x: number | null, y: number, endpoint: "start" | "end") => x == null ? null : <circle cx={x} cy={y} r="5" fill="#0f172a" stroke="#f8fafc" strokeWidth="1.5" style={{ cursor: "grab", pointerEvents: "auto", touchAction: "none" }} onPointerDown={(event) => { event.stopPropagation(); setSelectedDrawing(drawing.id); dragEndpointRef.current = { id: drawing.id, endpoint }; event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId); }} />;
             const selectProps = { onClick: (event: React.MouseEvent<SVGElement>) => { if (drawingTool === "select") { event.stopPropagation(); setSelectedDrawing(drawing.id); } }, style: { pointerEvents: "auto" as const, cursor: drawingTool === "select" ? "pointer" : "crosshair" } };
-            if (drawing.type === "horizontal") return <g key={drawing.id} {...selectProps}><line x1={p.plotLeft} y1={p.y1} x2={p.plotRight} y2={p.y1} stroke="#fbbf24" strokeWidth={active ? 2.5 : 1.5} strokeDasharray="7 3" />{active && <>{handle(p.x1, p.y1, "start")}{handle(p.x2, p.y1, "end")}</>}</g>;
+            if (drawing.type === "horizontal") return <g key={drawing.id} {...selectProps}><line x1={p.plotLeft} y1={p.y1} x2={p.plotRight} y2={p.y1} stroke="#fbbf24" strokeWidth={active ? 2.5 : 1.5} strokeDasharray="7 3" />{active && <>{handle(p.plotLeft + 14, p.y1, "start")}{handle(p.plotRight - 14, p.y1, "end")}</>}</g>;
             if (drawing.type === "vertical") {
               const x = p.x1 ?? p.x2;
               if (x == null) return null;
-              return <g key={drawing.id} {...selectProps}><line x1={x} y1="0" x2={x} y2={p.plotBottom} stroke="#fbbf24" strokeWidth={active ? 2.5 : 1.5} strokeDasharray="7 3" />{active && <>{handle(x, p.y1, "start")}{handle(x, p.y2, "end")}</>}</g>;
+              return <g key={drawing.id} {...selectProps}><line x1={x} y1="0" x2={x} y2={p.plotBottom} stroke="#fbbf24" strokeWidth={active ? 2.5 : 1.5} strokeDasharray="7 3" />{active && <>{handle(x, 12, "start")}{handle(x, p.plotBottom - 12, "end")}</>}</g>;
             }
             if (p.x1 == null || p.x2 == null) return null;
             if (drawing.type === "trendline") return <g key={drawing.id} {...selectProps}><line x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2} stroke="#38bdf8" strokeWidth={active ? 3 : 2} />{active && <>{handle(p.x1, p.y1, "start")}{handle(p.x2, p.y2, "end")}</>}</g>;
