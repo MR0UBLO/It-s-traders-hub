@@ -15,7 +15,9 @@ const registerSchema = z.object({
   
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Enter a valid email"),
+  phoneNumber: z.string().trim().min(7, "Enter a valid phone number").max(30, "Phone number is too long"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  termsAccepted: z.boolean().refine((accepted) => accepted, "You must agree to the Terms and Conditions"),
 });
 
 type RegisterValues = z.infer<typeof registerSchema>;
@@ -36,7 +38,7 @@ export default function Register() {
 
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", password: "" },
+    defaultValues: { name: "", email: "", phoneNumber: "", password: "", termsAccepted: false },
   });
 
   const onRegister = async (values: RegisterValues) => {
@@ -203,6 +205,19 @@ export default function Register() {
                   />
                   <FormField
                     control={form.control}
+                    name="phoneNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Label className="text-sm font-medium">Phone number</Label>
+                        <FormControl>
+                          <Input type="tel" autoComplete="tel" placeholder="+254 7XX XXX XXX" {...field} className="h-11 bg-card border-border" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="password"
                     render={({ field }) => (
                       <FormItem>
@@ -210,6 +225,31 @@ export default function Register() {
                         <FormControl>
                           <Input type="password" placeholder="Min. 6 characters" autoComplete="new-password" {...field} className="h-11 bg-card border-border" />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="termsAccepted"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-start gap-2">
+                          <FormControl>
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
+                              className="mt-1 h-4 w-4 accent-primary"
+                            />
+                          </FormControl>
+                          <Label className="text-sm font-normal leading-5">
+                            I agree to the Terms and Conditions.
+                          </Label>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
