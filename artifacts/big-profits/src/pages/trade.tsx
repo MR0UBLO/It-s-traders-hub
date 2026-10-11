@@ -163,9 +163,13 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
 
   const [ohlc, setOhlc]         = useState<{ o: number; h: number; l: number; c: number } | null>(null);
   const [livePrice, setLivePrice] = useState<{ bid: number; ask: number } | null>(null);
-  const [drawingTool, setDrawingTool] = useState<"select" | "trendline" | "horizontal" | "rectangle">("select");
-  const [drawings, setDrawings] = useState<Array<{ id: number; type: "trendline" | "horizontal" | "rectangle"; x1: number; y1: number; x2: number; y2: number }>>([]);
-  const [drawingStart, setDrawingStart] = useState<{ x: number; y: number } | null>(null);
+  type DrawingTool = "select" | "trendline" | "horizontal" | "vertical" | "rectangle" | "fibonacci";
+  type ChartDrawing = { id: number; type: Exclude<DrawingTool, "select">; time1: Time; price1: number; time2: Time; price2: number };
+  const [drawingTool, setDrawingTool] = useState<DrawingTool>("select");
+  const [drawings, setDrawings] = useState<ChartDrawing[]>([]);
+  const [drawingStart, setDrawingStart] = useState<{ time: Time; price: number } | null>(null);
+  const [selectedDrawing, setSelectedDrawing] = useState<number | null>(null);
+  const dragEndpointRef = useRef<{ id: number; endpoint: "start" | "end" } | null>(null);
   const decimals = dp(symbol);
 
   /* Build the main chart once per symbol */
@@ -407,57 +411,82 @@ console.log("PRICE DATA:", prices);
     if (sma200Ref.current) sma200Ref.current.applyOptions({ visible: indicators.sma200 });
   }, [indicators.ema9, indicators.ema21, indicators.sma50, indicators.sma200]);
 
-  const handleDrawingClick = (event: React.MouseEvent<SVGSVGElement>) => {
-    if (drawingTool === "select" || !containerRef.current) return;
+  // Store drawings in real chart time/price coordinates so they follow zoom and scroll.
+  const pointFromEvent = (event: React.MouseEvent<SVGSVGElement> | React.PointerEvent<SVGSVGElement>) => {
+    const chart = chartRef.current;
+    const series = candleSeriesRef.current;
+    if (!chart || !series) return null;
     const bounds = event.currentTarget.getBoundingClientRect();
-    // The SVG uses a fixed normalized viewBox, so drawings stay aligned at
-    // any chart size and on mobile screens.
-    const point = {
-      x: Math.max(0, Math.min(1000, ((event.clientX - bounds.left) / bounds.width) * 1000)),
-      y: Math.max(0, Math.min(1000, ((event.clientY - bounds.top) / bounds.height) * 1000)),
-    };
-    if (drawingTool === "horizontal") {
-      setDrawings((items) => [...items, { id: Date.now(), type: "horizontal", x1: 0, y1: point.y, x2: 1000, y2: point.y }]);
+    const plotLeft = Math.max(0, bounds.width - chart.timeScale().width());
+    const x = event.clientX - bounds.left - plotLeft;
+    const y = event.clientY - bounds.top;
+    const time = chart.timeScale().coordinateToTime(x);
+    const price = series.coordinateToPrice(y);
+    if (time == null || price == null || !Number.isFinite(price)) return null;
+    return { time, price };
+  };
+
+  const drawingCoords = (drawing: ChartDrawing) => {
+    const chart = chartRef.current;
+    const series = candleSeriesRef.current;
+    const host = containerRef.current;
+    if (!chart || !series || !host) return null;
+    const scale = chart.timeScale();
+    const plotLeft = Math.max(0, host.clientWidth - scale.width());
+    const x1c = scale.timeToCoordinate(drawing.time1);
+    const x2c = scale.timeToCoordinate(drawing.time2);
+    const y1 = series.priceToCoordinate(drawing.price1);
+    const y2 = series.priceToCoordinate(drawing.price2);
+    if (y1 == null || y2 == null) return null;
+    return { x1: x1c == null ? null : plotLeft + x1c, x2: x2c == null ? null : plotLeft + x2c, y1, y2, plotLeft, plotRight: plotLeft + scale.width(), plotBottom: Math.max(0, host.clientHeight - scale.height()) };
+  };
+
+  const handleDrawingClick = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (drawingTool === "select") return;
+    const point = pointFromEvent(event);
+    if (!point) return;
+    setSelectedDrawing(null);
+    if (drawingTool === "horizontal" || drawingTool === "vertical") {
+      setDrawings(items => [...items, { id: Date.now(), type: drawingTool, time1: point.time, time2: point.time, price1: point.price, price2: point.price }]);
       return;
     }
-    if (!drawingStart) {
-      setDrawingStart(point);
-      return;
-    }
-    setDrawings((items) => [...items, {
-      id: Date.now(),
-      type: drawingTool,
-      x1: drawingStart.x, y1: drawingStart.y,
-      x2: point.x, y2: point.y,
-    }]);
+    if (!drawingStart) { setDrawingStart(point); return; }
+    setDrawings(items => [...items, { id: Date.now(), type: drawingTool, time1: drawingStart.time, price1: drawingStart.price, time2: point.time, price2: point.price }]);
     setDrawingStart(null);
+  };
+
+  const handleDrawingPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    const drag = dragEndpointRef.current;
+    if (!drag) return;
+    const point = pointFromEvent(event);
+    if (!point) return;
+    setDrawings(items => items.map(d => d.id !== drag.id ? d : drag.endpoint === "start"
+      ? { ...d, time1: point.time, price1: point.price }
+      : { ...d, time2: point.time, price2: point.price }));
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Chart drawing tools */}
+      {/* Market-chart drawing tools */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-border/30 flex-wrap shrink-0">
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1">Draw</span>
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground mr-1">Tools</span>
         {([
-          { id: "select" as const, label: "Cursor", icon: MousePointer2 },
+          { id: "select" as const, label: "Select / edit", icon: MousePointer2 },
           { id: "trendline" as const, label: "Trend line", icon: Pencil },
-          { id: "horizontal" as const, label: "Horizontal line", icon: Minus },
-          { id: "rectangle" as const, label: "Rectangle", icon: Square },
+          { id: "horizontal" as const, label: "Horizontal level", icon: Minus },
+          { id: "vertical" as const, label: "Vertical line", icon: Minus },
+          { id: "rectangle" as const, label: "Price zone", icon: Square },
+          { id: "fibonacci" as const, label: "Fibonacci retracement", icon: Layers },
         ]).map(({ id, label, icon: Icon }) => (
           <button key={id} type="button" title={label} aria-label={label}
-            onClick={() => { setDrawingTool(id); setDrawingStart(null); }}
+            onClick={() => { setDrawingTool(id); setDrawingStart(null); setSelectedDrawing(null); }}
             className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors ${drawingTool === id ? "border-primary/60 bg-primary/15 text-primary" : "border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground"}`}
-          >
-            <Icon className="h-3.5 w-3.5" /><span>{label}</span>
-          </button>
+          ><Icon className="h-3.5 w-3.5" /><span>{label}</span></button>
         ))}
-        <button type="button" title="Clear drawings" aria-label="Clear drawings"
-          onClick={() => { setDrawings([]); setDrawingStart(null); }}
-          className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-        >
-          <Trash2 className="h-3.5 w-3.5" /><span>Clear</span>
-        </button>
-        {drawingStart && <span className="text-[10px] text-amber-400">Tap a second point to finish</span>}
+        {selectedDrawing !== null && <button type="button" title="Delete selected drawing" onClick={() => { setDrawings(items => items.filter(d => d.id !== selectedDrawing)); setSelectedDrawing(null); }} className="inline-flex items-center gap-1 rounded-md border border-rose-500/50 px-2 py-1 text-xs text-rose-400"><Trash2 className="h-3.5 w-3.5" /><span>Delete</span></button>}
+        <button type="button" title="Clear all drawings" onClick={() => { setDrawings([]); setDrawingStart(null); setSelectedDrawing(null); }} className="inline-flex items-center gap-1 rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"><Trash2 className="h-3.5 w-3.5" /><span>Clear all</span></button>
+        {drawingStart && <span className="text-[10px] text-amber-400">Tap the second anchor to finish</span>}
+        {drawingTool === "select" && <span className="text-[10px] text-muted-foreground">Select a drawing, then drag an anchor to edit</span>}
       </div>
       {/* OHLC bar */}
       <div className="flex items-center gap-3 px-3 pt-2 pb-1 text-[11px] font-mono flex-wrap gap-y-1 border-b border-border/30">
@@ -492,22 +521,49 @@ console.log("PRICE DATA:", prices);
         <div ref={containerRef} className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }} />
         <svg
           className="absolute inset-0 w-full h-full"
-          viewBox="0 0 1000 1000"
-          preserveAspectRatio="none"
-          aria-label="Chart drawings"
-          style={{ zIndex: 5, pointerEvents: drawingTool === "select" ? "none" : "auto", cursor: drawingTool === "select" ? "default" : "crosshair", touchAction: "none" }}
+          aria-label="Chart drawing tools and market-coordinate annotations"
+          style={{ zIndex: 5, pointerEvents: drawingTool === "select" && !dragEndpointRef.current ? "none" : "auto", cursor: drawingTool === "select" ? "default" : "crosshair", touchAction: "none", overflow: "hidden" }}
           onClick={handleDrawingClick}
+          onPointerMove={handleDrawingPointerMove}
+          onPointerUp={() => { dragEndpointRef.current = null; }}
+          onPointerCancel={() => { dragEndpointRef.current = null; }}
         >
-          {drawings.map((drawing) => (
-            drawing.type === "horizontal" ? (
-              <line key={drawing.id} x1={drawing.x1} y1={drawing.y1} x2={drawing.x2} y2={drawing.y2} stroke="#fbbf24" strokeWidth="1.5" strokeDasharray="6 3" />
-            ) : drawing.type === "trendline" ? (
-              <line key={drawing.id} x1={drawing.x1} y1={drawing.y1} x2={drawing.x2} y2={drawing.y2} stroke="#38bdf8" strokeWidth="2" />
-            ) : (
-              <rect key={drawing.id} x={Math.min(drawing.x1, drawing.x2)} y={Math.min(drawing.y1, drawing.y2)} width={Math.abs(drawing.x2 - drawing.x1)} height={Math.abs(drawing.y2 - drawing.y1)} fill="#a78bfa" fillOpacity="0.10" stroke="#a78bfa" strokeWidth="1.5" />
-            )
-          ))}
-          {drawingStart && <circle cx={drawingStart.x} cy={drawingStart.y} r="4" fill="#38bdf8" stroke="#ffffff" strokeWidth="1" />}
+          {drawings.map((drawing) => {
+            const p = drawingCoords(drawing);
+            if (!p) return null;
+            const active = selectedDrawing === drawing.id;
+            const handle = (x: number | null, y: number, endpoint: "start" | "end") => x == null ? null : <circle cx={x} cy={y} r="5" fill="#0f172a" stroke="#f8fafc" strokeWidth="1.5" style={{ cursor: "grab", pointerEvents: "auto", touchAction: "none" }} onPointerDown={(event) => { event.stopPropagation(); setSelectedDrawing(drawing.id); dragEndpointRef.current = { id: drawing.id, endpoint }; event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId); }} />;
+            const selectProps = { onClick: (event: React.MouseEvent<SVGElement>) => { if (drawingTool === "select") { event.stopPropagation(); setSelectedDrawing(drawing.id); } }, style: { pointerEvents: "auto" as const, cursor: drawingTool === "select" ? "pointer" : "crosshair" } };
+            if (drawing.type === "horizontal") return <g key={drawing.id} {...selectProps}><line x1={p.plotLeft} y1={p.y1} x2={p.plotRight} y2={p.y1} stroke="#fbbf24" strokeWidth={active ? 2.5 : 1.5} strokeDasharray="7 3" />{active && <>{handle(p.x1, p.y1, "start")}{handle(p.x2, p.y1, "end")}</>}</g>;
+            if (drawing.type === "vertical") {
+              const x = p.x1 ?? p.x2;
+              if (x == null) return null;
+              return <g key={drawing.id} {...selectProps}><line x1={x} y1="0" x2={x} y2={p.plotBottom} stroke="#fbbf24" strokeWidth={active ? 2.5 : 1.5} strokeDasharray="7 3" />{active && <>{handle(x, p.y1, "start")}{handle(x, p.y2, "end")}</>}</g>;
+            }
+            if (p.x1 == null || p.x2 == null) return null;
+            if (drawing.type === "trendline") return <g key={drawing.id} {...selectProps}><line x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2} stroke="#38bdf8" strokeWidth={active ? 3 : 2} />{active && <>{handle(p.x1, p.y1, "start")}{handle(p.x2, p.y2, "end")}</>}</g>;
+            if (drawing.type === "rectangle") return <g key={drawing.id} {...selectProps}><rect x={Math.min(p.x1, p.x2)} y={Math.min(p.y1, p.y2)} width={Math.max(1, Math.abs(p.x2 - p.x1))} height={Math.max(1, Math.abs(p.y2 - p.y1))} fill="#a78bfa" fillOpacity="0.10" stroke="#a78bfa" strokeWidth={active ? 2.5 : 1.5} />{active && <>{handle(p.x1, p.y1, "start")}{handle(p.x2, p.y2, "end")}</>}</g>;
+            const levels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+            return <g key={drawing.id} {...selectProps}>
+              {levels.map(level => {
+                const price = drawing.price1 + (drawing.price2 - drawing.price1) * level;
+                const y = candleSeriesRef.current?.priceToCoordinate(price);
+                if (y == null) return null;
+                return <g key={level}><line x1={Math.min(p.x1 as number, p.x2 as number)} y1={y} x2={Math.max(p.x1 as number, p.x2 as number)} y2={y} stroke={active ? "#fbbf24" : "#a78bfa"} strokeWidth={level === 0 || level === 1 ? 1.8 : 1} strokeDasharray={level === 0 || level === 1 ? undefined : "4 3"} /><text x={Math.max(p.x1 as number, p.x2 as number) + 4} y={y - 3} fill="#c4b5fd" fontSize="10">{(level * 100).toFixed(1) + "%  " + fmt(price, decimals)}</text></g>;
+              })}
+              {active && <>{handle(p.x1, p.y1, "start")}{handle(p.x2, p.y2, "end")}</>}
+            </g>;
+          })}
+          {drawingStart && (() => {
+            const chart = chartRef.current;
+            const host = containerRef.current;
+            if (!chart || !host) return null;
+            const x = chart.timeScale().timeToCoordinate(drawingStart.time);
+            const y = candleSeriesRef.current?.priceToCoordinate(drawingStart.price);
+            if (x == null || y == null) return null;
+            const plotLeft = Math.max(0, host.clientWidth - chart.timeScale().width());
+            return <circle cx={plotLeft + x} cy={y} r="5" fill="#38bdf8" stroke="#ffffff" strokeWidth="1.5" />;
+          })()}
         </svg>
       </div>
       {indicators.volume && (
