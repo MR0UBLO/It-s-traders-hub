@@ -171,6 +171,8 @@ function TvChart({ symbol, timeframe, indicators }: TvChartProps) {
   const [drawingStart, setDrawingStart] = useState<{ time: Time; price: number } | null>(null);
   const [selectedDrawing, setSelectedDrawing] = useState<number | null>(null);
   const dragEndpointRef = useRef<{ id: number; endpoint: "start" | "end" } | null>(null);
+  const chartPanRef = useRef<{ pointerId: number; startX: number; startScroll: number; moved: boolean } | null>(null);
+  const suppressDrawingClickRef = useRef(false);
   const decimals = dp(symbol);
 
   /* Build the main chart once per symbol */
@@ -443,6 +445,7 @@ console.log("PRICE DATA:", prices);
   };
 
   const handleDrawingClick = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (suppressDrawingClickRef.current) { suppressDrawingClickRef.current = false; return; }
     if (drawingTool === "select") return;
     const point = pointFromEvent(event);
     if (!point) return;
@@ -456,7 +459,34 @@ console.log("PRICE DATA:", prices);
     setDrawingStart(null);
   };
 
+  const handleDrawingPointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (dragEndpointRef.current) return;
+    // Dragging empty chart space pans the timeline; a short tap still places a drawing anchor.
+    if (event.target !== event.currentTarget) return;
+    const chart = chartRef.current;
+    if (!chart) return;
+    chartPanRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startScroll: chart.timeScale().scrollPosition(),
+      moved: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
   const handleDrawingPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    const pan = chartPanRef.current;
+    if (pan && pan.pointerId === event.pointerId) {
+      const deltaX = event.clientX - pan.startX;
+      if (Math.abs(deltaX) > 4) pan.moved = true;
+      if (pan.moved) {
+        const chart = chartRef.current;
+        const spacing = chart?.timeScale().options().barSpacing ?? 6;
+        chart?.timeScale().scrollToPosition(pan.startScroll + deltaX / Math.max(1, spacing), false);
+        suppressDrawingClickRef.current = true;
+      }
+      return;
+    }
     const drag = dragEndpointRef.current;
     if (!drag) return;
     const point = pointFromEvent(event);
@@ -556,11 +586,18 @@ console.log("PRICE DATA:", prices);
         <svg
           className="absolute inset-0 w-full h-full"
           aria-label="Chart drawing tools and market-coordinate annotations"
-          style={{ zIndex: 5, pointerEvents: drawingTool === "select" && !dragEndpointRef.current ? "none" : "auto", cursor: drawingTool === "select" ? "default" : "crosshair", touchAction: "none", overflow: "hidden" }}
+          style={{ zIndex: 5, pointerEvents: "auto", cursor: drawingTool === "select" ? "grab" : "crosshair", touchAction: "none", overflow: "hidden" }}
           onClick={handleDrawingClick}
+          onPointerDown={handleDrawingPointerDown}
           onPointerMove={handleDrawingPointerMove}
-          onPointerUp={() => { dragEndpointRef.current = null; }}
-          onPointerCancel={() => { dragEndpointRef.current = null; }}
+          onPointerUp={(event) => {
+            if (chartPanRef.current?.pointerId === event.pointerId) chartPanRef.current = null;
+            dragEndpointRef.current = null;
+          }}
+          onPointerCancel={(event) => {
+            if (chartPanRef.current?.pointerId === event.pointerId) chartPanRef.current = null;
+            dragEndpointRef.current = null;
+          }}
         >
           {drawings.map((drawing) => {
             const p = drawingCoords(drawing);
