@@ -410,9 +410,14 @@ console.log("PRICE DATA:", prices);
   const handleDrawingClick = (event: React.MouseEvent<SVGSVGElement>) => {
     if (drawingTool === "select" || !containerRef.current) return;
     const bounds = event.currentTarget.getBoundingClientRect();
-    const point = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+    // The SVG uses a fixed normalized viewBox, so drawings stay aligned at
+    // any chart size and on mobile screens.
+    const point = {
+      x: Math.max(0, Math.min(1000, ((event.clientX - bounds.left) / bounds.width) * 1000)),
+      y: Math.max(0, Math.min(1000, ((event.clientY - bounds.top) / bounds.height) * 1000)),
+    };
     if (drawingTool === "horizontal") {
-      setDrawings((items) => [...items, { id: Date.now(), type: "horizontal", x1: 0, y1: point.y, x2: bounds.width, y2: point.y }]);
+      setDrawings((items) => [...items, { id: Date.now(), type: "horizontal", x1: 0, y1: point.y, x2: 1000, y2: point.y }]);
       return;
     }
     if (!drawingStart) {
@@ -484,11 +489,13 @@ console.log("PRICE DATA:", prices);
         className="relative w-full"
         style={{ flex: indicators.volume ? "3 1 0" : "1 1 0", minHeight: 0 }}
       >
-        <div ref={containerRef} className="absolute inset-0 w-full h-full" />
+        <div ref={containerRef} className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }} />
         <svg
           className="absolute inset-0 w-full h-full"
+          viewBox="0 0 1000 1000"
+          preserveAspectRatio="none"
           aria-label="Chart drawings"
-          style={{ pointerEvents: drawingTool === "select" ? "none" : "auto", cursor: drawingTool === "select" ? "default" : "crosshair", touchAction: "none" }}
+          style={{ zIndex: 5, pointerEvents: drawingTool === "select" ? "none" : "auto", cursor: drawingTool === "select" ? "default" : "crosshair", touchAction: "none" }}
           onClick={handleDrawingClick}
         >
           {drawings.map((drawing) => (
