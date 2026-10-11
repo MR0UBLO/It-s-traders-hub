@@ -330,7 +330,7 @@ export default function Withdraw() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[680px] text-sm">
                 <thead><tr className="border-b border-border/50">
                   {["Date","Method","Amount","Status","Transaction ID"].map(h => <th key={h} className="text-left p-3 text-xs text-muted-foreground font-semibold">{h}</th>)}
                 </tr></thead>
@@ -339,7 +339,7 @@ export default function Withdraw() {
                     <tr><td colSpan={5} className="text-center py-10 text-muted-foreground text-sm">No withdrawals found</td></tr>
                   ) : filteredHistory.map(h => (
                     <tr key={h.id} className="border-b border-border/40 hover:bg-muted/10 transition-colors">
-                      <td className="p-3 text-xs text-muted-foreground">{format(h.date, "MMM d, yy HH:mm")}</td>
+                      <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">{format(h.date, "MMM d, yyyy · HH:mm")}</td>
                       <td className="p-3 text-xs font-semibold">{h.method}</td>
                       <td className="p-3 font-mono font-bold text-sm">${h.amount.toLocaleString()} <span className="text-muted-foreground font-normal text-xs">USD</span></td>
                       <td className="p-3"><StatusBadge status={h.status} /></td>
