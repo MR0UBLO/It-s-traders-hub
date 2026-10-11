@@ -92,7 +92,7 @@ export default function Withdraw() {
   const [isPending, setIsPending] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [typeFilter, setTypeFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("mobile");
 
   const balance = wallet ? Number(wallet.balance) : 0;
 
@@ -182,14 +182,14 @@ export default function Withdraw() {
 
           {/* Method type filter */}
           <div className="flex gap-1 bg-muted/30 rounded-xl p-1">
-            {[["all","All"],["mobile","Mobile"],["card","Card"],["bank","Bank"],["ewallet","E-wallet"],["crypto","Crypto"]].map(([v, l]) => (
+            {[["mobile","Mobile"],["card","Card"],["bank","Bank"],["ewallet","E-wallet"],["crypto","Crypto"]].map(([v, l]) => (
               <button key={v} onClick={() => setTypeFilter(v)} className={`flex-1 py-1 rounded-lg text-[9px] font-bold transition-all ${typeFilter === v ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>{l}</button>
             ))}
           </div>
 
           {/* Methods */}
           <div className="grid grid-cols-2 gap-2">
-            {WMETHODS.filter(m => typeFilter === "all" || m.type === typeFilter).map(m => (
+            {WMETHODS.filter(m => m.type === typeFilter).map(m => (
               <MethodCard key={m.id} m={m} selected={method.id === m.id} onClick={() => { setMethod(m); setSubmitted(false); setAmount(""); setAddress(""); setAccount(""); }} />
             ))}
           </div>
