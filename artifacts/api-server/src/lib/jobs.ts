@@ -10,6 +10,7 @@ import {
   tradesTable,
   walletsTable,
   demoWalletsTable,
+  withdrawalsTable,
 } from "@workspace/db";
 import { SYMBOLS, getCurrentPrice } from "./market.js";
 import { calculateBinarySettlement } from "./binary-settlement.js";
@@ -19,6 +20,11 @@ let priceTickInterval: ReturnType<typeof setInterval> | null = null;
 
 export function startBackgroundJobs(): void {
   logger.info("Starting background jobs");
+
+  // ── Withdrawal processing reminder: after 10 minutes, flag requests for payout review ──
+  // Do not mark a withdrawal completed based only on elapsed time: that status must
+  // reflect a confirmed payout from the payment provider or an authorized operator.
+  cron.schedule("* * * * *", () => void flagAgedWithdrawals(), { name: "withdrawal-processing-review" });
 
   // ── 1. Price tick: every 3 seconds ──────────────────────────────────────────
   priceTickInterval = setInterval(() => {
@@ -152,6 +158,29 @@ export function stopBackgroundJobs(): void {
   }
   cron.getTasks().forEach((task) => task.stop());
   logger.info("Background jobs stopped");
+}
+
+async function flagAgedWithdrawals(): Promise<void> {
+  try {
+    const cutoff = new Date(Date.now() - 10 * 60 * 1000);
+    const aged = await db
+      .update(withdrawalsTable)
+      .set({ status: "processing" })
+      .where(
+        and(
+          eq(withdrawalsTable.status, "pending"),
+          lte(withdrawalsTable.createdAt, cutoff),
+        ),
+      )
+      .returning({ id: withdrawalsTable.id, transactionId: withdrawalsTable.transactionId });
+
+    if (aged.length > 0) {
+      logger.info({ count: aged.length, withdrawalIds: aged.map((w) => w.id) },
+        "Withdrawals older than 10 minutes moved to processing; payout confirmation still required");
+    }
+  } catch (err) {
+    logger.error({ err }, "Withdrawal processing review job failed");
+  }
 }
 
 function broadcastCandles(timeframe: (typeof TIMEFRAMES)[number]): void {
