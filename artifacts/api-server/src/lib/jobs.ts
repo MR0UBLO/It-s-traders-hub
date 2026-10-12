@@ -10,6 +10,7 @@ import {
   tradesTable,
   walletsTable,
   demoWalletsTable,
+  eaBudgetsTable,
   withdrawalsTable,
 } from "@workspace/db";
 import { SYMBOLS, getCurrentPrice } from "./market.js";
@@ -105,12 +106,32 @@ setInterval(async () => {
 
         if (!closedTrade) return null;
 
-        await tx.update(walletTable)
-          .set({
-            balance: sql`${walletTable.balance} + ${returnAmount}`,
-            totalProfit: sql`${walletTable.totalProfit} + ${profit}`,
-          })
-          .where(eq(walletTable.userId, trade.userId));
+        if (trade.ticketNumber?.startsWith("AT-")) {
+          const budgetId = Number(trade.ticketNumber.split("-")[1]);
+          const [budget] = await tx.update(eaBudgetsTable).set({
+            balance: sql`${eaBudgetsTable.balance} + ${returnAmount}`,
+          }).where(and(
+            eq(eaBudgetsTable.id, budgetId),
+            eq(eaBudgetsTable.status, "active")
+          )).returning();
+          if (!budget) {
+            await tx.update(walletTable).set({
+              balance: sql`${walletTable.balance} + ${returnAmount}`,
+              totalProfit: sql`${walletTable.totalProfit} + ${profit}`,
+            }).where(eq(walletTable.userId, trade.userId));
+          } else {
+            await tx.update(walletTable).set({
+              totalProfit: sql`${walletTable.totalProfit} + ${profit}`,
+            }).where(eq(walletTable.userId, trade.userId));
+          }
+        } else {
+          await tx.update(walletTable)
+            .set({
+              balance: sql`${walletTable.balance} + ${returnAmount}`,
+              totalProfit: sql`${walletTable.totalProfit} + ${profit}`,
+            })
+            .where(eq(walletTable.userId, trade.userId));
+        }
 
         return closedTrade;
       });
