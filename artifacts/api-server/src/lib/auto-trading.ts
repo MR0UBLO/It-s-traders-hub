@@ -341,7 +341,6 @@ async function tick(userId: number) {
   if (!runtime?.enabled) return;
 
   try {
-    const walletTable = runtime.accountType === "demo" ? demoWalletsTable : walletsTable;
     await settleOpenTrades(userId, runtime);
 
     const allOpen = await db.select().from(tradesTable).where(and(
@@ -361,8 +360,6 @@ async function tick(userId: number) {
     }
     runtime.tradesOpened = Number(budget.tradesOpened);
 
-    if (!walletTable) return;
-
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const closed = await db.select().from(tradesTable).where(and(
@@ -371,11 +368,8 @@ async function tick(userId: number) {
       eq(tradesTable.status, "closed")
     ));
     const todayPL = closed
-      .filter((trade) => trade.closedAt && new Date(trade.closedAt) >= today)
+      .filter((trade) => trade.ticketNumber?.startsWith(`AT-${runtime.budgetId}-`) && trade.closedAt && new Date(trade.closedAt) >= today)
       .reduce((sum, trade) => sum + Number(trade.profitLoss ?? 0), 0);
-    // Balance excludes stakes reserved for open trades; add them back to estimate
-    // the day's starting equity before comparing realized P/L to daily limits.
-    const reservedStake = open.reduce((sum, trade) => sum + Number(trade.amount), 0);
     const startingBalance = Number(budget.allocatedAmount);
     const targetReached = startingBalance > 0 &&
       todayPL >= startingBalance * runtime.config.dailyTargetPct / 100;
@@ -389,7 +383,10 @@ async function tick(userId: number) {
       runtime.lastActionAt = Date.now();
       // Keep the manager alive until existing positions settle; otherwise their
       // reserved stakes could remain stuck in open trades after the EA stops.
-      if (open.length === 0) stopAutoTrading(userId);
+      if (open.length === 0) {
+        stopAutoTrading(userId);
+        await releaseAutoTradingBudget(userId, runtime.accountType);
+      }
       return;
     }
 
