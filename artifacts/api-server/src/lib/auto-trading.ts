@@ -214,7 +214,7 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
 
   // investmentAmount is the TOTAL allocated budget. Divide it across the
   // selected number of trades; never size from the user's full wallet balance.
-  const amount = Number((Number(budget.allocatedAmount) / runtime.config.maxTrades).toFixed(2));
+  const amount = Math.floor((Number(budget.allocatedAmount) / runtime.config.maxTrades) * 100) / 100;
   if (!Number.isFinite(amount) || amount < 1) {
     runtime.lastAction = "Each planned trade must be at least $1";
     runtime.lastActionAt = Date.now();
