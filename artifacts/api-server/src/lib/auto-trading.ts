@@ -175,7 +175,6 @@ function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sel
 async function openAutoTrade(userId: number, runtime: Runtime) {
   // Quality over frequency: prevent the EA from stacking entries every second on one setup.
   if (runtime.lastEntryAt != null && Date.now() - runtime.lastEntryAt < 5_000) {
-    runtime.lastAction = "Waiting for the next independent setup";
     return;
   }
   const walletTable = runtime.accountType === "demo" ? demoWalletsTable : walletsTable;
@@ -218,7 +217,10 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
   }
 
   const requested = Number(runtime.config.investmentAmount);
-  const amount = Number(Math.max(1, Math.min(Number.isFinite(requested) && requested > 0 ? requested : balance * (runtime.config.riskPct / 100), balance)).toFixed(2));
+  const riskPct = Math.max(0.1, Math.min(Number(runtime.config.riskPct) || 2, 5));
+  const riskBudget = balance * riskPct / 100;
+  const requestedStake = Number.isFinite(requested) && requested > 0 ? requested : riskBudget;
+  const amount = Number(Math.max(1, Math.min(requestedStake, riskBudget, balance)).toFixed(2));
   const price = getCurrentPrice(signal.symbol);
   const entry = signal.direction === "buy" ? price.ask : price.bid;
   const size = pipSize(signal.symbol);
@@ -345,9 +347,6 @@ async function tick(userId: number) {
 
   try {
     const walletTable = runtime.accountType === "demo" ? demoWalletsTable : walletsTable;
-    const [wallet] = await db.select().from(walletTable).where(eq(walletTable.userId, userId)).limit(1);
-    if (!wallet) return;
-
     await settleOpenTrades(userId, runtime);
 
     const open = await db.select().from(tradesTable).where(and(
@@ -356,9 +355,8 @@ async function tick(userId: number) {
       eq(tradesTable.status, "open")
     ));
 
-    if (open.length < runtime.config.maxTrades) {
-      await openAutoTrade(userId, runtime);
-    }
+    const [wallet] = await db.select().from(walletTable).where(eq(walletTable.userId, userId)).limit(1);
+    if (!wallet) return;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -368,14 +366,30 @@ async function tick(userId: number) {
       eq(tradesTable.status, "closed")
     ));
     const todayPL = closed
-      .filter((t) => t.closedAt && new Date(t.closedAt) >= today)
-      .reduce((sum, t) => sum + Number(t.profitLoss ?? 0), 0);
-    const startingBalance = Number(wallet.balance) + Math.max(0, -todayPL);
-    if (startingBalance > 0 && (
-      todayPL >= startingBalance * runtime.config.dailyTargetPct / 100 ||
-      todayPL <= -startingBalance * runtime.config.dailyLossPct / 100
-    )) {
-      stopAutoTrading(userId);
+      .filter((trade) => trade.closedAt && new Date(trade.closedAt) >= today)
+      .reduce((sum, trade) => sum + Number(trade.profitLoss ?? 0), 0);
+    // Balance excludes stakes reserved for open trades; add them back to estimate
+    // the day's starting equity before comparing realized P/L to daily limits.
+    const reservedStake = open.reduce((sum, trade) => sum + Number(trade.amount), 0);
+    const startingBalance = Number(wallet.balance) + reservedStake - todayPL;
+    const targetReached = startingBalance > 0 &&
+      todayPL >= startingBalance * runtime.config.dailyTargetPct / 100;
+    const lossLimitReached = startingBalance > 0 &&
+      todayPL <= -startingBalance * runtime.config.dailyLossPct / 100;
+
+    if (targetReached || lossLimitReached) {
+      runtime.lastAction = targetReached
+        ? "Daily target reached — managing open trades, no new entries"
+        : "Daily loss limit reached — managing open trades, no new entries";
+      runtime.lastActionAt = Date.now();
+      // Keep the manager alive until existing positions settle; otherwise their
+      // reserved stakes could remain stuck in open trades after the EA stops.
+      if (open.length === 0) stopAutoTrading(userId);
+      return;
+    }
+
+    if (open.length < runtime.config.maxTrades) {
+      await openAutoTrade(userId, runtime);
     }
   } catch (err) {
     logger.error({ err, userId }, "Auto trading tick failed");
