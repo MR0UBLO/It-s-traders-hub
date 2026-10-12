@@ -22,6 +22,7 @@ export type AutoTradingConfig = {
   breakEven: boolean;
   investmentAmount: number;
   tradeDuration: number;
+  sessionDurationSeconds: number;
   asset: string;
   aiSpeed?: "fast" | "slow";
 };
@@ -56,6 +57,7 @@ const DEFAULTS: AutoTradingConfig = {
   breakEven: false,
   investmentAmount: 10,
   tradeDuration: 4,
+  sessionDurationSeconds: 300,
   asset: "EURUSD",
   aiSpeed: "fast",
 };
@@ -170,12 +172,30 @@ function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sel
     };
     if (!best || candidate.confidence > best.confidence) best = candidate;
   }
-  return best;
+  if (best) return best;
+
+  // Keep the configured 4-second schedule active even when the selected strategy
+  // has no fully confirmed setup: use the latest short-term price direction as a
+  // fallback rather than silently ignoring the requested session schedule.
+  for (const rawSymbol of candidates) {
+    if (!SYMBOLS.includes(rawSymbol as typeof SYMBOLS[number])) continue;
+    const ticks = getPriceTicks(rawSymbol);
+    if (ticks.length < 2) continue;
+    const current = ticks[ticks.length - 1];
+    const recentStart = ticks[Math.max(0, ticks.length - 6)];
+    return {
+      symbol: rawSymbol,
+      direction: current >= recentStart ? "buy" as const : "sell" as const,
+      confidence: 70,
+      reason: "scheduled 4-second entry using recent price direction",
+    };
+  }
+  return null;
 }
 
 async function openAutoTrade(userId: number, runtime: Runtime) {
   // Only the amount reserved into this EA's dedicated budget can be used.
-  if (runtime.lastEntryAt != null && Date.now() - runtime.lastEntryAt < 5_000) return;
+  if (runtime.lastEntryAt != null && Date.now() - runtime.lastEntryAt < 4_000) return;
   const [budget] = await db.select().from(eaBudgetsTable).where(and(
     eq(eaBudgetsTable.id, runtime.budgetId),
     eq(eaBudgetsTable.userId, userId),
@@ -361,6 +381,16 @@ async function tick(userId: number) {
     }
     runtime.tradesOpened = Number(budget.tradesOpened);
 
+    if (Date.now() >= runtime.startedAt + runtime.config.sessionDurationSeconds * 1000) {
+      runtime.lastAction = "Session duration reached — waiting for open trades to settle";
+      runtime.lastActionAt = Date.now();
+      if (open.length === 0) {
+        stopAutoTrading(userId);
+        await releaseAutoTradingBudget(userId, runtime.accountType);
+      }
+      return;
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const closed = await db.select().from(tradesTable).where(and(
@@ -408,7 +438,13 @@ async function tick(userId: number) {
 export function startAutoTrading(userId: number, accountType: AccountType, config: Partial<AutoTradingConfig> = {}, budgetId = 0) {
   stopAutoTrading(userId);
   const requestedDuration = Number(config.tradeDuration ?? DEFAULTS.tradeDuration);
-  const merged = { ...DEFAULTS, ...config, tradeDuration: Math.max(1, Math.min(4, Math.floor(Number.isFinite(requestedDuration) ? requestedDuration : 4))) };
+  const requestedSessionDuration = Number(config.sessionDurationSeconds ?? DEFAULTS.sessionDurationSeconds);
+  const merged = {
+    ...DEFAULTS,
+    ...config,
+    tradeDuration: Math.max(1, Math.min(4, Math.floor(Number.isFinite(requestedDuration) ? requestedDuration : 4))),
+    sessionDurationSeconds: Math.max(60, Math.min(3600, Math.floor(Number.isFinite(requestedSessionDuration) ? requestedSessionDuration : DEFAULTS.sessionDurationSeconds))),
+  };
   const now = Date.now();
   const runtime: Runtime = {
     accountType,
@@ -424,8 +460,8 @@ export function startAutoTrading(userId: number, accountType: AccountType, confi
     wins: 0,
     losses: 0,
   };
-  // A fast cycle scans every second, so a qualifying chart signal is acted on
-  // well inside the requested five-second analysis window.
+  // Tick once per second to manage expiry and the session timer; new entries
+  // are gated to a strict minimum of four seconds apart.
   const intervalMs = 1000;
   runtime.timer = setInterval(() => void tick(userId), intervalMs);
   runtimes.set(userId, runtime);
