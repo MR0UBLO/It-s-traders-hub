@@ -99,7 +99,7 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
         eq(eaBudgetsTable.userId, req.userId!),
         eq(eaBudgetsTable.status, "active")
       )).limit(1);
-      if (existing) return { error: "An EA budget is already active on this account. Stop the previous EA first." } as const;
+      if (existing) return { error: "An EA budget is already active. Stop the previous EA first." } as const;
 
       const [reservedWallet] = await tx.update(walletTable).set({
         balance: sql`${walletTable.balance} - ${investmentAmount}`,
