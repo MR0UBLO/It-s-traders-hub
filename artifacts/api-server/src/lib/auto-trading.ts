@@ -1,6 +1,6 @@
 import { db, tradesTable, walletsTable, demoWalletsTable } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { getCurrentPrice, SYMBOLS } from "./market.js";
+import { getCurrentPrice, getPriceTicks, getSimulationContext, SYMBOLS } from "./market.js";
 import { generateSignalForSymbol } from "./ai-engine.js";
 import { logger } from "./logger.js";
 import { calculateBinarySettlement } from "./binary-settlement.js";
@@ -34,6 +34,7 @@ type Runtime = {
   startedAt: number;
   lastActionAt: number | null;
   lastAction: string;
+  lastEntryAt: number | null;
   tradesOpened: number;
   wins: number;
   losses: number;
@@ -66,35 +67,117 @@ const ticket = () => `AT-${Date.now()}-${Math.random().toString(36).slice(2, 8).
 
 function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sell"; confidence: number; reason: string } | null {
   const candidates = runtime.config.asset === "ALL" ? [...SYMBOLS] : [runtime.config.asset];
-
   let best: { symbol: string; direction: "buy" | "sell"; confidence: number; reason: string } | null = null;
 
-  for (const symbol of candidates) {
-    if (!SYMBOLS.includes(symbol as typeof SYMBOLS[number])) continue;
+  for (const rawSymbol of candidates) {
+    if (!SYMBOLS.includes(rawSymbol as typeof SYMBOLS[number])) continue;
+    const symbol = rawSymbol as typeof SYMBOLS[number];
+    const signal = generateSignalForSymbol(symbol);
+    const ticks = getPriceTicks(symbol);
+    const simulation = getSimulationContext(symbol);
+    if (ticks.length < 25) continue;
 
-    // Use the same shared candle/price history as the TradingView-style chart.
-    // The AI engine combines EMA/SMA-style trend confirmation with RSI,
-    // momentum and volatility before choosing a direction.
-    const signal = generateSignalForSymbol(symbol as typeof SYMBOLS[number]);
+    const current = ticks[ticks.length - 1];
+    const previous = ticks[ticks.length - 2];
+    const recent = ticks.slice(-6);
+    const changes = recent.slice(1).map((value, i) => value - recent[i]);
+    const mean = ticks.slice(-30).reduce((sum, value) => sum + value, 0) / Math.min(30, ticks.length);
+    const variance = ticks.slice(-30).reduce((sum, value) => sum + (value - mean) ** 2, 0) / Math.min(30, ticks.length);
+    const deviation = Math.sqrt(variance);
+    const baseDirection = signal.signal === "BUY" ? "buy" : signal.signal === "SELL" ? "sell" : null;
+    const spike = !!simulation?.spikeActive;
+    let direction: "buy" | "sell" | null = null;
+    let confidence = signal.confidence;
+    let strategyReason = "";
 
-    if (signal.signal === "HOLD" || signal.confidence < 70) {
-      continue;
+    switch (runtime.config.strategy) {
+      case "trend": {
+        if (baseDirection && simulation && simulation.direction === (baseDirection === "buy" ? 1 : -1)
+          && simulation.strength >= 0.3 && simulation.ticksRemaining > 5 && !spike) {
+          direction = baseDirection;
+          strategyReason = "trend-following: simulator trend and indicators agree";
+        }
+        break;
+      }
+      case "swing": {
+        if (baseDirection && simulation && simulation.direction === (baseDirection === "buy" ? 1 : -1)
+          && simulation.strength >= 0.55 && simulation.ticksRemaining > 15 && !spike
+          && signal.confidence >= 76) {
+          direction = baseDirection;
+          strategyReason = "swing: stronger, established trend confirmed";
+        }
+        break;
+      }
+      case "scalp": {
+        if (!spike && baseDirection) {
+          const alignedMoves = changes.filter((change) => baseDirection === "buy" ? change > 0 : change < 0).length;
+          const netMove = current - recent[0];
+          const netAligned = baseDirection === "buy" ? netMove > 0 : netMove < 0;
+          if (alignedMoves >= 4 && netAligned && signal.confidence >= 72) {
+            direction = baseDirection;
+            confidence = Math.min(94, confidence + alignedMoves * 2);
+            strategyReason = "scalp: short-term tick momentum confirms";
+          }
+        }
+        break;
+      }
+      case "breakout": {
+        const range = ticks.slice(-22, -2);
+        const high = Math.max(...range);
+        const low = Math.min(...range);
+        if (!spike && baseDirection === "buy" && current > high && signal.confidence >= 70) {
+          direction = "buy";
+          strategyReason = "breakout: price moved above the recent tick range";
+        } else if (!spike && baseDirection === "sell" && current < low && signal.confidence >= 70) {
+          direction = "sell";
+          strategyReason = "breakout: price moved below the recent tick range";
+        }
+        break;
+      }
+      case "grid": {
+        if (!spike && deviation > 0 && Math.abs(current - mean) >= deviation * 0.8) {
+          direction = current > mean ? "sell" : "buy";
+          confidence = Math.min(90, Math.max(70, Math.round(68 + Math.abs(current - mean) / deviation * 4)));
+          strategyReason = "grid: mean-reversion setup away from the short-term average";
+        }
+        break;
+      }
+      case "smc": {
+        const priorRange = ticks.slice(-22, -2);
+        if (!spike && priorRange.length >= 10) {
+          const priorHigh = Math.max(...priorRange);
+          const priorLow = Math.min(...priorRange);
+          // Look for a sweep beyond the recent range followed by a reversal.
+          if (previous > priorHigh && current < previous) {
+            direction = "sell";
+            strategyReason = "SMC: recent high sweep with downward rejection";
+          } else if (previous < priorLow && current > previous) {
+            direction = "buy";
+            strategyReason = "SMC: recent low sweep with upward rejection";
+          }
+        }
+        break;
+      }
     }
 
+    if (!direction || confidence < 70) continue;
     const candidate = {
       symbol,
-      direction: signal.signal === "BUY" ? "buy" as const : "sell" as const,
-      confidence: signal.confidence,
-      reason: signal.reason,
+      direction,
+      confidence,
+      reason: `${strategyReason}; ${signal.reason}`,
     };
-
     if (!best || candidate.confidence > best.confidence) best = candidate;
   }
-
   return best;
 }
 
 async function openAutoTrade(userId: number, runtime: Runtime) {
+  // Quality over frequency: prevent the EA from stacking entries every second on one setup.
+  if (runtime.lastEntryAt != null && Date.now() - runtime.lastEntryAt < 5_000) {
+    runtime.lastAction = "Waiting for the next independent setup";
+    return;
+  }
   const walletTable = runtime.accountType === "demo" ? demoWalletsTable : walletsTable;
   const [wallet] = await db.select().from(walletTable).where(eq(walletTable.userId, userId)).limit(1);
   if (!wallet) {
@@ -176,7 +259,8 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
     isCopied: false,
   }).returning();
 
-  runtime.lastActionAt = Date.now();
+  runtime.lastEntryAt = Date.now();
+  runtime.lastActionAt = runtime.lastEntryAt;
   runtime.lastAction = `Opened ${created.direction.toUpperCase()} ${created.symbol} • stake $${created.amount} • ${created.duration}s`;
   runtime.tradesOpened += 1;
   logger.info({ userId, accountType: runtime.accountType, tradeId: created.id, symbol: created.symbol, direction: created.direction, confidence: signal.confidence }, "Auto trade opened");
@@ -311,6 +395,7 @@ export function startAutoTrading(userId: number, accountType: AccountType, confi
     startedAt: now,
     lastActionAt: null,
     lastAction: "Starting AI analysis",
+    lastEntryAt: null,
     tradesOpened: 0,
     wins: 0,
     losses: 0,
