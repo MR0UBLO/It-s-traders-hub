@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bot, Power, Search, Wallet, ShieldCheck, Activity, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ const EAS: EA[] = Array.from({ length: 120 }, (_, index) => {
 });
 
 export default function AutoTrading() {
+  const [, setLocation] = useLocation();
   const { mode } = useAccountStore();
   const isDemo = mode === "demo";
   const account = isDemo ? "demo" : "real";
@@ -106,7 +108,8 @@ export default function AutoTrading() {
       const name = selectedEA.name;
       setSelectedEA(null); setPassword(""); setEnabled(true);
       await loadStatus();
-      toast({ title: name + " started", description: "Running on your " + (isDemo ? "Demo" : "Real") + " wallet. Trading involves risk." });
+      toast({ title: name + " started", description: "Opening the live execution terminal." });
+      setLocation("/ea-terminal");
     } catch { setError("Unable to connect to the trading server. Please try again."); }
     finally { setSubmitting(false); }
   };
