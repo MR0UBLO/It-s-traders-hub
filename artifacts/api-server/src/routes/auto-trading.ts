@@ -65,11 +65,12 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
 
     const config: Partial<AutoTradingConfig> = { eaId, investmentAmount };
     if (validStrategies.has(body.strategy)) config.strategy = body.strategy;
-    for (const key of ["riskPct","lotSize","dailyTargetPct","dailyLossPct","maxTrades","stopLossPips","takeProfitPips","tradeDuration"] as const) {
+    for (const key of ["riskPct","lotSize","dailyTargetPct","dailyLossPct","maxTrades","stopLossPips","takeProfitPips","tradeDuration","sessionDurationSeconds"] as const) {
       if (body[key] !== undefined) {
         const value = Number(body[key]);
         if (!Number.isFinite(value) || value <= 0) return res.status(400).json({ error: "Invalid " + key });
-        if (key === "tradeDuration" && (!Number.isInteger(value) || value > 4)) return res.status(400).json({ error: "EA trade duration must be 1 to 4 seconds." });
+        if (key === "tradeDuration" && (!Number.isInteger(value) || value > 4)) return res.status(400).json({ error: "Each EA trade duration must be 1 to 4 seconds." });
+        if (key === "sessionDurationSeconds" && (!Number.isInteger(value) || value < 60 || value > 3600)) return res.status(400).json({ error: "EA session duration must be between 1 and 60 minutes." });
         if (key === "maxTrades" && (!Number.isInteger(value) || value > 100)) return res.status(400).json({ error: "Trade count must be a whole number between 1 and 100." });
         config[key] = value;
       }
