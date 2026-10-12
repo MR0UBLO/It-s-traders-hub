@@ -390,12 +390,13 @@ async function tick(userId: number) {
       return;
     }
 
-    if (Number(budget.tradesOpened) >= runtime.config.maxTrades && open.length === 0) {
+    const nextStake = Math.floor((Number(budget.allocatedAmount) / runtime.config.maxTrades) * 100) / 100;
+    if ((Number(budget.tradesOpened) >= runtime.config.maxTrades || Number(budget.balance) < nextStake) && open.length === 0) {
       stopAutoTrading(userId);
       await releaseAutoTradingBudget(userId, runtime.accountType);
       return;
     }
-    if (open.length < runtime.config.maxTrades && Number(budget.tradesOpened) < runtime.config.maxTrades) {
+    if (open.length < runtime.config.maxTrades && Number(budget.tradesOpened) < runtime.config.maxTrades && Number(budget.balance) >= nextStake) {
       await openAutoTrade(userId, runtime);
     }
   } catch (err) {
