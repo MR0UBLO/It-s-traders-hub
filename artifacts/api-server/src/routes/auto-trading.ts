@@ -19,9 +19,25 @@ function validSharedPassword(supplied: unknown): boolean {
 
 router.get("/status", requireAuth, async (req: AuthRequest, res) => {
   const account = req.query.account === "demo" ? "demo" : "real";
-  const status = getAutoTradingStatus(req.userId!);
+  let status = getAutoTradingStatus(req.userId!);
+
+  // Recover an allocation left active by a server restart: close only EA trades,
+  // then return its remaining reserved funds to the correct wallet.
+  if (!status.enabled || status.accountType !== account) {
+    const [staleBudget] = await db.select().from(eaBudgetsTable).where(and(
+      eq(eaBudgetsTable.userId, req.userId!),
+      eq(eaBudgetsTable.accountType, account),
+      eq(eaBudgetsTable.status, "active")
+    )).limit(1);
+    if (staleBudget) {
+      await closeAutoTradingPositions(req.userId!, account);
+      await releaseAutoTradingBudget(req.userId!, account);
+    }
+    status = getAutoTradingStatus(req.userId!);
+  }
+
   const data = await getAutoTradingData(req.userId!, account);
-  res.json({ ...status, accountType: account, wallet: data.wallet, openTrades: data.openTrades, closedTrades: data.closedTrades });
+  res.json({ ...status, accountType: status.enabled ? status.accountType : account, wallet: data.wallet, openTrades: data.openTrades, closedTrades: data.closedTrades });
 });
 
 router.post("/start", requireAuth, async (req: AuthRequest, res) => {
@@ -81,7 +97,6 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
     const budget = await db.transaction(async (tx) => {
       const [existing] = await tx.select().from(eaBudgetsTable).where(and(
         eq(eaBudgetsTable.userId, req.userId!),
-        eq(eaBudgetsTable.accountType, accountType),
         eq(eaBudgetsTable.status, "active")
       )).limit(1);
       if (existing) return { error: "An EA budget is already active on this account. Stop the previous EA first." } as const;
