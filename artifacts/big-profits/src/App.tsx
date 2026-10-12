@@ -15,6 +15,7 @@ import AiSignals from "@/pages/ai-signals";
 import Leaderboard from "@/pages/leaderboard";
 import CopyTrading from "@/pages/copy-trading";
 import AutoTrading from "@/pages/auto-trading";
+import EATerminal from "@/pages/ea-terminal";
 import Deposits from "@/pages/deposits";
 import FirstDeposit from "@/pages/first-deposit";
 import WelcomeBack from "@/pages/welcome-back";
@@ -107,6 +108,7 @@ function Router() {
       <Route path="/leaderboard"><ProtectedRoute component={Leaderboard} /></Route>
       <Route path="/copy-trading"><ProtectedRoute component={CopyTrading} /></Route>
       <Route path="/auto-trading"><ProtectedRoute component={AutoTrading} /></Route>
+      <Route path="/ea-terminal"><ProtectedRoute component={EATerminal} /></Route>
 <Route path="/wallet">
   <ProtectedRoute component={Wallet} />
 </Route>
