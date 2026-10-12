@@ -1,4 +1,4 @@
-import { db, tradesTable, walletsTable, demoWalletsTable } from "@workspace/db";
+import { db, tradesTable, walletsTable, demoWalletsTable, eaBudgetsTable } from "@workspace/db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { getCurrentPrice, getPriceTicks, getSimulationContext, SYMBOLS } from "./market.js";
 import { generateSignalForSymbol } from "./ai-engine.js";
@@ -28,6 +28,7 @@ export type AutoTradingConfig = {
 
 type Runtime = {
   accountType: AccountType;
+  budgetId: number;
   config: AutoTradingConfig;
   enabled: boolean;
   timer: ReturnType<typeof setInterval> | null;
@@ -63,7 +64,7 @@ const pipSize = (symbol: string) =>
   symbol === "EURUSD" || symbol === "GBPUSD" ? 0.0001 :
   symbol === "USDJPY" ? 0.01 : 1;
 
-const ticket = () => `AT-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+const ticket = (budgetId: number) => `AT-${budgetId}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
 function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sell"; confidence: number; reason: string } | null {
   const candidates = runtime.config.asset === "ALL" ? [...SYMBOLS] : [runtime.config.asset];
@@ -173,37 +174,32 @@ function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sel
 }
 
 async function openAutoTrade(userId: number, runtime: Runtime) {
-  // Quality over frequency: prevent the EA from stacking entries every second on one setup.
-  if (runtime.lastEntryAt != null && Date.now() - runtime.lastEntryAt < 5_000) {
+  // Only the amount reserved into this EA's dedicated budget can be used.
+  if (runtime.lastEntryAt != null && Date.now() - runtime.lastEntryAt < 5_000) return;
+  const [budget] = await db.select().from(eaBudgetsTable).where(and(
+    eq(eaBudgetsTable.id, runtime.budgetId),
+    eq(eaBudgetsTable.userId, userId),
+    eq(eaBudgetsTable.accountType, runtime.accountType),
+    eq(eaBudgetsTable.status, "active")
+  )).limit(1);
+  if (!budget) {
+    runtime.lastAction = "EA budget is unavailable";
+    runtime.lastActionAt = Date.now();
     return;
   }
-  const walletTable = runtime.accountType === "demo" ? demoWalletsTable : walletsTable;
-  const [wallet] = await db.select().from(walletTable).where(eq(walletTable.userId, userId)).limit(1);
-  if (!wallet) {
-    runtime.lastAction = "Wallet unavailable";
+  if (Number(budget.tradesOpened) >= runtime.config.maxTrades) {
+    runtime.lastAction = `Trade limit reached (${runtime.config.maxTrades})`;
     runtime.lastActionAt = Date.now();
     return;
   }
 
-  const balance = Number(wallet.balance);
-  if (balance < 1) {
-    runtime.lastAction = "Insufficient wallet balance";
-    runtime.lastActionAt = Date.now();
-    return;
-  }
-
-  if (Number(runtime.config.investmentAmount) > balance) {
-    runtime.lastAction = "Selected stake is above wallet balance";
-    runtime.lastActionAt = Date.now();
-    return;
-  }
-
-  const open = await db.select().from(tradesTable).where(and(
+  const openTrades = await db.select().from(tradesTable).where(and(
     eq(tradesTable.userId, userId),
     eq(tradesTable.accountType, runtime.accountType),
     eq(tradesTable.status, "open")
   ));
-  if (open.length >= runtime.config.maxTrades) {
+  const thisEAsOpenTrades = openTrades.filter((trade) => trade.ticketNumber?.startsWith(`AT-${runtime.budgetId}-`));
+  if (thisEAsOpenTrades.length >= runtime.config.maxTrades) {
     runtime.lastAction = `Maximum open trades reached (${runtime.config.maxTrades})`;
     runtime.lastActionAt = Date.now();
     return;
@@ -216,11 +212,14 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
     return;
   }
 
-  const requested = Number(runtime.config.investmentAmount);
-  const riskPct = Math.max(0.1, Math.min(Number(runtime.config.riskPct) || 2, 5));
-  const riskBudget = balance * riskPct / 100;
-  const requestedStake = Number.isFinite(requested) && requested > 0 ? requested : riskBudget;
-  const amount = Number(Math.max(0.01, Math.min(requestedStake, riskBudget, balance)).toFixed(2));
+  // investmentAmount is the TOTAL allocated budget. Divide it across the
+  // selected number of trades; never size from the user's full wallet balance.
+  const amount = Number((Number(budget.allocatedAmount) / runtime.config.maxTrades).toFixed(2));
+  if (!Number.isFinite(amount) || amount < 1) {
+    runtime.lastAction = "Each planned trade must be at least $1";
+    runtime.lastActionAt = Date.now();
+    return;
+  }
   const price = getCurrentPrice(signal.symbol);
   const entry = signal.direction === "buy" ? price.ask : price.bid;
   const size = pipSize(signal.symbol);
@@ -231,80 +230,82 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
     ? entry + runtime.config.takeProfitPips * size
     : entry - runtime.config.takeProfitPips * size;
 
-  const changed = await db.update(walletTable)
-    .set({ balance: sql`${walletTable.balance} - ${amount}` })
-    .where(and(eq(walletTable.userId, userId), sql`${walletTable.balance} >= ${amount}`))
-    .returning();
-  if (!changed.length) {
-    runtime.lastAction = "Stake could not be reserved from wallet";
+  let created: typeof tradesTable.$inferSelect | undefined;
+  let updatedBudget: typeof eaBudgetsTable.$inferSelect | undefined;
+  try {
+    await db.transaction(async (tx) => {
+      const [reserved] = await tx.update(eaBudgetsTable).set({
+        balance: sql`${eaBudgetsTable.balance} - ${amount}`,
+        tradesOpened: sql`${eaBudgetsTable.tradesOpened} + 1`,
+      }).where(and(
+        eq(eaBudgetsTable.id, runtime.budgetId),
+        eq(eaBudgetsTable.status, "active"),
+        sql`${eaBudgetsTable.balance} >= ${amount}`,
+        sql`${eaBudgetsTable.tradesOpened} < ${runtime.config.maxTrades}`
+      )).returning();
+      if (!reserved) throw new Error("EA allocation has insufficient remaining funds or reached its trade limit");
+      updatedBudget = reserved;
+      const [trade] = await tx.insert(tradesTable).values({
+        userId,
+        accountType: runtime.accountType,
+        ticketNumber: ticket(runtime.budgetId),
+        symbol: signal.symbol,
+        direction: signal.direction,
+        amount: String(amount.toFixed(2)),
+        duration: runtime.config.tradeDuration,
+        expiryTime: new Date(Date.now() + runtime.config.tradeDuration * 1000),
+        payoutPercent: "95",
+        result: null,
+        lotSize: String(runtime.config.lotSize),
+        marginUsed: String(Number((amount * 0.01).toFixed(4))),
+        entryPrice: String(entry),
+        stopLoss: String(sl),
+        takeProfit: String(tp),
+        status: "open",
+        isCopied: false,
+      }).returning();
+      created = trade;
+    });
+  } catch (error) {
+    runtime.lastAction = error instanceof Error ? error.message : "Unable to reserve stake from the EA budget";
     runtime.lastActionAt = Date.now();
     return;
   }
-
-  const [created] = await db.insert(tradesTable).values({
-    userId,
-    accountType: runtime.accountType,
-    ticketNumber: ticket(),
-    symbol: signal.symbol,
-    direction: signal.direction,
-    amount: String(Number(amount.toFixed(4))),
-    duration: runtime.config.tradeDuration,
-    expiryTime: new Date(Date.now() + runtime.config.tradeDuration * 1000),
-    payoutPercent: "95",
-    result: null,
-    lotSize: String(runtime.config.lotSize),
-    marginUsed: String(Number((amount * 0.01).toFixed(4))),
-    entryPrice: String(entry),
-    stopLoss: String(sl),
-    takeProfit: String(tp),
-    status: "open",
-    isCopied: false,
-  }).returning();
-
+  if (!created) return;
   runtime.lastEntryAt = Date.now();
   runtime.lastActionAt = runtime.lastEntryAt;
+  runtime.tradesOpened = Number(updatedBudget?.tradesOpened ?? runtime.tradesOpened + 1);
   runtime.lastAction = `Opened ${created.direction.toUpperCase()} ${created.symbol} • stake $${created.amount} • ${created.duration}s`;
-  runtime.tradesOpened += 1;
-  logger.info({ userId, accountType: runtime.accountType, tradeId: created.id, symbol: created.symbol, direction: created.direction, confidence: signal.confidence }, "Auto trade opened");
+  logger.info({ userId, accountType: runtime.accountType, budgetId: runtime.budgetId, tradeId: created.id, symbol: created.symbol, direction: created.direction, confidence: signal.confidence }, "Auto trade opened");
 }
 
 async function settleOpenTrades(userId: number, runtime: Runtime) {
-  const walletTable = runtime.accountType === "demo" ? demoWalletsTable : walletsTable;
-  const openTrades = await db.select().from(tradesTable).where(and(
+  const allOpenTrades = await db.select().from(tradesTable).where(and(
     eq(tradesTable.userId, userId),
     eq(tradesTable.accountType, runtime.accountType),
     eq(tradesTable.status, "open")
   ));
+  const openTrades = allOpenTrades.filter((trade) => trade.ticketNumber?.startsWith(`AT-${runtime.budgetId}-`));
 
   for (const trade of openTrades) {
     const now = Date.now();
     const expiry = new Date(trade.expiryTime).getTime();
     const price = getCurrentPrice(trade.symbol);
     const closePrice = trade.direction === "buy" ? price.bid : price.ask;
-
     const stopHit = trade.stopLoss != null && (
-      trade.direction === "buy"
-        ? closePrice <= Number(trade.stopLoss)
-        : closePrice >= Number(trade.stopLoss)
+      trade.direction === "buy" ? closePrice <= Number(trade.stopLoss) : closePrice >= Number(trade.stopLoss)
     );
     const targetHit = trade.takeProfit != null && (
-      trade.direction === "buy"
-        ? closePrice >= Number(trade.takeProfit)
-        : closePrice <= Number(trade.takeProfit)
+      trade.direction === "buy" ? closePrice >= Number(trade.takeProfit) : closePrice <= Number(trade.takeProfit)
     );
-
     if (!stopHit && !targetHit && now < expiry) continue;
 
     const amount = Number(trade.amount);
     const payoutPercent = Number(trade.payoutPercent ?? 95);
-    const win = targetHit || (
-      !stopHit &&
-      (trade.direction === "buy" ? closePrice > Number(trade.entryPrice) : closePrice < Number(trade.entryPrice))
-    );
+    const win = targetHit || (!stopHit && (
+      trade.direction === "buy" ? closePrice > Number(trade.entryPrice) : closePrice < Number(trade.entryPrice)
+    ));
     const { profit: profitLoss, returnAmount: payout } = calculateBinarySettlement(amount, payoutPercent, win);
-
-    // Close and credit the matching real/demo wallet atomically. A conditional
-    // status update ensures concurrent ticks cannot settle the same trade twice.
     const settled = await db.transaction(async (tx) => {
       const [closedTrade] = await tx.update(tradesTable).set({
         status: "closed",
@@ -314,11 +315,12 @@ async function settleOpenTrades(userId: number, runtime: Runtime) {
         profitLossPercent: String(Number(((profitLoss / amount) * 100).toFixed(4))),
         closedAt: new Date(),
       }).where(and(eq(tradesTable.id, trade.id), eq(tradesTable.status, "open"))).returning();
-
       if (!closedTrade) return false;
-
+      await tx.update(eaBudgetsTable).set({
+        balance: sql`${eaBudgetsTable.balance} + ${payout}`,
+      }).where(and(eq(eaBudgetsTable.id, runtime.budgetId), eq(eaBudgetsTable.status, "active")));
+      const walletTable = runtime.accountType === "demo" ? demoWalletsTable : walletsTable;
       await tx.update(walletTable).set({
-        balance: sql`${walletTable.balance} + ${payout}`,
         totalProfit: sql`${walletTable.totalProfit} + ${profitLoss}`,
       }).where(eq(walletTable.userId, userId));
       return true;
@@ -329,14 +331,7 @@ async function settleOpenTrades(userId: number, runtime: Runtime) {
       else runtime.losses += 1;
       runtime.lastActionAt = Date.now();
       runtime.lastAction = `Closed ${trade.symbol}: ${win ? "WIN" : "LOSS"} (${profitLoss.toFixed(2)})`;
-      logger.info({
-        userId,
-        accountType: runtime.accountType,
-        tradeId: trade.id,
-        symbol: trade.symbol,
-        result: win ? "WIN" : "LOSS",
-        profitLoss,
-      }, "Auto trade settled");
+      logger.info({ userId, accountType: runtime.accountType, budgetId: runtime.budgetId, tradeId: trade.id, symbol: trade.symbol, result: win ? "WIN" : "LOSS", profitLoss }, "Auto trade settled");
     }
   }
 }
@@ -349,14 +344,24 @@ async function tick(userId: number) {
     const walletTable = runtime.accountType === "demo" ? demoWalletsTable : walletsTable;
     await settleOpenTrades(userId, runtime);
 
-    const open = await db.select().from(tradesTable).where(and(
+    const allOpen = await db.select().from(tradesTable).where(and(
       eq(tradesTable.userId, userId),
       eq(tradesTable.accountType, runtime.accountType),
       eq(tradesTable.status, "open")
     ));
+    const open = allOpen.filter((trade) => trade.ticketNumber?.startsWith(`AT-${runtime.budgetId}-`));
+    const [budget] = await db.select().from(eaBudgetsTable).where(and(
+      eq(eaBudgetsTable.id, runtime.budgetId), eq(eaBudgetsTable.status, "active")
+    )).limit(1);
+    if (!budget) {
+      runtime.lastAction = "EA budget is unavailable";
+      runtime.lastActionAt = Date.now();
+      stopAutoTrading(userId);
+      return;
+    }
+    runtime.tradesOpened = Number(budget.tradesOpened);
 
-    const [wallet] = await db.select().from(walletTable).where(eq(walletTable.userId, userId)).limit(1);
-    if (!wallet) return;
+    if (!walletTable) return;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -371,7 +376,7 @@ async function tick(userId: number) {
     // Balance excludes stakes reserved for open trades; add them back to estimate
     // the day's starting equity before comparing realized P/L to daily limits.
     const reservedStake = open.reduce((sum, trade) => sum + Number(trade.amount), 0);
-    const startingBalance = Number(wallet.balance) + reservedStake - todayPL;
+    const startingBalance = Number(budget.allocatedAmount);
     const targetReached = startingBalance > 0 &&
       todayPL >= startingBalance * runtime.config.dailyTargetPct / 100;
     const lossLimitReached = startingBalance > 0 &&
@@ -388,7 +393,12 @@ async function tick(userId: number) {
       return;
     }
 
-    if (open.length < runtime.config.maxTrades) {
+    if (Number(budget.tradesOpened) >= runtime.config.maxTrades && open.length === 0) {
+      stopAutoTrading(userId);
+      await releaseAutoTradingBudget(userId, runtime.accountType);
+      return;
+    }
+    if (open.length < runtime.config.maxTrades && Number(budget.tradesOpened) < runtime.config.maxTrades) {
       await openAutoTrade(userId, runtime);
     }
   } catch (err) {
@@ -396,13 +406,14 @@ async function tick(userId: number) {
   }
 }
 
-export function startAutoTrading(userId: number, accountType: AccountType, config: Partial<AutoTradingConfig> = {}) {
+export function startAutoTrading(userId: number, accountType: AccountType, config: Partial<AutoTradingConfig> = {}, budgetId = 0) {
   stopAutoTrading(userId);
   const requestedDuration = Number(config.tradeDuration ?? DEFAULTS.tradeDuration);
   const merged = { ...DEFAULTS, ...config, tradeDuration: Math.max(1, Math.min(4, Math.floor(Number.isFinite(requestedDuration) ? requestedDuration : 4))) };
   const now = Date.now();
   const runtime: Runtime = {
     accountType,
+    budgetId,
     config: merged,
     enabled: true,
     timer: null,
@@ -434,12 +445,13 @@ export function stopAutoTrading(userId: number) {
 // auto-trading session at the current market price so the rest of the app cannot
 // continue displaying them as active after the user has stopped AI Trading.
 export async function closeAutoTradingPositions(userId: number, accountType: AccountType) {
-  const walletTable = accountType === "demo" ? demoWalletsTable : walletsTable;
-  const openTrades = await db.select().from(tradesTable).where(and(
+  const allOpenTrades = await db.select().from(tradesTable).where(and(
     eq(tradesTable.userId, userId),
     eq(tradesTable.accountType, accountType),
     eq(tradesTable.status, "open")
   ));
+  // Never close or settle manual trades when the user stops an EA.
+  const openTrades = allOpenTrades.filter((trade) => trade.ticketNumber?.startsWith("AT-"));
 
   for (const trade of openTrades) {
     const price = getCurrentPrice(trade.symbol);
@@ -450,6 +462,7 @@ export async function closeAutoTradingPositions(userId: number, accountType: Acc
       ? closePrice > Number(trade.entryPrice)
       : closePrice < Number(trade.entryPrice);
     const { profit: profitLoss, returnAmount: payout } = calculateBinarySettlement(amount, payoutPercent, win);
+    const budgetId = Number(trade.ticketNumber?.split("-")[1]);
 
     await db.transaction(async (tx) => {
       const [closedTrade] = await tx.update(tradesTable).set({
@@ -460,12 +473,40 @@ export async function closeAutoTradingPositions(userId: number, accountType: Acc
         profitLossPercent: String(Number(((profitLoss / amount) * 100).toFixed(4))),
         closedAt: new Date(),
       }).where(and(eq(tradesTable.id, trade.id), eq(tradesTable.status, "open"))).returning();
-
       if (!closedTrade) return;
-
+      await tx.update(eaBudgetsTable).set({
+        balance: sql`${eaBudgetsTable.balance} + ${payout}`,
+      }).where(and(eq(eaBudgetsTable.id, budgetId), eq(eaBudgetsTable.status, "active")));
+      const walletTable = accountType === "demo" ? demoWalletsTable : walletsTable;
       await tx.update(walletTable).set({
-        balance: sql`${walletTable.balance} + ${payout}`,
         totalProfit: sql`${walletTable.totalProfit} + ${profitLoss}`,
+      }).where(eq(walletTable.userId, userId));
+    });
+  }
+}
+
+export async function releaseAutoTradingBudget(userId: number, accountType: AccountType) {
+  const walletTable = accountType === "demo" ? demoWalletsTable : walletsTable;
+  const activeBudgets = await db.select().from(eaBudgetsTable).where(and(
+    eq(eaBudgetsTable.userId, userId),
+    eq(eaBudgetsTable.accountType, accountType),
+    eq(eaBudgetsTable.status, "active")
+  ));
+  for (const budget of activeBudgets) {
+    const allOpen = await db.select().from(tradesTable).where(and(
+      eq(tradesTable.userId, userId),
+      eq(tradesTable.accountType, accountType),
+      eq(tradesTable.status, "open")
+    ));
+    if (allOpen.some((trade) => trade.ticketNumber?.startsWith(`AT-${budget.id}-`))) continue;
+    await db.transaction(async (tx) => {
+      const [closedBudget] = await tx.update(eaBudgetsTable).set({ status: "stopped" }).where(and(
+        eq(eaBudgetsTable.id, budget.id),
+        eq(eaBudgetsTable.status, "active")
+      )).returning();
+      if (!closedBudget) return;
+      await tx.update(walletTable).set({
+        balance: sql`${walletTable.balance} + ${closedBudget.balance}`,
       }).where(eq(walletTable.userId, userId));
     });
   }
