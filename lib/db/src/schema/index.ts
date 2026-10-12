@@ -6,3 +6,5 @@ export * from "./withdrawals";
 export * from "./followers";
 export * from "./signals";
 export * from "./notifications";
+
+export * from "./ea-budgets";
