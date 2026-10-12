@@ -1,4 +1,4 @@
-import { db, tradesTable, walletsTable, demoWalletsTable } from "@workspace/db";
+import { db, tradesTable, walletsTable, demoWalletsTable, eaBudgetsTable } from "@workspace/db";
 import { eq, and, lte, sql } from "drizzle-orm";
 import { getCurrentPrice } from "./market.js";
 import { logger } from "./logger.js";
@@ -65,13 +65,33 @@ export function startTradeEngine() {
 
           if (!closedTrade) return false;
 
-          await tx
-            .update(walletTable)
-            .set({
-              balance: sql`${walletTable.balance} + ${payout}`,
-              totalProfit: sql`${walletTable.totalProfit} + ${profit}`,
-            })
-            .where(eq(walletTable.userId, trade.userId));
+          if (trade.ticketNumber?.startsWith("AT-")) {
+            const budgetId = Number(trade.ticketNumber.split("-")[1]);
+            const [budget] = await tx.update(eaBudgetsTable).set({
+              balance: sql`${eaBudgetsTable.balance} + ${payout}`,
+            }).where(and(
+              eq(eaBudgetsTable.id, budgetId),
+              eq(eaBudgetsTable.status, "active")
+            )).returning();
+            if (!budget) {
+              await tx.update(walletTable).set({
+                balance: sql`${walletTable.balance} + ${payout}`,
+                totalProfit: sql`${walletTable.totalProfit} + ${profit}`,
+              }).where(eq(walletTable.userId, trade.userId));
+            } else {
+              await tx.update(walletTable).set({
+                totalProfit: sql`${walletTable.totalProfit} + ${profit}`,
+              }).where(eq(walletTable.userId, trade.userId));
+            }
+          } else {
+            await tx
+              .update(walletTable)
+              .set({
+                balance: sql`${walletTable.balance} + ${payout}`,
+                totalProfit: sql`${walletTable.totalProfit} + ${profit}`,
+              })
+              .where(eq(walletTable.userId, trade.userId));
+          }
 
           return true;
         });
