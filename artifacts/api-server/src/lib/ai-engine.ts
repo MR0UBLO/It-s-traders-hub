@@ -1,4 +1,4 @@
-import { getPriceTicks, SYMBOLS, type Symbol } from "./market.js";
+import { getPriceTicks, getSimulationContext, SYMBOLS, type Symbol } from "./market.js";
 import { getCandles } from "./candle-engine.js";
 
 export type SignalDirection = "BUY" | "SELL" | "HOLD";
@@ -67,6 +67,7 @@ function trendSlope(prices: number[], period = 20): number {
 
 function computeSignal(symbol: Symbol): AiSignal {
   const ticks = getPriceTicks(symbol);
+  const simulation = getSimulationContext(symbol);
   const price = ticks[ticks.length - 1] ?? 1;
   const candles5s = getCandles(symbol, "S5").slice(-5);
   const candles15s = getCandles(symbol, "S15").slice(-4);
@@ -93,18 +94,42 @@ function computeSignal(symbol: Symbol): AiSignal {
   score += shortCandleBias >= 2 ? 1 : shortCandleBias <= -2 ? -1 : 0;
   score += mediumCandleBias >= 2 ? 0.75 : mediumCandleBias <= -2 ? -0.75 : 0;
 
+  // The simulator's own trend state is an additional input. Its influence fades
+  // near a trend-cycle boundary, when the simulator may reverse direction.
+  const trendIsNearReset = !!simulation && simulation.ticksRemaining <= 5;
+  const simulatorTrendWeight = simulation
+    ? (trendIsNearReset ? 0.5 : 1.75) * simulation.strength
+    : 0;
+  const simulatorTrendScore = simulation ? simulation.direction * simulatorTrendWeight : 0;
+  score += simulatorTrendScore;
+
   const candleConfirmedBuy = shortCandleBias > 0 && mediumCandleBias >= 0;
   const candleConfirmedSell = shortCandleBias < 0 && mediumCandleBias <= 0;
+  const simulatorConfirmsBuy = !simulation || (simulation.direction === 1 && !trendIsNearReset);
+  const simulatorConfirmsSell = !simulation || (simulation.direction === -1 && !trendIsNearReset);
+  // During a simulated volatility spike, require a stronger combined score.
+  const entryThreshold = simulation?.spikeActive ? 4.25 : 3;
   const direction: SignalDirection =
-    score >= 3 && candleConfirmedBuy ? "BUY" :
-    score <= -3 && candleConfirmedSell ? "SELL" : "HOLD";
+    score >= entryThreshold && candleConfirmedBuy && simulatorConfirmsBuy ? "BUY" :
+    score <= -entryThreshold && candleConfirmedSell && simulatorConfirmsSell ? "SELL" : "HOLD";
 
   // This is a deterministic signal-strength score, not a measured win probability.
-  const confidence = Math.min(94, Math.round(48 + Math.abs(score) * 7 + (
-    (direction === "BUY" && candleConfirmedBuy) || (direction === "SELL" && candleConfirmedSell) ? 5 : 0
+  const simulatorAligned =
+    (direction === "BUY" && simulatorConfirmsBuy) ||
+    (direction === "SELL" && simulatorConfirmsSell);
+  const spikePenalty = simulation?.spikeActive ? 8 : 0;
+  const confidence = Math.min(94, Math.max(35, Math.round(
+    48 + Math.abs(score) * 6 + (simulatorAligned ? 5 : 0) - spikePenalty
   )));
   const risk: RiskLevel = vol > 0.008 ? "HIGH" : vol > 0.003 ? "MEDIUM" : "LOW";
   const reasons: string[] = [];
+  if (simulation) {
+    reasons.push(
+      `simulator trend ${simulation.direction === 1 ? "up" : "down"} (strength ${simulation.strength.toFixed(2)}, ${simulation.ticksRemaining} ticks remaining)`
+    );
+    if (simulation.spikeActive) reasons.push("simulated volatility spike active; entry threshold raised");
+    if (trendIsNearReset) reasons.push("trend cycle near reset; simulator confirmation reduced");
+  }
   if (direction === "BUY") {
     if (mom > 0) reasons.push("positive price momentum");
     if (slope > 0) reasons.push("upward tick trend");
@@ -131,7 +156,7 @@ function computeSignal(symbol: Symbol): AiSignal {
 
   return {
     symbol, signal: direction, confidence, risk, timeframe: "M1",
-    reason: `${reason} Signal strength: ${confidence}/100; this is not a win-probability guarantee.`,
+    reason: `${reason} Combined indicator/simulator score: ${confidence}/100; this is not a measured win probability.`,
     entry: +entry.toFixed(6), target: +target.toFixed(6), stopLoss: +stopLoss.toFixed(6),
   };
 }
