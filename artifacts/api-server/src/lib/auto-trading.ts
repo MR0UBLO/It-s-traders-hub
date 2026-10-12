@@ -552,6 +552,7 @@ export function getAutoTradingStatus(userId: number) {
   const runtime = runtimes.get(userId);
   return runtime ? {
     enabled: runtime.enabled,
+    budgetId: runtime.budgetId,
     accountType: runtime.accountType,
     config: runtime.config,
     startedAt: runtime.startedAt,
