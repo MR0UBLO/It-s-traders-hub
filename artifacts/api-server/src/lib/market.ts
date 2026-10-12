@@ -269,6 +269,39 @@ function tickSymbol(symbol: Symbol): void {
   }
 }
 
+// ─── Simulator state exposed to the AI ────────────────────────────────────────
+
+export interface SimulationContext {
+  direction: 1 | -1;
+  strength: number;
+  ticksRemaining: number;
+  volatilityMultiplier: number;
+  ticksUntilPossibleSpike: number;
+  spikeActive: boolean;
+}
+
+/**
+ * Read the same hidden trend/volatility state that drives simulated price ticks.
+ * This is context, not knowledge of the next random noise value or a promise
+ * that the next price movement will follow the trend.
+ */
+export function getSimulationContext(symbol: string): SimulationContext | null {
+  if (!SYMBOLS.includes(symbol as Symbol)) return null;
+  const sym = symbol as Symbol;
+  ensureInit(sym);
+  tickSymbol(sym);
+  const trend = trendStates[sym];
+  if (!trend) return null;
+  return {
+    direction: trend.direction,
+    strength: trend.strength,
+    ticksRemaining: trend.ticksRemaining,
+    volatilityMultiplier: trend.volMultiplier,
+    ticksUntilPossibleSpike: trend.spikeCountdown,
+    spikeActive: trend.volMultiplier >= 1.8,
+  };
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export interface MarketPrice {
