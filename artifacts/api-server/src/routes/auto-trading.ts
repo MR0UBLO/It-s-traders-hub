@@ -1,7 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
+import { db, eaBudgetsTable, walletsTable, demoWalletsTable } from "@workspace/db";
+import { and, eq, sql } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
-import { getAutoTradingData, getAutoTradingStatus, startAutoTrading, stopAutoTrading, closeAutoTradingPositions, type AutoTradingConfig } from "../lib/auto-trading.js";
+import { getAutoTradingData, getAutoTradingStatus, startAutoTrading, stopAutoTrading, closeAutoTradingPositions, releaseAutoTradingBudget, type AutoTradingConfig } from "../lib/auto-trading.js";
 import { SYMBOLS } from "../lib/market.js";
 
 const router = Router();
@@ -52,6 +54,7 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
         const value = Number(body[key]);
         if (!Number.isFinite(value) || value <= 0) return res.status(400).json({ error: "Invalid " + key });
         if (key === "tradeDuration" && (!Number.isInteger(value) || value > 4)) return res.status(400).json({ error: "EA trade duration must be 1 to 4 seconds." });
+        if (key === "maxTrades" && (!Number.isInteger(value) || value > 100)) return res.status(400).json({ error: "Trade count must be a whole number between 1 and 100." });
         config[key] = value;
       }
     }
@@ -65,14 +68,53 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
       config.asset = asset;
     }
 
-    const data = await getAutoTradingData(req.userId!, accountType);
-    if (!data.wallet || Number(data.wallet.balance) < investmentAmount) {
-      return res.status(400).json({ error: "Insufficient " + accountType + " wallet balance for this investment." });
+    const maxTrades = Number(config.maxTrades ?? 5);
+    if (!Number.isInteger(maxTrades) || maxTrades < 1 || maxTrades > 100) {
+      return res.status(400).json({ error: "Choose between 1 and 100 trades." });
+    }
+    if (investmentAmount / maxTrades < 1) {
+      return res.status(400).json({ error: "Your selected budget must allocate at least $1 to each trade. Reduce the trade count or increase the budget." });
+    }
+    config.maxTrades = maxTrades;
+
+    const walletTable = accountType === "demo" ? demoWalletsTable : walletsTable;
+    const budget = await db.transaction(async (tx) => {
+      const [existing] = await tx.select().from(eaBudgetsTable).where(and(
+        eq(eaBudgetsTable.userId, req.userId!),
+        eq(eaBudgetsTable.accountType, accountType),
+        eq(eaBudgetsTable.status, "active")
+      )).limit(1);
+      if (existing) return { error: "An EA budget is already active on this account. Stop the previous EA first." } as const;
+
+      const [reservedWallet] = await tx.update(walletTable).set({
+        balance: sql`${walletTable.balance} - ${investmentAmount}`,
+      }).where(and(
+        eq(walletTable.userId, req.userId!),
+        sql`${walletTable.balance} >= ${investmentAmount}`
+      )).returning();
+      if (!reservedWallet) return { error: "Insufficient " + accountType + " wallet balance for this investment." } as const;
+
+      const [createdBudget] = await tx.insert(eaBudgetsTable).values({
+        userId: req.userId!,
+        accountType,
+        eaId,
+        allocatedAmount: String(investmentAmount),
+        balance: String(investmentAmount),
+        maxTrades,
+        tradesOpened: 0,
+        status: "active",
+      }).returning();
+      return { budget: createdBudget } as const;
+    });
+
+    if ("error" in budget) {
+      return res.status(budget.error.startsWith("An EA budget") ? 409 : 400).json({ error: budget.error });
     }
 
-    startAutoTrading(req.userId!, accountType, config);
+    startAutoTrading(req.userId!, accountType, config, budget.budget.id);
     const status = getAutoTradingStatus(req.userId!);
-    res.json({ ...status, accountType, wallet: data.wallet, message: "Auto trading started on the " + accountType + " wallet." });
+    const data = await getAutoTradingData(req.userId!, accountType);
+    res.json({ ...status, accountType, wallet: data.wallet, budget: { allocatedAmount: investmentAmount, maxTrades, perTradeStake: Number((investmentAmount / maxTrades).toFixed(2)) }, message: "EA started with an isolated budget. Only this allocation can be risked." });
   } catch {
     res.status(500).json({ error: "Unable to start auto trading" });
   }
@@ -82,6 +124,7 @@ router.post("/stop", requireAuth, async (req: AuthRequest, res) => {
   stopAutoTrading(req.userId!);
   const accountType = req.body?.accountType === "demo" ? "demo" : "real";
   await closeAutoTradingPositions(req.userId!, accountType);
+  await releaseAutoTradingBudget(req.userId!, accountType);
   const data = await getAutoTradingData(req.userId!, accountType);
   res.json({ enabled: false, accountType, wallet: data.wallet, openTrades: data.openTrades, closedTrades: data.closedTrades, message: "Auto trading stopped and open AI positions were closed." });
 });
