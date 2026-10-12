@@ -48,7 +48,7 @@ function MarketCard({ symbol, price, change, color, delay }: { symbol: string; p
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.6 }}
-      className="glass-card rounded-2xl p-4 min-w-[160px]"
+      className="glass-card rounded-2xl p-3 sm:p-4 min-w-0"
     >
       <div className="flex items-center gap-2 mb-2">
         <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
@@ -119,12 +119,12 @@ export default function Home() {
 
       <main className="flex-1">
         {/* ── HERO ── */}
-        <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+        <section className="relative min-h-[auto] lg:min-h-[90vh] flex items-center overflow-hidden">
           {/* Background glow */}
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
           <div className="absolute top-1/3 left-1/4 w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
 
-          <div className="container mx-auto px-6 py-20 relative z-10">
+          <div className="container mx-auto px-5 sm:px-6 py-14 sm:py-20 relative z-10">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div className="space-y-7">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -132,7 +132,7 @@ export default function Home() {
                     <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                     AI-Powered Trading Signals — Live Now
                   </div>
-                  <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.1]">
+                  <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.1]">
                     Trade like a<br />
                     <span className="text-primary">professional.</span>
                   </h1>
@@ -159,7 +159,7 @@ export default function Home() {
               </div>
 
               {/* Floating market cards */}
-              <div className="hidden lg:grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-xl mx-auto lg:max-w-none">
                 <MarketCard symbol="XAUUSD" price="2,847.50" change="+1.24%" color="#F59E0B" positive={true} delay={0.3} />
                 <MarketCard symbol="BTCUSD" price="97,420" change="+2.87%" color="#F97316" positive={true} delay={0.5} />
                 <MarketCard symbol="EURUSD" price="1.0842" change="+0.31%" color="#6366F1" positive={true} delay={0.7} />
