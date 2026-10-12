@@ -220,7 +220,7 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
   const riskPct = Math.max(0.1, Math.min(Number(runtime.config.riskPct) || 2, 5));
   const riskBudget = balance * riskPct / 100;
   const requestedStake = Number.isFinite(requested) && requested > 0 ? requested : riskBudget;
-  const amount = Number(Math.max(1, Math.min(requestedStake, riskBudget, balance)).toFixed(2));
+  const amount = Number(Math.max(0.01, Math.min(requestedStake, riskBudget, balance)).toFixed(2));
   const price = getCurrentPrice(signal.symbol);
   const entry = signal.direction === "buy" ? price.ask : price.bid;
   const size = pipSize(signal.symbol);
