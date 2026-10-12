@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import {
-  Activity, ArrowLeft, ArrowDownRight, ArrowUpRight, Bot, CheckCircle2,
-  CircleStop, Clock3, Cpu, Gauge, Radio, RefreshCw, ShieldCheck, Terminal,
+  Activity, ArrowLeft, ArrowDownRight, ArrowUpRight, CircleStop, Clock3,
+  Cpu, Gauge, Radio, RefreshCw, ShieldCheck, Terminal,
   TrendingDown, TrendingUp, Wallet, Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,8 @@ export default function EATerminal() {
       if (data.lastAction) addLog(data.lastAction, data.lastAction.toLowerCase().includes("win") ? "win" : data.lastAction.toLowerCase().includes("loss") ? "loss" : data.lastAction.toLowerCase().includes("limit") ? "warn" : "system", "action-" + data.lastActionAt + "-" + data.lastAction);
       const trades = [...(data.openTrades || []), ...(data.closedTrades || [])];
       for (const trade of trades) {
-        if (!trade.ticketNumber?.startsWith("AT-")) continue;
+        const currentBudgetPrefix = data.budgetId ? "AT-" + data.budgetId + "-" : null;
+        if (currentBudgetPrefix ? !trade.ticketNumber?.startsWith(currentBudgetPrefix) : !trade.ticketNumber?.startsWith("AT-")) continue;
         if (trade.status === "open") addLog("OPEN " + trade.direction.toUpperCase() + " " + trade.symbol + " • stake " + money(trade.amount) + " • ticket " + trade.ticketNumber, "trade", "open-" + trade.id);
         if (trade.status === "closed") addLog("CLOSED " + trade.symbol + " • " + (trade.result || "SETTLED") + " • P/L " + money(trade.profitLoss), trade.result === "WIN" ? "win" : "loss", "closed-" + trade.id);
       }
