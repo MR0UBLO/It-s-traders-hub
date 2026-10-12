@@ -46,6 +46,7 @@ export default function AutoTrading() {
   const [search, setSearch] = useState("");
   const [selectedEA, setSelectedEA] = useState<EA | null>(null);
   const [amount, setAmount] = useState("10");
+  const [tradeCount, setTradeCount] = useState("5");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [enabled, setEnabled] = useState(false);
@@ -74,13 +75,16 @@ export default function AutoTrading() {
     return q ? EAS.filter(ea => [ea.id, ea.name, ea.strategyLabel, ea.asset, ea.risk].some(v => v.toLowerCase().includes(q))) : EAS;
   }, [search]);
 
-  const chooseEA = (ea: EA) => { setSelectedEA(ea); setAmount(String(ea.minInvestment)); setPassword(""); setError(null); };
+  const chooseEA = (ea: EA) => { setSelectedEA(ea); setAmount(String(ea.minInvestment)); setTradeCount("5"); setPassword(""); setError(null); };
 
   const startTrading = async () => {
     if (!selectedEA) return;
     if (!localStorage.getItem("bp_token")) { setError("Your login session has expired. Please log in again."); return; }
     const investment = Number(amount);
     if (!Number.isFinite(investment) || investment < selectedEA.minInvestment) { setError("Minimum investment for this EA is $" + selectedEA.minInvestment + "."); return; }
+    const tradesToOpen = Number(tradeCount);
+    if (!Number.isInteger(tradesToOpen) || tradesToOpen < 1 || tradesToOpen > 100) { setError("Choose a whole number of trades between 1 and 100."); return; }
+    if (investment / tradesToOpen < 1) { setError("Your budget must allocate at least $1 per trade. Reduce the trade count or increase the budget."); return; }
     if (!password.trim()) { setError("Enter the shared EA password to continue."); return; }
     setSubmitting(true);
     try {
@@ -92,7 +96,7 @@ export default function AutoTrading() {
           tradeDuration: 4,
           strategy: selectedEA.strategy, aiSpeed: "fast",
           riskPct: selectedEA.risk === "High" ? 4 : selectedEA.risk === "Moderate" ? 2 : 1,
-          lotSize: 0.1, dailyTargetPct: 5, dailyLossPct: 3, maxTrades: 5,
+          lotSize: 0.1, dailyTargetPct: 5, dailyLossPct: 3, maxTrades: tradesToOpen,
           stopLossPips: 30, takeProfitPips: 60, trailingStop: true, breakEven: true,
         }),
       });
@@ -121,7 +125,7 @@ export default function AutoTrading() {
 
   return <div className="mx-auto max-w-7xl p-4 md:p-6 space-y-6">
     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div><div className="flex items-center gap-2 text-primary mb-2"><Bot className="h-6 w-6"/><span className="text-xs font-bold uppercase tracking-[0.2em]">Tradollar Automation</span></div><h1 className="text-3xl font-bold tracking-tight">Auto Trading EAs</h1><p className="mt-2 text-sm text-muted-foreground">Choose an Expert Advisor, set your investment, and enter the shared EA password to start.</p></div>
+      <div><div className="flex items-center gap-2 text-primary mb-2"><Bot className="h-6 w-6"/><span className="text-xs font-bold uppercase tracking-[0.2em]">Tradollar Automation</span></div><h1 className="text-3xl font-bold tracking-tight">Auto Trading EAs</h1><p className="mt-2 text-sm text-muted-foreground">Choose an Expert Advisor, allocate a separate EA budget, choose the trade count, and enter the shared EA password.</p></div>
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-border bg-card p-3 min-w-32"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Wallet className="h-4 w-4"/>{isDemo ? "Demo" : "Real"} balance</div><p className="mt-1 text-xl font-bold">{"$"}{Number(wallet?.balance ?? 0).toFixed(2)}</p></div>
         <div className="rounded-xl border border-border bg-card p-3 min-w-32"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Activity className="h-4 w-4"/>Available EAs</div><p className="mt-1 text-xl font-bold">120</p></div>
@@ -129,7 +133,7 @@ export default function AutoTrading() {
     </div>
 
     {enabled && <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 md:p-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><div className="flex items-center gap-2 text-sm font-semibold text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"/>EA session active</div><h2 className="mt-1 text-lg font-bold">{activeEA?.name || "Auto Trading EA"}</h2><p className="text-sm text-muted-foreground">{status?.config?.asset || "EURUSD"} · Investment {"$"}{Number(status?.config?.investmentAmount ?? 0).toFixed(2)} · {isDemo ? "Demo wallet" : "Real wallet"}</p><p className="mt-1 text-xs text-muted-foreground">{status?.lastAction || "Monitoring market signals"} · {status?.tradesOpened ?? 0} trades opened · {status?.wins ?? 0} wins / {status?.losses ?? 0} losses</p></div><Button variant="destructive" onClick={() => void stopTrading()}><Power className="mr-2 h-4 w-4"/>Stop Trading</Button></div>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><div className="flex items-center gap-2 text-sm font-semibold text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"/>EA session active</div><h2 className="mt-1 text-lg font-bold">{activeEA?.name || "Auto Trading EA"}</h2><p className="text-sm text-muted-foreground">{status?.config?.asset || "EURUSD"} · EA budget {"$"}{Number(status?.config?.investmentAmount ?? 0).toFixed(2)} · {status?.tradesOpened ?? 0}/{status?.config?.maxTrades ?? 0} trades · {isDemo ? "Demo wallet" : "Real wallet"}</p><p className="mt-1 text-xs text-muted-foreground">{status?.lastAction || "Monitoring market signals"} · {status?.tradesOpened ?? 0} trades opened · {status?.wins ?? 0} wins / {status?.losses ?? 0} losses</p></div><Button variant="destructive" onClick={() => void stopTrading()}><Power className="mr-2 h-4 w-4"/>Stop Trading</Button></div>
       <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3"><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Open trades</p><p className="text-lg font-bold">{openTrades.length}</p></div><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Closed trades</p><p className="text-lg font-bold">{closedTrades.length}</p></div><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Wallet P/L</p><p className="text-lg font-bold">{"$"}{Number(wallet?.totalProfit ?? 0).toFixed(2)}</p></div><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Started</p><p className="text-lg font-bold">{status?.startedAt ? new Date(Number(status.startedAt)).toLocaleTimeString() : "—"}</p></div></div>
     </div>}
 
@@ -150,7 +154,7 @@ export default function AutoTrading() {
         <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-widest text-primary">{selectedEA.id}</p><h2 className="mt-1 text-xl font-bold">{selectedEA.name}</h2><p className="mt-1 text-sm text-zinc-400">{selectedEA.strategyLabel} · {selectedEA.asset}</p></div><button aria-label="Close" className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white" disabled={submitting} onClick={() => setSelectedEA(null)}><X className="h-4 w-4"/></button></div>
         <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900 p-3 text-sm"><div className="flex justify-between"><span className="text-zinc-400">Minimum investment</span><span className="font-bold">{"$"}{selectedEA.minInvestment.toFixed(2)}</span></div><div className="mt-2 flex justify-between"><span className="text-zinc-400">Wallet</span><span className="font-semibold">{isDemo ? "Demo" : "Real"}</span></div></div>
         {error && <div role="alert" className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
-        <div className="mt-4 space-y-4"><div><Label className="text-zinc-200">Investment amount (USD)</Label><Input autoFocus type="number" min={selectedEA.minInvestment} step="0.01" value={amount} onChange={event => setAmount(event.target.value)} className="mt-1 border-zinc-700 bg-zinc-900 text-white"/><p className="mt-1 text-xs text-zinc-500">Enter at least {"$"}{selectedEA.minInvestment.toFixed(2)}.</p></div><div><Label className="text-zinc-200">Shared EA password</Label><Input type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Enter EA password" className="mt-1 border-zinc-700 bg-zinc-900 text-white"/></div><div className="flex gap-3"><Button variant="outline" className="flex-1" disabled={submitting} onClick={() => setSelectedEA(null)}>Cancel</Button><Button className="flex-1" disabled={submitting} onClick={() => void startTrading()}>{submitting ? "Starting..." : "Confirm & Start"}</Button></div></div>
+        <div className="mt-4 space-y-4"><div><Label className="text-zinc-200">Total EA budget (USD)</Label><Input autoFocus type="number" min={selectedEA.minInvestment} step="0.01" value={amount} onChange={event => setAmount(event.target.value)} className="mt-1 border-zinc-700 bg-zinc-900 text-white"/><p className="mt-1 text-xs text-zinc-500">This is the total amount set aside for this EA, not the stake for every trade. Minimum {"$"}{selectedEA.minInvestment.toFixed(2)}.</p></div><div><Label className="text-zinc-200">How many trades?</Label><Input type="number" min="1" max={Math.max(1, Math.min(100, Math.floor(Number(amount) || 1)))} step="1" value={tradeCount} onChange={event => setTradeCount(event.target.value)} className="mt-1 border-zinc-700 bg-zinc-900 text-white"/><p className="mt-1 text-xs text-zinc-500">Approx. stake per trade: {"$"}{Number(amount) > 0 && Number(tradeCount) > 0 ? (Number(amount) / Number(tradeCount)).toFixed(2) : "0.00"}. At least $1 per trade; the EA stops after this many trades.</p></div><div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-100">Only this budget is reserved and exposed to EA trades. Your remaining wallet funds are not available to the EA. Any unused budget and the remaining balance are returned when you stop the EA.</div><div><Label className="text-zinc-200">Shared EA password</Label><Input type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Enter EA password" className="mt-1 border-zinc-700 bg-zinc-900 text-white"/></div><div className="flex gap-3"><Button variant="outline" className="flex-1" disabled={submitting} onClick={() => setSelectedEA(null)}>Cancel</Button><Button className="flex-1" disabled={submitting} onClick={() => void startTrading()}>{submitting ? "Starting..." : "Confirm & Start"}</Button></div></div>
       </motion.div>
     </motion.div>}</AnimatePresence>
   </div>;
