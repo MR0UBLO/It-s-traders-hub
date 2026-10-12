@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 import { db, eaBudgetsTable, walletsTable, demoWalletsTable } from "@workspace/db";
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
 import { getAutoTradingData, getAutoTradingStatus, startAutoTrading, stopAutoTrading, closeAutoTradingPositions, releaseAutoTradingBudget, type AutoTradingConfig } from "../lib/auto-trading.js";
 import { SYMBOLS } from "../lib/market.js";
@@ -37,7 +37,17 @@ router.get("/status", requireAuth, async (req: AuthRequest, res) => {
   }
 
   const data = await getAutoTradingData(req.userId!, account);
-  res.json({ ...status, accountType: status.enabled ? status.accountType : account, wallet: data.wallet, openTrades: data.openTrades, closedTrades: data.closedTrades });
+  const [latestBudget] = await db.select().from(eaBudgetsTable).where(and(
+    eq(eaBudgetsTable.userId, req.userId!),
+    eq(eaBudgetsTable.accountType, account)
+  )).orderBy(desc(eaBudgetsTable.createdAt)).limit(1);
+  const terminalConfig = !status.enabled && latestBudget ? {
+    ...status.config,
+    eaId: latestBudget.eaId,
+    investmentAmount: Number(latestBudget.allocatedAmount),
+    maxTrades: latestBudget.maxTrades,
+  } : status.config;
+  res.json({ ...status, budgetId: status.budgetId ?? latestBudget?.id, config: terminalConfig, accountType: status.enabled ? status.accountType : account, wallet: data.wallet, openTrades: data.openTrades, closedTrades: data.closedTrades });
 });
 
 router.post("/start", requireAuth, async (req: AuthRequest, res) => {
