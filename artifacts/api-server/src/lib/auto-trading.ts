@@ -316,11 +316,12 @@ async function settleOpenTrades(userId: number, runtime: Runtime) {
         closedAt: new Date(),
       }).where(and(eq(tradesTable.id, trade.id), eq(tradesTable.status, "open"))).returning();
       if (!closedTrade) return false;
-      await tx.update(eaBudgetsTable).set({
+      const [budget] = await tx.update(eaBudgetsTable).set({
         balance: sql`${eaBudgetsTable.balance} + ${payout}`,
-      }).where(and(eq(eaBudgetsTable.id, runtime.budgetId), eq(eaBudgetsTable.status, "active")));
+      }).where(and(eq(eaBudgetsTable.id, runtime.budgetId), eq(eaBudgetsTable.status, "active"))).returning();
       const walletTable = runtime.accountType === "demo" ? demoWalletsTable : walletsTable;
       await tx.update(walletTable).set({
+        ...(budget ? {} : { balance: sql`${walletTable.balance} + ${payout}` }),
         totalProfit: sql`${walletTable.totalProfit} + ${profitLoss}`,
       }).where(eq(walletTable.userId, userId));
       return true;
@@ -472,11 +473,12 @@ export async function closeAutoTradingPositions(userId: number, accountType: Acc
         closedAt: new Date(),
       }).where(and(eq(tradesTable.id, trade.id), eq(tradesTable.status, "open"))).returning();
       if (!closedTrade) return;
-      await tx.update(eaBudgetsTable).set({
+      const [budget] = await tx.update(eaBudgetsTable).set({
         balance: sql`${eaBudgetsTable.balance} + ${payout}`,
-      }).where(and(eq(eaBudgetsTable.id, budgetId), eq(eaBudgetsTable.status, "active")));
+      }).where(and(eq(eaBudgetsTable.id, budgetId), eq(eaBudgetsTable.status, "active"))).returning();
       const walletTable = accountType === "demo" ? demoWalletsTable : walletsTable;
       await tx.update(walletTable).set({
+        ...(budget ? {} : { balance: sql`${walletTable.balance} + ${payout}` }),
         totalProfit: sql`${walletTable.totalProfit} + ${profitLoss}`,
       }).where(eq(walletTable.userId, userId));
     });
