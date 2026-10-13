@@ -158,17 +158,26 @@ export default function Home() {
                 </motion.div>
               </div>
 
-              {/* Floating market cards */}
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-xl mx-auto lg:max-w-none">
-                <MarketCard symbol="XAUUSD" price="2,847.50" change="+1.24%" color="#F59E0B" positive={true} delay={0.3} />
-                <MarketCard symbol="BTCUSD" price="97,420" change="+2.87%" color="#F97316" positive={true} delay={0.5} />
-                <MarketCard symbol="EURUSD" price="1.0842" change="+0.31%" color="#6366F1" positive={true} delay={0.7} />
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }} className="glass-card rounded-2xl p-4 flex flex-col items-center justify-center gap-2">
-                  <Bot className="w-8 h-8 text-primary" />
-                  <p className="text-sm font-semibold">AI Signal</p>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 font-bold">BUY XAUUSD ↑87%</span>
-                </motion.div>
-              </div>
+              {/* Public visitors see the sign-in prompt instead of stale sample asset cards. */}
+              {isAuthenticated ? (
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-xl mx-auto lg:max-w-none">
+                  <MarketCard symbol="XAUUSD" price="2,847.50" change="+1.24%" color="#F59E0B" positive={true} delay={0.3} />
+                  <MarketCard symbol="BTCUSD" price="97,420" change="+2.87%" color="#F97316" positive={true} delay={0.5} />
+                  <MarketCard symbol="EURUSD" price="1.0842" change="+0.31%" color="#6366F1" positive={true} delay={0.7} />
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }} className="glass-card rounded-2xl p-4 flex flex-col items-center justify-center gap-2">
+                    <Bot className="w-8 h-8 text-primary" />
+                    <p className="text-sm font-semibold">AI Signal</p>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-500 font-bold">BUY XAUUSD ↑87%</span>
+                  </motion.div>
+                </div>
+              ) : (
+                <div className="glass-card rounded-2xl p-6 sm:p-8 max-w-xl mx-auto lg:max-w-none flex flex-col items-center justify-center gap-4 text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center"><Shield className="w-7 h-7 text-primary" /></div>
+                  <h2 className="text-xl font-bold">Sign in to view live markets</h2>
+                  <p className="text-sm text-muted-foreground max-w-sm">Your market terminal, price feed, and trading tools are available after you log in.</p>
+                  <Link href="/login"><Button className="font-semibold">Log in to continue</Button></Link>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -181,7 +190,7 @@ export default function Home() {
                 { to: 50000, suffix: "+", label: "Active Traders" },
                 { to: 2400000000, prefix: "KES ", suffix: "+", label: "Volume Traded" },
                 { to: 99, suffix: ".9%", label: "Uptime" },
-                { to: 100, suffix: "+", label: "Live Assets" },
+                { to: 6, suffix: "", label: "Supported Markets" },
               ].map(({ to, prefix, suffix, label }) => (
                 <div key={label}>
                   <p className="text-3xl font-bold text-primary mb-1">
