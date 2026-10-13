@@ -180,6 +180,7 @@ function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sel
 }
 
 async function openAutoTrade(userId: number, runtime: Runtime) {
+  if (!runtime.enabled || runtimes.get(userId) !== runtime) return;
   // Only the amount reserved into this EA's dedicated budget can be used.
   const entryIntervalMs = runtime.config.aiSpeed === "slow" ? 10_000 : 5_000;
   if (runtime.lastEntryAt != null && Date.now() - runtime.lastEntryAt < entryIntervalMs) return;
@@ -218,6 +219,7 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
     runtime.lastActionAt = Date.now();
     return;
   }
+  if (!runtime.enabled || runtimes.get(userId) !== runtime) return;
 
   // investmentAmount is the TOTAL allocated budget. Divide it across the
   // selected number of trades; never size from the user's full wallet balance.
@@ -241,6 +243,7 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
   let updatedBudget: typeof eaBudgetsTable.$inferSelect | undefined;
   try {
     await db.transaction(async (tx) => {
+      if (!runtime.enabled || runtimes.get(userId) !== runtime) throw new Error("EA session was stopped");
       const [reserved] = await tx.update(eaBudgetsTable).set({
         balance: sql`${eaBudgetsTable.balance} - ${amount}`,
         tradesOpened: sql`${eaBudgetsTable.tradesOpened} + 1`,
@@ -271,6 +274,7 @@ async function openAutoTrade(userId: number, runtime: Runtime) {
         status: "open",
         isCopied: false,
       }).returning();
+      if (!runtime.enabled || runtimes.get(userId) !== runtime) throw new Error("EA session was stopped");
       created = trade;
     });
   } catch (error) {
@@ -350,6 +354,7 @@ async function tick(userId: number) {
 
   try {
     await settleOpenTrades(userId, runtime);
+    if (!runtime.enabled || runtimes.get(userId) !== runtime) return;
 
     const allOpen = await db.select().from(tradesTable).where(and(
       eq(tradesTable.userId, userId),
