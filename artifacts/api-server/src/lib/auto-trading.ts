@@ -56,7 +56,7 @@ const DEFAULTS: AutoTradingConfig = {
   trailingStop: false,
   breakEven: false,
   investmentAmount: 10,
-  tradeDuration: 4,
+  tradeDuration: 5,
   sessionDurationSeconds: 300,
   asset: "EURUSD",
   aiSpeed: "fast",
@@ -174,28 +174,15 @@ function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sel
   }
   if (best) return best;
 
-  // Keep the configured 4-second schedule active even when the selected strategy
-  // has no fully confirmed setup: use the latest short-term price direction as a
-  // fallback rather than silently ignoring the requested session schedule.
-  for (const rawSymbol of candidates) {
-    if (!SYMBOLS.includes(rawSymbol as typeof SYMBOLS[number])) continue;
-    const ticks = getPriceTicks(rawSymbol);
-    if (ticks.length < 2) continue;
-    const current = ticks[ticks.length - 1];
-    const recentStart = ticks[Math.max(0, ticks.length - 6)];
-    return {
-      symbol: rawSymbol,
-      direction: current >= recentStart ? "buy" as const : "sell" as const,
-      confidence: 70,
-      reason: "scheduled 4-second entry using recent price direction",
-    };
-  }
+  // Do not bypass the selected strategy when its confirmation rules are not met.
+  // A session may wait for a valid setup instead of placing an unconfirmed trade.
   return null;
 }
 
 async function openAutoTrade(userId: number, runtime: Runtime) {
   // Only the amount reserved into this EA's dedicated budget can be used.
-  if (runtime.lastEntryAt != null && Date.now() - runtime.lastEntryAt < 4_000) return;
+  const entryIntervalMs = runtime.config.aiSpeed === "slow" ? 10_000 : 5_000;
+  if (runtime.lastEntryAt != null && Date.now() - runtime.lastEntryAt < entryIntervalMs) return;
   const [budget] = await db.select().from(eaBudgetsTable).where(and(
     eq(eaBudgetsTable.id, runtime.budgetId),
     eq(eaBudgetsTable.userId, userId),
@@ -442,7 +429,7 @@ export function startAutoTrading(userId: number, accountType: AccountType, confi
   const merged = {
     ...DEFAULTS,
     ...config,
-    tradeDuration: Math.max(1, Math.min(4, Math.floor(Number.isFinite(requestedDuration) ? requestedDuration : 4))),
+    tradeDuration: Math.max(5, Math.min(60, Math.floor(Number.isFinite(requestedDuration) ? requestedDuration : 5))),
     sessionDurationSeconds: Math.max(60, Math.min(3600, Math.floor(Number.isFinite(requestedSessionDuration) ? requestedSessionDuration : DEFAULTS.sessionDurationSeconds))),
   };
   const now = Date.now();
@@ -460,8 +447,8 @@ export function startAutoTrading(userId: number, accountType: AccountType, confi
     wins: 0,
     losses: 0,
   };
-  // Tick once per second to manage expiry and the session timer; new entries
-  // are gated to a strict minimum of four seconds apart.
+  // Tick once per second to manage expiry and the session timer; fast entries are
+  // gated to five seconds apart, while slow mode waits ten seconds between entries.
   const intervalMs = 1000;
   runtime.timer = setInterval(() => void tick(userId), intervalMs);
   runtimes.set(userId, runtime);
