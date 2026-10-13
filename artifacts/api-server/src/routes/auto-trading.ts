@@ -47,7 +47,23 @@ router.get("/status", requireAuth, async (req: AuthRequest, res) => {
     investmentAmount: Number(latestBudget.allocatedAmount),
     maxTrades: latestBudget.maxTrades,
   } : status.config;
-  res.json({ ...status, budgetId: status.budgetId ?? latestBudget?.id, config: terminalConfig, accountType: status.enabled ? status.accountType : account, wallet: data.wallet, openTrades: data.openTrades, closedTrades: data.closedTrades });
+  const reportBudgetId = status.budgetId ?? latestBudget?.id;
+  const sessionPrefix = reportBudgetId == null ? null : `AT-${reportBudgetId}-`;
+  const sessionOpenTrades = sessionPrefix
+    ? data.openTrades.filter((trade) => trade.ticketNumber?.startsWith(sessionPrefix))
+    : [];
+  const sessionClosedTrades = sessionPrefix
+    ? data.closedTrades.filter((trade) => trade.ticketNumber?.startsWith(sessionPrefix))
+    : [];
+  res.json({
+    ...status,
+    budgetId: reportBudgetId,
+    config: terminalConfig,
+    accountType: status.enabled ? status.accountType : account,
+    wallet: data.wallet,
+    openTrades: sessionOpenTrades,
+    closedTrades: sessionClosedTrades,
+  });
 });
 
 router.post("/start", requireAuth, async (req: AuthRequest, res) => {
@@ -147,12 +163,29 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
 });
 
 router.post("/stop", requireAuth, async (req: AuthRequest, res) => {
-  stopAutoTrading(req.userId!);
   const accountType = req.body?.accountType === "demo" ? "demo" : "real";
+  const currentStatus = getAutoTradingStatus(req.userId!);
+  if (currentStatus.enabled && currentStatus.accountType !== accountType) {
+    return res.status(409).json({ error: `The active EA is running in ${currentStatus.accountType} mode. Switch to that account to stop it safely.` });
+  }
+  const [activeBudget] = await db.select().from(eaBudgetsTable).where(and(
+    eq(eaBudgetsTable.userId, req.userId!),
+    eq(eaBudgetsTable.accountType, accountType),
+    eq(eaBudgetsTable.status, "active")
+  )).limit(1);
+  const sessionPrefix = activeBudget ? `AT-${activeBudget.id}-` : null;
+  if (currentStatus.enabled && currentStatus.accountType === accountType) stopAutoTrading(req.userId!);
   await closeAutoTradingPositions(req.userId!, accountType);
   await releaseAutoTradingBudget(req.userId!, accountType);
   const data = await getAutoTradingData(req.userId!, accountType);
-  res.json({ enabled: false, accountType, wallet: data.wallet, openTrades: data.openTrades, closedTrades: data.closedTrades, message: "Auto trading stopped and open AI positions were closed." });
+  res.json({
+    enabled: false,
+    accountType,
+    wallet: data.wallet,
+    openTrades: sessionPrefix ? data.openTrades.filter((trade) => trade.ticketNumber?.startsWith(sessionPrefix)) : [],
+    closedTrades: sessionPrefix ? data.closedTrades.filter((trade) => trade.ticketNumber?.startsWith(sessionPrefix)) : [],
+    message: "Auto trading stopped and open AI positions were closed.",
+  });
 });
 
 export default router;
