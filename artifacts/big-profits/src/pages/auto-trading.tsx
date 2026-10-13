@@ -19,7 +19,7 @@ const NAMES = [
   "Atlas Trend Rider","Gold Falcon","Pip Navigator","Quantum Scalper","London Breakout",
   "New York Momentum","Smart Money Flow","Orion Swing","Phoenix Reversal","Bullion Hunter",
   "Velocity FX","Apex Trend","Blue Wave Trader","Steady Pip","Nova Breakout","Titan Scalper",
-  "Eagle Eye FX","Candle Compass","Momentum Forge","Silver Arrow","Aurora Grid","Rapid Pips",
+  "Eagle Eye FX","Candle Compass","Momentum Forge","Silver Arrow","Aurora Grid","Rapid Pips","Pip Mover","Pip Mover Elite 3",
   "Zenith Trader","Market Pulse","Vortex Momentum","Delta Trend","Night Hawk FX","Prime Breakout",
   "Cobalt Swing","Lionheart Gold","Alpha Structure","Orbit Scalper","Summit FX","Marlin Trend",
   "Redwood Trader","Stellar Gold","Precision Pip","Falcon Wave","Equinox Strategy","Pioneer FX",
@@ -144,7 +144,7 @@ export default function AutoTrading() {
       <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3"><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Open trades</p><p className="text-lg font-bold">{openTrades.length}</p></div><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Closed trades</p><p className="text-lg font-bold">{closedTrades.length}</p></div><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Wallet P/L</p><p className="text-lg font-bold">{"$"}{Number(wallet?.totalProfit ?? 0).toFixed(2)}</p></div><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Started</p><p className="text-lg font-bold">{status?.startedAt ? new Date(Number(status.startedAt)).toLocaleTimeString() : "—"}</p></div></div>
     </div>}
 
-    <div className="flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search EAs by name, ID, strategy or market..." className="pl-9"/></div><div className="flex items-center gap-2 rounded-xl border border-border px-3 text-sm text-muted-foreground"><ShieldCheck className="h-4 w-4 text-primary"/>One shared EA password</div></div>
+    <div className="flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search EAs by name, ID, strategy or market..." className="pl-9"/></div><div className="flex flex-col justify-center gap-1 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground"><div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary"/>One shared EA password</div><p className="text-xs">Win rates must reflect completed trades; no EA can guarantee 100% wins.</p></div></div>
 
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {filtered.map((ea, index) => <motion.div key={ea.id} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:Math.min(index % 12,8)*0.025}} className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-4 hover:border-primary/40 transition-colors">
