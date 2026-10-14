@@ -214,7 +214,7 @@ export default function Home() {
               {[
                 { icon: BarChart2, title: "Real-time Charts", desc: "TradingView-powered charts with XAUUSD, EURUSD & BTCUSD live prices refreshing every 3 seconds.", color: "text-blue-400" },
                 { icon: Bot, title: "AI Trading Signals", desc: "Machine-learning signals with confidence scores, entry, target and stop-loss levels.", color: "text-primary" },
-                { icon: Users, title: "Copy Trading", desc: "Browse the leaderboard and automatically mirror trades of top-ranked traders.", color: "text-purple-400" },
+                { icon: Users, title: "Copy Trading", desc: "Explore trader profiles and choose traders to copy.", color: "text-purple-400" },
                 { icon: Globe, title: "M-PESA Deposits", desc: "Fund your account instantly via Safaricom M-PESA STK Push — no bank account needed.", color: "text-green-500" },
                 { icon: Shield, title: "OTP Verified Accounts", desc: "Every account is email-verified with a 6-digit OTP. Your funds are always protected.", color: "text-yellow-500" },
                 { icon: Zap, title: "Instant Execution", desc: "Zero-latency execution. Open and close positions in milliseconds.", color: "text-orange-400" },
@@ -349,7 +349,6 @@ export default function Home() {
                 ] },
               { title: "Company", links: [
                   { label: "Support", href: isAuthenticated ? "/support" : "/login" },
-                  { label: "Leaderboard", href: isAuthenticated ? "/leaderboard" : "/login" },
                   { label: "Copy Trading", href: isAuthenticated ? "/copy-trading" : "/login" },
                   { label: "Settings", href: isAuthenticated ? "/settings" : "/login" },
                 ] },
