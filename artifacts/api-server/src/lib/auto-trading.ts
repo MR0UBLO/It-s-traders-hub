@@ -383,35 +383,10 @@ async function tick(userId: number) {
       return;
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const closed = await db.select().from(tradesTable).where(and(
-      eq(tradesTable.userId, userId),
-      eq(tradesTable.accountType, runtime.accountType),
-      eq(tradesTable.status, "closed")
-    ));
-    const todayPL = closed
-      .filter((trade) => trade.ticketNumber?.startsWith(`AT-${runtime.budgetId}-`) && trade.closedAt && new Date(trade.closedAt) >= today)
-      .reduce((sum, trade) => sum + Number(trade.profitLoss ?? 0), 0);
-    const startingBalance = Number(budget.allocatedAmount);
-    const targetReached = startingBalance > 0 &&
-      todayPL >= startingBalance * runtime.config.dailyTargetPct / 100;
-    const lossLimitReached = startingBalance > 0 &&
-      todayPL <= -startingBalance * runtime.config.dailyLossPct / 100;
-
-    if (targetReached || lossLimitReached) {
-      runtime.lastAction = targetReached
-        ? "Daily target reached — managing open trades, no new entries"
-        : "Daily loss limit reached — managing open trades, no new entries";
-      runtime.lastActionAt = Date.now();
-      // Keep the manager alive until existing positions settle; otherwise their
-      // reserved stakes could remain stuck in open trades after the EA stops.
-      if (open.length === 0) {
-        stopAutoTrading(userId);
-        await releaseAutoTradingBudget(userId, runtime.accountType);
-      }
-      return;
-    }
+    // A session's configured trade quota takes priority over daily P/L targets.
+    // Losses must not increase the next stake or silently cancel the remaining
+    // planned trades; keep each stake fixed at allocatedAmount / maxTrades.
+    // Session expiry and the maximum trade count below are the entry stop rules.
 
     const nextStake = Math.floor((Number(budget.allocatedAmount) / runtime.config.maxTrades) * 100) / 100;
     if ((Number(budget.tradesOpened) >= runtime.config.maxTrades || Number(budget.balance) < nextStake) && open.length === 0) {
