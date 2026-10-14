@@ -193,7 +193,7 @@ export default function Home() {
                 { value: "AI-assisted", label: "Signal analysis" },
               ].map(({ value, label }) => (
                 <div key={label} className="min-w-0 px-1">
-                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-primary mb-1 break-words">\n                    {value}\n                  </p>
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-primary mb-1 break-words">{value}</p>
                   <p className="text-sm text-muted-foreground">{label}</p>
                 </div>
               ))}
