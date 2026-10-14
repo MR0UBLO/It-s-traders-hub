@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 const FAQS = [
   { q: "How do I make a deposit?", a: "Go to the Deposits page, enter your M-PESA phone number (format: 254XXXXXXXXX) and the amount. You'll receive an STK push prompt on your phone to authorise the payment. Funds reflect instantly." },
   { q: "How is profit and loss calculated?", a: "When you open a position, your entry price is locked at the live market rate. P/L moves in real time as the market moves. When you close, the net result — based on price movement and position size — is applied to your balance." },
-  { q: "What is copy trading?", a: "Copy trading lets you automatically mirror the trades of top-performing traders on the platform. Navigate to Copy Trading, browse the leaderboard, and click Follow on any trader." },
+  { q: "What is copy trading?", a: "Copy trading lets you mirror trades from trader profiles available on the Copy Trading page. Review the displayed risk information before choosing a trader." },
   { q: "How long does an M-PESA deposit take?", a: "Funds reflect within 30 seconds of completing the STK push on your phone." },
   { q: "Why was my OTP code invalid?", a: "OTP codes expire after 10 minutes. If yours expired, click 'Resend code' on the verification screen to get a new one sent to your email." },
   { q: "Can I withdraw my balance?", a: "Navigate to the Withdraw page to request a withdrawal. Withdrawals are processed within 24 hours back to your registered M-PESA number." },
