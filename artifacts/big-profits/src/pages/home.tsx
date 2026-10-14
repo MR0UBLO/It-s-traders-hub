@@ -190,7 +190,7 @@ export default function Home() {
                 { to: 50000, suffix: "+", label: "Active Traders" },
                 { to: 2400000000, prefix: "KES ", suffix: "+", label: "Volume Traded" },
                 { to: 99, suffix: ".9%", label: "Uptime" },
-                { to: 6, suffix: "", label: "Supported Markets" },
+                { to: 100, suffix: "+", label: "Supported Markets" },
               ].map(({ to, prefix, suffix, label }) => (
                 <div key={label}>
                   <p className="text-3xl font-bold text-primary mb-1">
