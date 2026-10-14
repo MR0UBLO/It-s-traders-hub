@@ -7,7 +7,7 @@ const options: swaggerJsdoc.Options = {
       title: "Tradollar API",
       version: "2.0.0",
       description:
-        "Production-grade fintech trading simulator API. Supports JWT auth, real-time WebSocket events, simulated market data with OHLC candles, AI signal generation, M-PESA deposits, copy trading, and leaderboard.",
+        "Production-grade fintech trading simulator API. Supports JWT auth, real-time WebSocket events, simulated market data with OHLC candles, AI signal generation, M-PESA deposits, and copy trading.",
     },
     servers: [{ url: "/api", description: "API base path" }],
     components: {
