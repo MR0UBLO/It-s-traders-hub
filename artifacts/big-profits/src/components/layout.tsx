@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
   LayoutDashboard, LineChart, BarChart2, Bot, Wallet,
-  Trophy, Settings,
+  Settings,
   HelpCircle, Users, LogOut, TrendingUp, Menu, X,
   Bell, ChevronDown, Shield, RefreshCw, Cpu, Briefcase,
   MoreHorizontal, ChevronLeft, ChevronRight, Info,
@@ -40,7 +40,6 @@ const NAV_GROUPS = [
     label: "Portfolio",
     items: [
       { href: "/portfolio",   label: "Portfolio",   icon: Briefcase },
-      { href: "/leaderboard", label: "Leaderboard", icon: Trophy    },
     ],
   },
   {
@@ -70,7 +69,6 @@ const MOBILE_MORE = [
   { href: "/ai-signals",   label: "AI Signals",   icon: Bot         },
   { href: "/copy-trading", label: "Copy Trading", icon: Users       },
   { href: "/auto-trading", label: "Auto Trading", icon: Cpu         },
-  { href: "/leaderboard",  label: "Leaderboard",  icon: Trophy      },
   { href: "/portfolio",    label: "Portfolio",    icon: Briefcase   },
   { href: "/settings",     label: "Settings",     icon: Settings    },
   { href: "/support",      label: "Support",      icon: HelpCircle  },
