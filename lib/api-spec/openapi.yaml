@@ -19,8 +19,6 @@ tags:
     description: Market prices
   - name: mpesa
     description: M-PESA payments
-  - name: leaderboard
-    description: Leaderboard
   - name: copy-trading
     description: Copy trading
   - name: admin
@@ -344,22 +342,6 @@ paths:
       responses:
         "200":
           description: Callback processed
-
-  # LEADERBOARD
-  /leaderboard:
-    get:
-      operationId: getLeaderboard
-      tags: [leaderboard]
-      summary: Get top traders leaderboard
-      responses:
-        "200":
-          description: Leaderboard entries
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/LeaderboardEntry"
 
   # COPY TRADING
   /copy-trading/follow:
@@ -702,21 +684,6 @@ components:
           type: number
 
     TopTrader:
-      type: object
-      required: [userId, name, totalProfit, winRate, totalTrades]
-      properties:
-        userId:
-          type: integer
-        name:
-          type: string
-        totalProfit:
-          type: number
-        winRate:
-          type: number
-        totalTrades:
-          type: integer
-
-    LeaderboardEntry:
       type: object
       required: [userId, name, totalProfit, winRate, totalTrades]
       properties:
