@@ -91,7 +91,7 @@ export default function Login() {
             <span className="text-primary">trading terminal.</span>
           </h2>
           <p className="text-muted-foreground leading-relaxed max-w-sm">
-            Trade XAUUSD, EURUSD, and BTCUSD in real-time. Deposit via M-PESA, copy top traders, and climb the leaderboard.
+            Trade XAUUSD, EURUSD, and BTCUSD in real-time. Deposit via M-PESA and explore copy trading.
           </p>
         </div>
         <p className="text-xs text-muted-foreground">Professional trading platform. Not financial advice.</p>
