@@ -188,7 +188,7 @@ export default function Home() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               {[
                 { to: 50000, suffix: "+", label: "Active Traders" },
-                { to: 2400000000, prefix: "KES ", suffix: "+", label: "Volume Traded" },
+                { to: 25000000, prefix: "$", suffix: "+", label: "Volume Traded" },
                 { to: 99, suffix: ".9%", label: "Uptime" },
                 { to: 100, suffix: "+", label: "Supported Markets" },
               ].map(({ to, prefix, suffix, label }) => (
