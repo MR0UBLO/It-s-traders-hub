@@ -183,17 +183,19 @@ export default function Home() {
         </section>
 
         {/* ── STATS ── */}
-        <section className="border-y border-border bg-card/30 py-10 sm:py-12 overflow-hidden">
-          <div className="container mx-auto max-w-6xl px-4 sm:px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-8 sm:gap-8 text-center">
+        <section className="border-y border-border bg-card/30 py-12">
+          <div className="container mx-auto px-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
               {[
-                { value: "Explore", label: "Trading tools" },
-                { value: "FX · Gold · Crypto", label: "Market categories" },
-                { value: "Demo", label: "Practice before risking funds" },
-                { value: "AI-assisted", label: "Signal analysis" },
-              ].map(({ value, label }) => (
-                <div key={label} className="min-w-0 px-1">
-                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-primary mb-1 break-words">{value}</p>
+                { to: 50000, suffix: "+", label: "Active Traders" },
+                { to: 2400000000, prefix: "KES ", suffix: "+", label: "Volume Traded" },
+                { to: 99, suffix: ".9%", label: "Uptime" },
+                { to: 6, suffix: "", label: "Supported Markets" },
+              ].map(({ to, prefix, suffix, label }) => (
+                <div key={label}>
+                  <p className="text-3xl font-bold text-primary mb-1">
+                    <Counter to={to} prefix={prefix} suffix={suffix} />
+                  </p>
                   <p className="text-sm text-muted-foreground">{label}</p>
                 </div>
               ))}
