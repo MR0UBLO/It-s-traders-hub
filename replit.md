@@ -43,10 +43,10 @@ A full-stack fintech simulation trading platform where users deposit via real M-
 
 ## Product
 
-- Landing page, auth (register/login), dashboard, trading terminal, leaderboard, copy trading, deposits, admin panel
+- Landing page, auth (register/login), dashboard, trading terminal, copy trading, deposits, admin panel
 - Real M-PESA STK Push integration (Daraja API) with duplicate-callback prevention
 - Simulated random-walk market prices for XAUUSD, EURUSD, BTCUSD (3s refresh)
-- Leaderboard ranked by total profit; copy-trading with auto-follow system
+- Copy-trading with trader profiles and auto-follow system
 
 ## Demo accounts
 
