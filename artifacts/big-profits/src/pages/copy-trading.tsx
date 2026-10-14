@@ -468,7 +468,7 @@ export default function CopyTrading() {
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>Showing <span className="font-semibold text-foreground">{filtered.length}</span> traders</span>
-          <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full font-semibold">LIVE LEADERBOARD</span>
+          <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full font-semibold">TRADER DIRECTORY</span>
         </div>
       </div>
 
