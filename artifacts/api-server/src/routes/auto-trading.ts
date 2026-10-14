@@ -55,11 +55,20 @@ router.get("/status", requireAuth, async (req: AuthRequest, res) => {
   const sessionClosedTrades = sessionPrefix
     ? data.closedTrades.filter((trade) => trade.ticketNumber?.startsWith(sessionPrefix))
     : [];
+  // Use persisted budget/trade records as the source of truth for the controller.
+  // Runtime counters are in-memory and can briefly be zero or reset after a server restart.
+  const persistedTradesOpened = latestBudget ? Number(latestBudget.tradesOpened) : Number(status.tradesOpened ?? 0);
+  const persistedWins = sessionClosedTrades.filter((trade) => trade.result === "WIN").length;
+  const persistedLosses = sessionClosedTrades.filter((trade) => trade.result === "LOSS").length;
+
   res.json({
     ...status,
     budgetId: reportBudgetId,
     config: terminalConfig,
     accountType: status.enabled ? status.accountType : account,
+    tradesOpened: persistedTradesOpened,
+    wins: persistedWins,
+    losses: persistedLosses,
     wallet: data.wallet,
     openTrades: sessionOpenTrades,
     closedTrades: sessionClosedTrades,
