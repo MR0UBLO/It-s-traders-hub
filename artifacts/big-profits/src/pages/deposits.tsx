@@ -25,7 +25,7 @@ const MPESA_AGENT_NAME = String(import.meta.env.VITE_MPESA_AGENT_NAME || "Design
 const MPESA_AGENT_ONLINE = String(import.meta.env.VITE_MPESA_AGENT_ONLINE || "false").toLowerCase() === "true";
 
 const METHODS: PayMethod[] = [
-  { id: "mpesa",    label: "M-PESA",         logo: "M",  color: "#00a651", min: 10,  max: 1000, fee: "Free",  time: "Instant",    currency: "USD", type: "mobile" },
+  { id: "mpesa",    label: "M-PESA P2P",     logo: "M",  color: "#00a651", min: 10,  max: 1000, fee: "Free",  time: "Instant",    currency: "USD", type: "mobile" },
   { id: "visa",     label: "Visa",           logo: "V",  color: "#1a1f71", min: 10,  max: 5000, fee: "1.5%",  time: "Instant",    currency: "USD", type: "card"   },
   { id: "master",   label: "Mastercard",     logo: "MC", color: "#eb001b", min: 10,  max: 5000, fee: "1.5%",  time: "Instant",    currency: "USD", type: "card"   },
   { id: "bank",     label: "Bank Transfer",  logo: "B",  color: "#2563eb", min: 10,  max: 9999, fee: "Free",  time: "1-2 days",   currency: "USD", type: "bank"   },
@@ -207,8 +207,8 @@ export default function Deposits() {
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white" style={{ backgroundColor: method.color }}>{method.logo}</div>
                 <div>
-                  <CardTitle className="text-base">{method.id === "mpesa" ? "M-PESA P2P Deposit" : `${method.label} Deposit`}</CardTitle>
-                  <CardDescription className="text-xs">Min: {method.min} {method.currency} · Fee: {method.fee}</CardDescription>{method.id === "mpesa" && <CardDescription className="text-xs">Sandbox STK Push testing · Verify the recipient shown on your M-PESA prompt before entering your PIN.</CardDescription>}
+                  <CardTitle className="text-base">{method.id === "mpesa" ? "M-PESA P2P" : `${method.label} Deposit`}</CardTitle>
+                  <CardDescription className="text-xs">Minimum: ${method.min} USD · Fee: ${method.fee}</CardDescription>{method.id === "mpesa" && <CardDescription className="text-xs">Sandbox payment · Confirm the recipient and amount on your M-PESA prompt before entering your PIN.</CardDescription>}
                 </div>
               </div>
             </CardHeader>
@@ -218,11 +218,11 @@ export default function Deposits() {
                   {/* M-PESA */}
                   {method.id === "mpesa" && (
                     <form onSubmit={handleMpesaDeposit} className="space-y-4">
-                      <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-3 space-y-1"><div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">M-PESA P2P agent</p><span className={`text-xs font-medium ${MPESA_AGENT_ONLINE ? "text-green-500" : "text-muted-foreground"}`}>● {MPESA_AGENT_ONLINE ? "Online" : "Availability unconfirmed"}</span></div><p className="text-sm">{MPESA_AGENT_NAME}</p><p className="text-xs text-muted-foreground">Agent ratings and reviews will appear when verified review data is available. No reviews yet.</p><p className="text-xs text-yellow-500">Sandbox test only. The actual receiving account is determined by the configured Daraja shortcode and transaction type, not the displayed agent name.</p></div>
+                      <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-3 space-y-2"><div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">Payment recipient</p><span className={`text-xs font-medium ${MPESA_AGENT_ONLINE ? "text-green-500" : "text-muted-foreground"}`}>● {MPESA_AGENT_ONLINE ? "Online" : "Status unavailable"}</span></div><p className="text-sm font-medium">{MPESA_AGENT_NAME}</p><p className="text-xs text-muted-foreground">Review the recipient and amount on your M-PESA prompt before entering your PIN.</p><p className="text-xs text-yellow-500">Sandbox testing only. The configured Daraja account determines the actual recipient.</p></div>
                       <div className="space-y-1.5">
                         <Label className="text-sm">Safaricom Phone</Label>
                         <Input placeholder="0712 345 678" value={phone} onChange={e => handlePhoneChange(e.target.value)} maxLength={13} className="h-11 bg-card border-border font-mono" />
-                        <p className="text-xs text-muted-foreground">Enter your Safaricom number (07XX or 254 prefix).</p><p className="text-xs text-muted-foreground">Before entering your PIN, verify the recipient and amount on the M-PESA prompt. Never authorize if the details do not match.</p>
+                        <p className="text-xs text-muted-foreground">Safaricom number (07XX or 254 prefix).</p><p className="text-xs text-muted-foreground">Before entering your PIN, verify the recipient and amount on the M-PESA prompt. Never authorize if the details do not match.</p>
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-sm">Deposit Amount (USD)</Label>
