@@ -202,39 +202,38 @@ export default function Deposits() {
           )}
 
           {/* Form */}
-          <Card className="border-border">
+          <Card className={method.id === "mpesa" ? "border-green-500/30 shadow-lg shadow-green-950/10" : "border-border"}>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white" style={{ backgroundColor: method.color }}>{method.logo}</div>
                 <div>
                   <CardTitle className="text-base">{method.id === "mpesa" ? "M-PESA P2P" : `${method.label} Deposit`}</CardTitle>
-                  <CardDescription className="text-xs">Minimum: ${method.min} USD · Fee: ${method.fee}</CardDescription>{method.id === "mpesa" && <CardDescription className="text-xs">Sandbox payment · Confirm the recipient and amount on your M-PESA prompt before entering your PIN.</CardDescription>}
+                  <CardDescription className="text-xs">Minimum: ${method.min} USD · Fee: ${method.fee}</CardDescription>{method.id === "mpesa" && <CardDescription className="text-xs">Secure sandbox test · Verify recipient and amount before authorizing.</CardDescription>}
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               {depositState === "idle" && (
                 <>
-                  {/* M-PESA */}
+                  {/* M-PESA P2P */}
                   {method.id === "mpesa" && (
                     <form onSubmit={handleMpesaDeposit} className="space-y-4">
-                      <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-3 space-y-2"><div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">Payment recipient</p><span className={`text-xs font-medium ${MPESA_AGENT_ONLINE ? "text-green-500" : "text-muted-foreground"}`}>● {MPESA_AGENT_ONLINE ? "Online" : "Status unavailable"}</span></div><p className="text-sm font-medium">{MPESA_AGENT_NAME}</p><p className="text-xs text-muted-foreground">Review the recipient and amount on your M-PESA prompt before entering your PIN.</p><p className="text-xs text-yellow-500">Sandbox testing only. The configured Daraja account determines the actual recipient.</p></div>
+                      <div className="rounded-xl border border-green-500/25 bg-green-500/5 p-3 space-y-2"><div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">P2P payment recipient</p><span className={`inline-flex items-center gap-1.5 text-xs font-medium ${MPESA_AGENT_ONLINE ? "text-green-500" : "text-muted-foreground"}`}><span className={`h-2 w-2 rounded-full ${MPESA_AGENT_ONLINE ? "bg-green-500" : "bg-muted-foreground"}`} />{MPESA_AGENT_ONLINE ? "Online" : "Status unavailable"}</span></div><p className="text-sm font-semibold">{MPESA_AGENT_NAME}</p><p className="text-xs text-muted-foreground">Check the recipient and amount on the M-PESA prompt before entering your PIN.</p><p className="text-[11px] text-amber-500">Sandbox testing · actual recipient is set by Daraja configuration.</p></div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm">Safaricom Phone</Label>
+                        <Label className="text-sm">M-PESA phone number</Label>
                         <Input placeholder="0712 345 678" value={phone} onChange={e => handlePhoneChange(e.target.value)} maxLength={13} className="h-11 bg-card border-border font-mono" />
-                        <p className="text-xs text-muted-foreground">Safaricom number (07XX or 254 prefix).</p><p className="text-xs text-muted-foreground">Before entering your PIN, verify the recipient and amount on the M-PESA prompt. Never authorize if the details do not match.</p>
+                        <p className="text-xs text-muted-foreground">Enter the number to receive the STK Push (07XX or 254…).</p>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm">Deposit Amount (USD)</Label>
+                        <Label className="text-sm">Amount to deposit (USD)</Label>
                         <Input type="number" placeholder="10" value={amount} onChange={e => setAmount(e.target.value)} min={10} step="0.01" className="h-11 bg-card border-border font-mono text-lg" />
                         {amount && Number(amount) > 0 && (
                           <div className="bg-green-500/5 border border-green-500/20 rounded-lg px-3 py-2 space-y-0.5">
-                            <p className="text-xs text-muted-foreground">USD deposit: <span className="font-bold text-foreground">${(Number(amount)||0).toFixed(2)}</span></p><p className="text-xs text-muted-foreground">Equivalent: <span className="font-bold text-foreground">KES {(Number(amount) * USD_RATE).toLocaleString()}</span> · Fee: $0.00 (verify operator charges)</p>
-                            <p className="text-[10px] text-muted-foreground">Exchange Rate: 1 USD = {USD_RATE} KES</p>
+                            <p className="text-xs text-muted-foreground">You deposit <span className="font-semibold text-foreground">${(Number(amount)||0).toFixed(2)} USD</span></p><p className="text-xs text-muted-foreground">STK amount <span className="font-semibold text-foreground">KES {(Number(amount) * USD_RATE).toLocaleString()}</span></p><p className="text-[10px] text-muted-foreground">Rate: $1 = {USD_RATE} KES · Platform fee: $0.00</p>
                           </div>
                         )}
                         {(!amount || Number(amount) < 10) && (
-                          <p className="text-[10px] text-yellow-400">Minimum Deposit: $10 USD (KES {(10 * USD_RATE).toLocaleString()})</p>
+                          <p className="text-[10px] text-yellow-400">Minimum: $10 USD (KES {(10 * USD_RATE).toLocaleString()})</p>
                         )}
                         <div className="grid grid-cols-3 gap-1.5 pt-1">
                           {QUICK_AMOUNTS.map(q => (
@@ -243,7 +242,7 @@ export default function Deposits() {
                         </div>
                       </div>
                       <Button type="submit" className="w-full h-11 bg-green-600 hover:bg-green-700 text-white font-semibold" disabled={isSending || !amount || Number(amount) < 10}>
-                        {isSending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</> : "Pay with M-PESA"}
+                        {isSending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</> : "Pay with M-PESA P2P"}
                       </Button>
                     </form>
                   )}
