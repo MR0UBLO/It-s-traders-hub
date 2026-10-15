@@ -20,7 +20,7 @@ type PayMethod = {
   sim?: boolean;
 };
 
-const USD_RATE = 130; // 1 USD = 130 KES
+const USD_RATE = Number(import.meta.env.VITE_MPESA_USD_RATE || 130); // Must match backend MPESA_USD_RATE
 
 const METHODS: PayMethod[] = [
   { id: "mpesa",    label: "M-PESA",         logo: "M",  color: "#00a651", min: 10,  max: 1000, fee: "Free",  time: "Instant",    currency: "USD", type: "mobile" },
@@ -205,8 +205,8 @@ export default function Deposits() {
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white" style={{ backgroundColor: method.color }}>{method.logo}</div>
                 <div>
-                  <CardTitle className="text-base">{method.label} Deposit</CardTitle>
-                  <CardDescription className="text-xs">Min: {method.min} {method.currency} · Fee: {method.fee}</CardDescription>
+                  <CardTitle className="text-base">{method.id === "mpesa" ? "M-PESA P2P Deposit" : `${method.label} Deposit`}</CardTitle>
+                  <CardDescription className="text-xs">Min: {method.min} {method.currency} · Fee: {method.fee}</CardDescription>{method.id === "mpesa" && <CardDescription className="text-xs">Sandbox STK Push testing · Verify the recipient shown on your M-PESA prompt before entering your PIN.</CardDescription>}
                 </div>
               </div>
             </CardHeader>
@@ -219,7 +219,7 @@ export default function Deposits() {
                       <div className="space-y-1.5">
                         <Label className="text-sm">Safaricom Phone</Label>
                         <Input placeholder="0712 345 678" value={phone} onChange={e => handlePhoneChange(e.target.value)} maxLength={13} className="h-11 bg-card border-border font-mono" />
-                        <p className="text-xs text-muted-foreground">07XX or 254 prefix</p>
+                        <p className="text-xs text-muted-foreground">07XX or 254 prefix</p><p className="text-xs text-muted-foreground">Payment recipient is determined by the configured Daraja sandbox shortcode, not this label.</p>
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-sm">Deposit Amount (USD)</Label>
