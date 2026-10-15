@@ -52,65 +52,52 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
     }
 
     const normalizedPhone = normalizePhone(phone);
+    if (!/^254(?:7|1)\\d{8}$/.test(normalizedPhone)) {
+      res.status(400).json({ error: "Enter a valid Kenyan mobile number, for example 0712345678." });
+      return;
+    }
 
     if (!LIVE_CREDENTIALS) {
-      // Simulation mode — auto-credit wallet immediately
-      const checkoutRequestId = `SIM-CHK-${Date.now()}`;
-      await db.insert(depositsTable).values({
-        userId: req.userId!,
-        amount: String(amt),
-        status: "completed",
-        phone: normalizedPhone,
-        mpesaReceiptNumber: `SIM${Date.now()}`,
-        checkoutRequestId,
-        completedAt: new Date(),
-      });
-
-      await db.update(walletsTable).set({
-        balance: sql`${walletsTable.balance} + ${amt}`,
-        totalDeposited: sql`${walletsTable.totalDeposited} + ${amt}`,
-      }).where(eq(walletsTable.userId, req.userId!));
-
-      logger.info({ userId: req.userId, amt }, "M-PESA simulation deposit credited");
-
-      res.json({
-        success: true,
-        simulation: true,
-        checkoutRequestId,
-        message: "Deposit credited instantly (simulation mode — Daraja credentials not configured yet)",
+      res.status(503).json({
+        error: "M-PESA Daraja is not configured. Set MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, and MPESA_PASSKEY in the backend environment before testing.",
       });
       return;
     }
 
-    // Real Daraja STK Push
+    const callbackBaseUrl = process.env.CALLBACK_BASE_URL?.trim().replace(/\/$/, "");
+    if (!callbackBaseUrl || !/^https:\/\//i.test(callbackBaseUrl)) {
+      res.status(503).json({
+        error: "M-PESA callback is not configured. Set CALLBACK_BASE_URL to the public HTTPS backend URL.",
+      });
+      return;
+    }
+
+    // Daraja STK Push; sandbox/production host follows MPESA_ENV.
     const timestamp = new Date().toISOString().replace(/[-T:.Z]/g, "").slice(0, 14);
     const password = Buffer.from(`${MPESA_SHORTCODE}${MPESA_PASSKEY}${timestamp}`).toString("base64");
-    const callbackUrl = `${process.env.CALLBACK_BASE_URL}/api/mpesa/callback`;
+    const callbackUrl = `${callbackBaseUrl}/api/mpesa/callback`;
 
     const token = await getMpesaToken();
-    const stkRes = await fetch(
-  "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
-  {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      BusinessShortCode: MPESA_SHORTCODE,
-      Password: password,
-      Timestamp: timestamp,
-      TransactionType: "CustomerPayBillOnline",
-      Amount: Math.round(amt),
-      PartyA: normalizedPhone,
-      PartyB: MPESA_SHORTCODE,
-      PhoneNumber: normalizedPhone,
-      CallBackURL: callbackUrl,
-      AccountReference: "Tradollar",
-      TransactionDesc: "Tradollar Wallet Deposit",
-    }),
-  }
-);
+    const stkRes = await fetch(`${BASE_URL}/mpesa/stkpush/v1/processrequest`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        BusinessShortCode: MPESA_SHORTCODE,
+        Password: password,
+        Timestamp: timestamp,
+        TransactionType: "CustomerPayBillOnline",
+        Amount: Math.round(amt),
+        PartyA: normalizedPhone,
+        PartyB: MPESA_SHORTCODE,
+        PhoneNumber: normalizedPhone,
+        CallBackURL: callbackUrl,
+        AccountReference: "Tradollar",
+        TransactionDesc: "Tradollar Wallet Deposit",
+      }),
+    });
 
     const stkData = await stkRes.json() as {
       ResponseCode?: string;
@@ -121,12 +108,13 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
       errorCode?: string;
     };
 
-    logger.info({ stkData }, "STK Push response");
-
-    if (stkData.ResponseCode !== "0") {
-      res.status(400).json({ error: stkData.errorMessage || "STK Push failed. Please try again." });
+    if (!stkRes.ok || stkData.ResponseCode !== "0") {
+      logger.warn({ status: stkRes.status, errorCode: stkData.errorCode }, "Daraja STK Push rejected");
+      res.status(400).json({ error: stkData.errorMessage || "STK Push failed. Check Daraja sandbox settings and try again." });
       return;
     }
+
+    logger.info({ checkoutRequestId: stkData.CheckoutRequestID }, "Daraja STK Push accepted");
 
     await db.insert(depositsTable).values({
       userId: req.userId!,
