@@ -147,16 +147,23 @@ function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sel
       }
       case "smc": {
         const priorRange = ticks.slice(-22, -2);
-        if (!spike && priorRange.length >= 10) {
+        if (!spike && priorRange.length >= 10 && signal.confidence >= 72) {
           const priorHigh = Math.max(...priorRange);
           const priorLow = Math.min(...priorRange);
-          // Look for a sweep beyond the recent range followed by a reversal.
-          if (previous > priorHigh && current < previous) {
+          const lastThreeMoves = changes.slice(-3);
+          const bearishRejection = previous > priorHigh && current < previous
+            && lastThreeMoves.filter((move) => move < 0).length >= 2;
+          const bullishRejection = previous < priorLow && current > previous
+            && lastThreeMoves.filter((move) => move > 0).length >= 2;
+          // Pip Mover EAs use the existing SMC strategy with stricter entry
+          // confirmation: a range sweep, rejection, and follow-through must agree.
+          // This filters weaker entries; it does not guarantee profitable outcomes.
+          if (bearishRejection) {
             direction = "sell";
-            strategyReason = "SMC: recent high sweep with downward rejection";
-          } else if (previous < priorLow && current > previous) {
+            strategyReason = "SMC: recent high sweep, bearish rejection, and tick follow-through confirmed";
+          } else if (bullishRejection) {
             direction = "buy";
-            strategyReason = "SMC: recent low sweep with upward rejection";
+            strategyReason = "SMC: recent low sweep, bullish rejection, and tick follow-through confirmed";
           }
         }
         break;
