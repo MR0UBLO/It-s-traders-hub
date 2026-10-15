@@ -89,7 +89,7 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
         BusinessShortCode: MPESA_SHORTCODE,
         Password: password,
         Timestamp: timestamp,
-        TransactionType: "CustomerPayBillOnline",
+        TransactionType: process.env.MPESA_TRANSACTION_TYPE === "CustomerBuyGoodsOnline" ? "CustomerBuyGoodsOnline" : "CustomerPayBillOnline",
         Amount: Math.round(amt),
         PartyA: normalizedPhone,
         PartyB: MPESA_SHORTCODE,
