@@ -98,7 +98,7 @@ export default function Deposits() {
     stopPolling();
     pollingRef.current = setInterval(async () => {
       try {
-        const apiBase = String(import.meta.env.VITE_API_URL || "/api").replace(/\\/$/, "");
+        const apiBase = String(import.meta.env.VITE_API_URL || "/api").replace(/\/+$/, "");
         const res = await fetch(
           `${apiBase}/mpesa/status/${encodeURIComponent(cid)}`,
           {
