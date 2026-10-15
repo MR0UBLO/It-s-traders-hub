@@ -12,6 +12,7 @@ const MPESA_CONSUMER_SECRET = process.env.MPESA_CONSUMER_SECRET || "";
 const MPESA_PASSKEY = process.env.MPESA_PASSKEY || "";
 const MPESA_SHORTCODE = process.env.MPESA_SHORTCODE || "174379";
 const MPESA_ENV = process.env.MPESA_ENV || "sandbox";
+const MPESA_USD_RATE = Number(process.env.MPESA_USD_RATE || 130);
 
 const BASE_URL = MPESA_ENV === "production"
   ? "https://api.safaricom.co.ke"
@@ -222,7 +223,9 @@ router.post("/callback", async (req, res) => {
       completedAt: new Date(),
     }).where(eq(depositsTable.id, deposit.id));
 
-    const creditAmount = amount > 0 ? amount : Number(deposit.amount);
+    // Deposit records are stored in KES, but Tradollar wallet balances are USD.
+    const paidKes = amount > 0 ? amount : Number(deposit.amount);
+    const creditAmount = Number((paidKes / MPESA_USD_RATE).toFixed(4));
     await db.update(walletsTable).set({
       balance: sql`${walletsTable.balance} + ${creditAmount}`,
       totalDeposited: sql`${walletsTable.totalDeposited} + ${creditAmount}`,
