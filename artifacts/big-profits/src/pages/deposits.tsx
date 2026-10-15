@@ -135,7 +135,8 @@ export default function Deposits() {
     setIsSending(true);
     try {
       const kesAmount = Math.round(numAmount * USD_RATE);
-      const res = await fetch("/api/mpesa/stkpush", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ phone, amount: kesAmount }) });
+      const apiBase = String(import.meta.env.VITE_API_URL || "/api").replace(/\/+$/, "");
+      const res = await fetch(`${apiBase}/mpesa/stkpush`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ phone, amount: kesAmount }) });
       const data = await res.json();
       if (!res.ok) { toast({ title: "Deposit failed", description: data.error || "Please try again.", variant: "destructive" }); return; }
       setPendingAmount(numAmount); setCheckoutRequestId(data.checkoutRequestId);
