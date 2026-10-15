@@ -21,6 +21,8 @@ type PayMethod = {
 };
 
 const USD_RATE = Number(import.meta.env.VITE_MPESA_USD_RATE || 130); // Must match backend MPESA_USD_RATE
+const MPESA_AGENT_NAME = String(import.meta.env.VITE_MPESA_AGENT_NAME || "Designated M-PESA agent");
+const MPESA_AGENT_ONLINE = String(import.meta.env.VITE_MPESA_AGENT_ONLINE || "false").toLowerCase() === "true";
 
 const METHODS: PayMethod[] = [
   { id: "mpesa",    label: "M-PESA",         logo: "M",  color: "#00a651", min: 10,  max: 1000, fee: "Free",  time: "Instant",    currency: "USD", type: "mobile" },
@@ -216,17 +218,18 @@ export default function Deposits() {
                   {/* M-PESA */}
                   {method.id === "mpesa" && (
                     <form onSubmit={handleMpesaDeposit} className="space-y-4">
+                      <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-3 space-y-1"><div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">M-PESA P2P agent</p><span className={`text-xs font-medium ${MPESA_AGENT_ONLINE ? "text-green-500" : "text-muted-foreground"}`}>● {MPESA_AGENT_ONLINE ? "Online" : "Availability unconfirmed"}</span></div><p className="text-sm">{MPESA_AGENT_NAME}</p><p className="text-xs text-muted-foreground">Agent ratings and reviews will appear when verified review data is available. No reviews yet.</p><p className="text-xs text-yellow-500">Sandbox test only. The actual receiving account is determined by the configured Daraja shortcode and transaction type, not the displayed agent name.</p></div>
                       <div className="space-y-1.5">
                         <Label className="text-sm">Safaricom Phone</Label>
                         <Input placeholder="0712 345 678" value={phone} onChange={e => handlePhoneChange(e.target.value)} maxLength={13} className="h-11 bg-card border-border font-mono" />
-                        <p className="text-xs text-muted-foreground">07XX or 254 prefix</p><p className="text-xs text-muted-foreground">Payment recipient is determined by the configured Daraja sandbox shortcode, not this label.</p>
+                        <p className="text-xs text-muted-foreground">Enter your Safaricom number (07XX or 254 prefix).</p><p className="text-xs text-muted-foreground">Before entering your PIN, verify the recipient and amount on the M-PESA prompt. Never authorize if the details do not match.</p>
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-sm">Deposit Amount (USD)</Label>
-                        <Input type="number" placeholder="10" value={amount} onChange={e => setAmount(e.target.value)} min={10} className="h-11 bg-card border-border font-mono text-lg" />
+                        <Input type="number" placeholder="10" value={amount} onChange={e => setAmount(e.target.value)} min={10} step="0.01" className="h-11 bg-card border-border font-mono text-lg" />
                         {amount && Number(amount) > 0 && (
                           <div className="bg-green-500/5 border border-green-500/20 rounded-lg px-3 py-2 space-y-0.5">
-                            <p className="text-xs text-muted-foreground">Equivalent: <span className="font-bold text-foreground">KES {(Number(amount) * USD_RATE).toLocaleString()}</span></p>
+                            <p className="text-xs text-muted-foreground">USD deposit: <span className="font-bold text-foreground">${(Number(amount)||0).toFixed(2)}</span></p><p className="text-xs text-muted-foreground">Equivalent: <span className="font-bold text-foreground">KES {(Number(amount) * USD_RATE).toLocaleString()}</span> · Fee: $0.00 (verify operator charges)</p>
                             <p className="text-[10px] text-muted-foreground">Exchange Rate: 1 USD = {USD_RATE} KES</p>
                           </div>
                         )}
