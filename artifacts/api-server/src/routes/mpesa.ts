@@ -217,21 +217,41 @@ router.post("/callback", async (req, res) => {
       return;
     }
 
-    await db.update(depositsTable).set({
+    // Only credit the exact KES amount requested for this deposit.
+    // Never trust a missing/zero callback amount as a substitute for the requested amount.
+    if (!receipt || !Number.isFinite(amount) || amount <= 0 || amount !== Number(deposit.amount)) {
+      logger.warn({ checkoutRequestId: CheckoutRequestID, expectedKes: Number(deposit.amount), receivedKes: amount }, "M-PESA callback amount/receipt mismatch; wallet not credited");
+      await db.update(depositsTable).set({ status: "failed" }).where(and(
+        eq(depositsTable.id, deposit.id),
+        eq(depositsTable.status, "pending"),
+      ));
+      res.json({ ResultCode: 0, ResultDesc: "Accepted" });
+      return;
+    }
+
+    // Conditional transition prevents duplicate callbacks from crediting the same deposit twice.
+    const completed = await db.update(depositsTable).set({
       status: "completed",
       mpesaReceiptNumber: receipt,
       completedAt: new Date(),
-    }).where(eq(depositsTable.id, deposit.id));
+    }).where(and(
+      eq(depositsTable.id, deposit.id),
+      eq(depositsTable.status, "pending"),
+    )).returning({ id: depositsTable.id });
+
+    if (completed.length === 0) {
+      res.json({ ResultCode: 0, ResultDesc: "Accepted" });
+      return;
+    }
 
     // Deposit records are stored in KES, but Tradollar wallet balances are USD.
-    const paidKes = amount > 0 ? amount : Number(deposit.amount);
-    const creditAmount = Number((paidKes / MPESA_USD_RATE).toFixed(4));
+    const creditAmount = Number((amount / MPESA_USD_RATE).toFixed(4));
     await db.update(walletsTable).set({
       balance: sql`${walletsTable.balance} + ${creditAmount}`,
       totalDeposited: sql`${walletsTable.totalDeposited} + ${creditAmount}`,
     }).where(eq(walletsTable.userId, deposit.userId));
 
-    logger.info({ userId: deposit.userId, creditAmount, receipt }, "M-PESA deposit completed and wallet credited");
+    logger.info({ userId: deposit.userId, creditAmount, receipt }, "Verified M-PESA deposit completed and wallet credited");
     res.json({ ResultCode: 0, ResultDesc: "Accepted" });
   } catch (err) {
     logger.error({ err }, "M-PESA callback error");
