@@ -28,11 +28,17 @@ const RISKS = ["Low", "Moderate", "High"] as const;
 type EA = { id: string; name: string; strategy: string; strategyLabel: string; asset: string; risk: typeof RISKS[number]; minInvestment: number; description: string };
 const EAS: EA[] = Array.from({ length: 120 }, (_, index) => {
   const n = index + 1;
-  const strategy = STRATEGIES[(n * 7 + Math.floor(n / 3)) % STRATEGIES.length];
-  const asset = "ALL";
+  const name = NAMES[(n - 1) % NAMES.length];
   const suffix = n > NAMES.length ? " " + ["Pro", "Prime", "Elite"][Math.floor((n - 1) / NAMES.length) % 3] + " " + Math.ceil(n / NAMES.length) : "";
+  const isPipMover = name.toLowerCase().startsWith("pip mover");
+  // Route every Pip Mover-branded EA through the existing Smart Money strategy
+  // implementation; the backend receives this selected strategy when the EA starts.
+  const strategy = isPipMover
+    ? STRATEGIES.find((item) => item.value === "smc")!
+    : STRATEGIES[(n * 7 + Math.floor(n / 3)) % STRATEGIES.length];
+  const asset = "ALL";
   return {
-    id: "EA-" + String(n).padStart(3, "0"), name: NAMES[(n - 1) % NAMES.length] + suffix,
+    id: "EA-" + String(n).padStart(3, "0"), name: name + suffix,
     strategy: strategy.value, strategyLabel: strategy.label, asset, risk: RISKS[(n * 11) % RISKS.length],
     minInvestment: 10 + (n % 10) * 10,
     description: strategy.label + " strategy scans all supported markets and selects the strongest confirmed signal.",
