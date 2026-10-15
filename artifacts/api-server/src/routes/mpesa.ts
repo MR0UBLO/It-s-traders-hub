@@ -53,7 +53,7 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
     }
 
     const normalizedPhone = normalizePhone(phone);
-    if (!/^254(?:7|1)\\d{8}$/.test(normalizedPhone)) {
+    if (!/^254(?:7|1)\d{8}$/.test(normalizedPhone)) {
       res.status(400).json({ error: "Enter a valid Kenyan mobile number, for example 0712345678." });
       return;
     }
