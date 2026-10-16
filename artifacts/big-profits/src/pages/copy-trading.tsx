@@ -185,15 +185,8 @@ function CopyDialog({ trader, onClose }: { trader: typeof TRADERS[0]; onClose: (
 
 /* ─── TRADER PROFILE MODAL ──────────────────────────────────────── */
 function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0]; onClose: () => void; onCopy: () => void }) {
-  const monthly = trader.equity.map((e, i) => ({ name: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i], roi: Math.round((Math.random() * 16 - 3) * 10) / 10 }));
-  const recentTrades: { sym: string; dir: string; pnl: number; date: string }[] = [];\n  /* const recentTrades = Array.from({ length: 6 }, (_, i) => {
-    const s = trader.id * 100 + i;
-    const sym = trader.assets[i % trader.assets.length];
-    const dir = seeded(s, 1) > 0.4 ? "BUY" : "SELL";
-    const pnl = Math.round(seeded(s * 3, 320, -80) * 10) / 10;
-    const date = new Date(Date.now() - seeded(s * 7, 86400000 * 14)).toLocaleDateString("en-KE", { day: "2-digit", month: "short" });
-    return { sym, dir, pnl, date };
-  });
+  const monthly: { name: string; roi: number }[] = [];
+  const recentTrades: { sym: string; dir: string; pnl: number; date: string }[] = [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
