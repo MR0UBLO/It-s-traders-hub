@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useAccountStore } from "@/store/account-store";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Search, SlidersHorizontal, Star, BadgeCheck, TrendingUp, TrendingDown, X, ChevronDown, Copy, Shield, AlertTriangle, Info, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,27 @@ const FIRST_NAMES = ["James","John","Peter","David","Michael","Joseph","Samuel",
 const LAST_NAMES = ["Kamau","Mwangi","Otieno","Karanja","Njoroge","Mutua","Wambua","Gitonga","Ochieng","Ndegwa","Njogu","Waweru","Mugo","Kibe","Korir","Rotich","Kiptoo","Ruto","Sang","Tanui","Bett","Ngetich","Ogola","Onyango","Owino","Omondi","Onyando","Wanyama","Baraza","Makokha","Simiyu","Wekesa","Masika","Adhiambo","Sifuna","Wesonga","Muthee","Kiprotich","Chepkorir","Langat","Kiplagat","Ndirangu","Gatheru","Njeru","Kimani","Maina","Gicheru","Wainaina","Mwenda","Ngugi"];
 const ASSETS = [["EURUSD","GBPUSD","XAUUSD"],["BTCUSD","ETHUSD","XAUUSD"],["NASDAQ","S&P500","EURUSD"],["CRUDE OIL","XAUUSD","GBPUSD"],["EURUSD","USDJPY","GBPUSD"],["BTCUSD","SOLUSDT","ETHUSD"],["XAUUSD","SILVER","CRUDE OIL"],["EURUSD","GBPUSD","USDCHF"]];
 const RISKS: ("Low"|"Medium"|"High")[] = ["Low","Low","Medium","Medium","High"];
+const EA_NAMES = [
+  "Atlas Trend Rider","Gold Falcon","Pip Navigator","Quantum Scalper","London Breakout",
+  "New York Momentum","Smart Money Flow","Orion Swing","Phoenix Reversal","Bullion Hunter",
+  "Velocity FX","Apex Trend","Blue Wave Trader","Steady Pip","Nova Breakout","Titan Scalper",
+  "Eagle Eye FX","Candle Compass","Momentum Forge","Silver Arrow","Aurora Grid","Rapid Pips","Pip Mover","Pip Mover Elite 3",
+  "Zenith Trader","Market Pulse","Vortex Momentum","Delta Trend","Night Hawk FX","Prime Breakout",
+  "Cobalt Swing","Lionheart Gold","Alpha Structure","Orbit Scalper","Summit FX","Marlin Trend",
+  "Redwood Trader","Stellar Gold","Precision Pip","Falcon Wave","Equinox Strategy","Pioneer FX",
+];
+const EA_STRATEGIES = [
+  { label: "Trend Following", value: "trend" }, { label: "Fast Scalping", value: "scalp" },
+  { label: "Swing Trader", value: "swing" }, { label: "Breakout Hunter", value: "breakout" },
+  { label: "Grid Navigator", value: "grid" }, { label: "Smart Money", value: "smc" },
+];
+function eaForNumber(n: number) {
+  const base = EA_NAMES[(n - 1) % EA_NAMES.length];
+  const suffix = n > EA_NAMES.length ? " " + ["Pro", "Prime", "Elite"][Math.floor((n - 1) / EA_NAMES.length) % 3] + " " + Math.ceil(n / EA_NAMES.length) : "";
+  const isPipMover = base.toLowerCase().startsWith("pip mover");
+  const strategy = isPipMover ? EA_STRATEGIES[5] : EA_STRATEGIES[(n * 7 + Math.floor(n / 3)) % EA_STRATEGIES.length];
+  return { name: base + suffix, strategy: strategy.value, strategyLabel: strategy.label, eaId: "EA-" + String(n).padStart(3, "0") };
+}
 const STRATEGIES = ["Trend Following","Scalping","Swing Trading","Price Action","Smart Money Concepts","Grid Trading","Breakout Trading","News Trading"];
 
 function seeded(seed: number, max: number, min = 0) {
@@ -22,34 +44,36 @@ function seeded(seed: number, max: number, min = 0) {
 function makeEquityCurve(seed: number, length = 12) {
   let v = 100;
   return Array.from({ length }, (_, i) => {
-    v += (seeded(seed * 13 + i, 8, -3));
+    v += 0;
     return { m: i + 1, v: Math.max(60, Math.round(v * 10) / 10) };
   });
 }
 
-const TRADERS = Array.from({ length: 100 }, (_, i) => {
+const TRADERS = Array.from({ length: 120 }, (_, i) => {
   const s = i + 7;
   const fn = FIRST_NAMES[i % FIRST_NAMES.length];
   const ln = LAST_NAMES[Math.floor(seeded(s * 3, LAST_NAMES.length))];
-  const winRate = Math.round(seeded(s * 5, 89, 51));
-  const monthlyRoi = Math.round(seeded(s * 7, 32, 2) * 10) / 10;
-  const overallRoi = Math.round(seeded(s * 11, 420, 18) * 10) / 10;
-  const drawdown = Math.round(seeded(s * 13, 28, 4) * 10) / 10;
-  const followers = Math.floor(seeded(s * 17, 4800, 12));
-  const copiers = Math.floor(seeded(s * 19, 340, 2));
+  const winRate = 0;
+  const monthlyRoi = 0;
+  const overallRoi = 0;
+  const drawdown = 0;
+  const followers = 0;
+  const copiers = 0;
   const copyFee = Math.floor(seeded(s * 23, 5, 0));
   const profitShare = Math.floor(seeded(s * 29, 30, 10));
   const risk = RISKS[Math.floor(seeded(s * 31, RISKS.length))];
   const assets = ASSETS[Math.floor(seeded(s * 37, ASSETS.length))];
   const strategy = STRATEGIES[Math.floor(seeded(s * 41, STRATEGIES.length))];
-  const trades = Math.floor(seeded(s * 43, 4800, 120));
+  const trades = 0;
   const avgDuration = `${Math.floor(seeded(s * 47, 8, 1))}h ${Math.floor(seeded(s * 53, 59, 5))}m`;
   const lastActive = ["Just now","2 min ago","5 min ago","12 min ago","1 hr ago","3 hrs ago","Today","Yesterday"][Math.floor(seeded(s * 59, 8))];
   const verified = seeded(s * 61, 1) > 0.35;
   const equity = makeEquityCurve(s);
   const minCopy = [50,100,200,500][Math.floor(seeded(s * 67, 4))];
   const avatarColor = ["#6366f1","#8b5cf6","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#14b8a6"][Math.floor(seeded(s * 71, 8))];
-  return { id: i + 1, name: `${fn} ${ln}`, winRate, monthlyRoi, overallRoi, drawdown, followers, copiers, copyFee, profitShare, risk, assets, strategy, trades, avgDuration, lastActive, verified, equity, minCopy, maxCopy: minCopy * 100, avatarColor, initials: `${fn[0]}${ln[0]}`, isFollowing: false };
+  const ea = eaForNumber(i + 1);
+  const actualMin = 10 + ((i + 1) % 10) * 10;
+  return { id: i + 1, name: ea.name, eaId: ea.eaId, eaStrategy: ea.strategy, eaStrategyLabel: ea.strategyLabel, winRate, monthlyRoi, overallRoi, drawdown, followers, copiers: 0, copyFee: 0, profitShare: 0, risk, assets: ["EURUSD","GBPUSD","XAUUSD","BTCUSD","ETHUSD","USDJPY"], strategy: ea.strategyLabel, trades, avgDuration: "Set by session", lastActive: "Ready to start", verified: true, equity, minCopy: actualMin, maxCopy: actualMin * 100, avatarColor, initials: ea.name.split(/\s+/).map((part: string) => part[0]).join("").slice(0,2), isFollowing: false };
 });
 
 /* ─── MINI SPARK ─────────────────────────────────────────────────── */
@@ -79,112 +103,80 @@ function RiskBadge({ risk }: { risk: "Low"|"Medium"|"High" }) {
 /* ─── COPY DIALOG ────────────────────────────────────────────────── */
 function CopyDialog({ trader, onClose }: { trader: typeof TRADERS[0]; onClose: () => void }) {
   const [amount, setAmount] = useState(String(trader.minCopy));
-  const [riskPct, setRiskPct] = useState("2");
-  const [lotType, setLotType] = useState<"proportional"|"fixed">("proportional");
-  const [maxDD, setMaxDD] = useState("20");
+  const [durationMinutes, setDurationMinutes] = useState(5);
+  const [tradeCount, setTradeCount] = useState("5");
+  const [tradeDurationSeconds, setTradeDurationSeconds] = useState(5);
+  const [aiSpeed, setAiSpeed] = useState<"fast"|"slow">("fast");
+  const [eaPassword, setEaPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
-  const [pausing, setPausing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { mode } = useAccountStore();
+  const account = mode === "demo" ? "demo" : "real";
   const { toast } = useToast();
   const num = Number(amount);
+  const api = import.meta.env.VITE_API_URL;
+  const authHeaders = () => ({ "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("bp_token") || "") });
 
-  const handleCopy = () => {
-    if (!agreed) { toast({ title: "Please accept the terms", variant: "destructive" }); return; }
-    if (num < trader.minCopy) { toast({ title: `Minimum copy amount is $${trader.minCopy.toLocaleString()} USD`, variant: "destructive" }); return; }
-    toast({ title: "Copy trading activated!", description: `You are now copying ${trader.name} with $${num.toLocaleString()} USD.` });
-    onClose();
+  const handleCopy = async () => {
+    if (!localStorage.getItem("bp_token")) { setError("Please log in again before starting copy trading."); return; }
+    if (!agreed) { setError("Please accept the copy trading risk terms before continuing."); return; }
+    if (!Number.isFinite(num) || num < trader.minCopy || num > trader.maxCopy) { setError(`Enter an amount between $${trader.minCopy} and $${trader.maxCopy}.`); return; }
+    const trades = Number(tradeCount);
+    if (!Number.isInteger(trades) || trades < 1 || trades > 100 || num / trades < 1) { setError("Choose 1–100 trades and allocate at least $1 per trade."); return; }
+    if (!eaPassword.trim()) { setError("Enter the shared EA password to start this EA session."); return; }
+    setSubmitting(true); setError(null);
+    try {
+      const response = await fetch(api + "/auto-trading/start", {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({
+          accountType: account, eaId: trader.eaId, eaPassword,
+          asset: "ALL", investmentAmount: num, tradeDuration: tradeDurationSeconds,
+          sessionDurationSeconds: durationMinutes * 60, strategy: trader.eaStrategy, aiSpeed,
+          riskPct: trader.risk === "High" ? 4 : trader.risk === "Medium" ? 2 : 1,
+          lotSize: 0.1, dailyTargetPct: 5, dailyLossPct: 3, maxTrades: trades,
+          stopLossPips: 30, takeProfitPips: 60, trailingStop: true, breakEven: true,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) { setError(data.error || "Could not start this EA copy session."); return; }
+      toast({ title: trader.name + " copy session started", description: "Opening the EA execution terminal. Results can be wins or losses." });
+      onClose();
+      window.location.assign("/ea-terminal");
+    } catch {
+      setError("Could not connect to the trading server. Please try again.");
+    } finally { setSubmitting(false); }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => !submitting && onClose()}>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} onClick={e => e.stopPropagation()} className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-border">
-          <div>
-            <h2 className="font-bold text-lg">Copy {trader.name}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Configure your copy trading settings</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-accent transition-colors"><X className="w-4 h-4" /></button>
+          <div><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"/><h2 className="font-bold text-lg">Copy {trader.name}</h2></div>
+            <p className="text-xs text-muted-foreground mt-0.5">{trader.eaId} · {trader.eaStrategyLabel} · EA simulation engine</p></div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-accent"><X className="w-4 h-4" /></button>
         </div>
-
         <div className="p-5 space-y-5">
-          {/* Fee breakdown */}
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm">
+            <p className="font-semibold text-emerald-400">How this copy session works</p>
+            <p className="mt-1 text-xs text-muted-foreground">Starting copy trading starts this existing Auto Trading EA for your account. It uses the same market/candle simulation engine and strategy rules as the Auto Trading section.</p>
+          </div>
           <div className="bg-muted/30 rounded-xl p-4 space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Fee Structure</p>
-            {[
-              { label: "Copy Fee", value: `${trader.copyFee}%` },
-              { label: "Profit Sharing", value: `${trader.profitShare}%` },
-              { label: "Management Fee", value: "0%" },
-              { label: "Overnight Fee", value: "Variable (swap)" },
-              { label: "Spread", value: "From 0.3 pips" },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{label}</span>
-                <span className="font-semibold">{value}</span>
-              </div>
-            ))}
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fee disclosure</p>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">EA copy fee</span><span className="font-semibold">$0 · not charged by current engine</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Profit share</span><span className="font-semibold">0% · not charged by current engine</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Swap / overnight fee</span><span className="font-semibold">Not implemented in simulator</span></div>
+            <div className="flex justify-between text-sm"><span className="text-muted-foreground">Market spread</span><span className="font-semibold">Uses simulated bid/ask prices</span></div>
           </div>
-
-          {/* Copy amount */}
-          <div className="space-y-1.5">
-            <Label className="text-sm">Copy Amount (USD)</Label>
-            <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="h-11 bg-background font-mono text-lg" />
-            <p className="text-xs text-muted-foreground">Min: ${trader.minCopy.toLocaleString()} USD · Max: ${trader.maxCopy.toLocaleString()} USD</p>
-          </div>
-
-          {/* Risk % */}
-          <div className="space-y-1.5">
-            <Label className="text-sm">Risk Per Trade (%)</Label>
-            <Input type="number" value={riskPct} onChange={e => setRiskPct(e.target.value)} min="0.1" max="10" className="h-11 bg-background font-mono" />
-          </div>
-
-          {/* Lot type */}
-          <div className="space-y-1.5">
-            <Label className="text-sm">Lot Size Mode</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {(["proportional","fixed"] as const).map(t => (
-                <button key={t} onClick={() => setLotType(t)} className={`py-2 rounded-xl border text-sm font-semibold transition-all ${lotType === t ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>
-                  {t === "proportional" ? "Proportional" : "Fixed Lot"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Max drawdown protection */}
-          <div className="space-y-1.5">
-            <Label className="text-sm">Max Drawdown Protection (%)</Label>
-            <Input type="number" value={maxDD} onChange={e => setMaxDD(e.target.value)} min="1" max="100" className="h-11 bg-background font-mono" />
-            <p className="text-xs text-muted-foreground">Copy stops automatically if drawdown exceeds this level</p>
-          </div>
-
-          {/* Controls */}
-          <div className="flex gap-2">
-            <button onClick={() => setPausing(!pausing)} className={`flex-1 py-2 rounded-xl border text-xs font-semibold transition-all ${pausing ? "border-yellow-500 bg-yellow-500/10 text-yellow-400" : "border-border text-muted-foreground hover:border-primary/40"}`}>
-              {pausing ? "▶ Resume Copying" : "⏸ Pause Copying"}
-            </button>
-            <button className="flex-1 py-2 rounded-xl border border-red-500/30 text-xs font-semibold text-red-400 hover:bg-red-500/10 transition-all">
-              ✕ Stop Copying
-            </button>
-          </div>
-
-          {/* Estimated performance */}
-          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
-            <p className="text-xs font-semibold text-primary mb-2">Estimated Monthly Performance</p>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div><p className="text-lg font-bold text-green-400">+${(num * trader.monthlyRoi / 100).toFixed(0)}</p><p className="text-[10px] text-muted-foreground">Est. Profit (USD)</p></div>
-              <div><p className="text-lg font-bold">{trader.monthlyRoi}%</p><p className="text-[10px] text-muted-foreground">Monthly ROI</p></div>
-              <div><p className="text-lg font-bold text-red-400">-{trader.drawdown}%</p><p className="text-[10px] text-muted-foreground">Max Drawdown</p></div>
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-3 flex items-start gap-1"><AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />Past performance does not guarantee future results.</p>
-          </div>
-
-          {/* Terms */}
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-1 accent-primary" />
-            <span className="text-xs text-muted-foreground">I understand that copy trading involves risk. I accept the Copy Trading Agreement and Terms & Conditions.</span>
-          </label>
-
-          <Button onClick={handleCopy} className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
-            <Copy className="w-4 h-4 mr-2" /> Start Copy Trading
-          </Button>
+          <div className="space-y-1.5"><Label>Copy budget (USD)</Label><Input type="number" min={trader.minCopy} max={trader.maxCopy} step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className="h-11 bg-background font-mono text-lg"/><p className="text-xs text-muted-foreground">Minimum ${trader.minCopy.toLocaleString()} · Maximum ${trader.maxCopy.toLocaleString()}. Only this budget is reserved for the EA.</p></div>
+          <div className="space-y-1.5"><Label>Maximum number of trades</Label><Input type="number" min="1" max="100" value={tradeCount} onChange={e => setTradeCount(e.target.value)} className="h-11 bg-background font-mono"/><p className="text-xs text-muted-foreground">Approximate budget per trade: ${num > 0 && Number(tradeCount) > 0 ? (num / Number(tradeCount)).toFixed(2) : "0.00"}.</p></div>
+          <div><div className="flex justify-between gap-3"><Label>Copy session duration</Label><span className="text-sm font-bold text-primary">{durationMinutes} min</span></div><input type="range" min="1" max="60" step="1" value={durationMinutes} onChange={e => setDurationMinutes(Number(e.target.value))} className="mt-3 w-full accent-primary"/><div className="flex justify-between text-xs text-muted-foreground"><span>1 min</span><span>30 min</span><span>60 min</span></div></div>
+          <div><div className="flex justify-between gap-3"><Label>Each trade duration</Label><span className="text-sm font-bold text-primary">{tradeDurationSeconds} sec</span></div><input type="range" min="5" max="60" step="5" value={tradeDurationSeconds} onChange={e => setTradeDurationSeconds(Number(e.target.value))} className="mt-3 w-full accent-primary"/><div className="flex justify-between text-xs text-muted-foreground"><span>5 sec</span><span>30 sec</span><span>60 sec</span></div></div>
+          <div className="space-y-1.5"><Label>Entry speed</Label><select value={aiSpeed} onChange={e => setAiSpeed(e.target.value === "slow" ? "slow" : "fast")} className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"><option value="fast">Fast · checks every 5 seconds</option><option value="slow">Slow · checks every 10 seconds</option></select></div>
+          <div className="space-y-1.5"><Label>Shared EA password</Label><Input type="password" autoComplete="current-password" value={eaPassword} onChange={e => setEaPassword(e.target.value)} placeholder="Enter EA password" className="h-11 bg-background"/></div>
+          {error && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</div>}
+          <label className="flex items-start gap-3 cursor-pointer"><input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-1 accent-primary"/><span className="text-xs text-muted-foreground">I understand the EA is simulated, trading can lose money, performance is not guaranteed, and I accept the Copy Trading Agreement and Terms & Conditions.</span></label>
+          <Button onClick={() => void handleCopy()} disabled={submitting} className="w-full h-11 font-semibold"><Copy className="w-4 h-4 mr-2"/>{submitting ? "Starting EA session..." : "Start Copy Trading"}</Button>
         </div>
       </motion.div>
     </div>
@@ -193,15 +185,8 @@ function CopyDialog({ trader, onClose }: { trader: typeof TRADERS[0]; onClose: (
 
 /* ─── TRADER PROFILE MODAL ──────────────────────────────────────── */
 function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0]; onClose: () => void; onCopy: () => void }) {
-  const monthly = trader.equity.map((e, i) => ({ name: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i], roi: Math.round((Math.random() * 16 - 3) * 10) / 10 }));
-  const recentTrades = Array.from({ length: 6 }, (_, i) => {
-    const s = trader.id * 100 + i;
-    const sym = trader.assets[i % trader.assets.length];
-    const dir = seeded(s, 1) > 0.4 ? "BUY" : "SELL";
-    const pnl = Math.round(seeded(s * 3, 320, -80) * 10) / 10;
-    const date = new Date(Date.now() - seeded(s * 7, 86400000 * 14)).toLocaleDateString("en-KE", { day: "2-digit", month: "short" });
-    return { sym, dir, pnl, date };
-  });
+  const monthly: { name: string; roi: number }[] = [];
+  const recentTrades: { sym: string; dir: string; pnl: number; date: string }[] = [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -225,10 +210,10 @@ function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0];
           {/* Stats grid */}
           <div className="grid grid-cols-4 gap-3 mt-5">
             {[
-              { label: "Win Rate", value: `${trader.winRate}%`, color: "text-green-400" },
-              { label: "Monthly ROI", value: `+${trader.monthlyRoi}%`, color: "text-primary" },
-              { label: "Overall ROI", value: `+${trader.overallRoi}%`, color: "text-primary" },
-              { label: "Max Drawdown", value: `-${trader.drawdown}%`, color: "text-red-400" },
+              { label: "Win Rate", value: "Session-based", color: "text-green-400" },
+              { label: "Monthly ROI", value: "Not measured", color: "text-primary" },
+              { label: "Overall ROI", value: "Not measured", color: "text-primary" },
+              { label: "Drawdown", value: "Session-based", color: "text-red-400" },
             ].map(({ label, value, color }) => (
               <div key={label} className="bg-background/60 rounded-xl p-3 text-center">
                 <p className={`text-lg font-bold font-mono ${color}`}>{value}</p>
@@ -241,7 +226,7 @@ function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0];
         <div className="p-6 space-y-6">
           {/* Equity curve */}
           <div>
-            <p className="text-sm font-semibold mb-3">Historical Equity Curve</p>
+            <p className="text-sm font-semibold mb-3">EA Strategy Preview (not historical performance)</p>
             <div className="h-32">
               <Spark data={trader.equity} color={trader.avatarColor} />
             </div>
@@ -274,7 +259,7 @@ function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0];
 
           {/* Recent trades */}
           <div>
-            <p className="text-sm font-semibold mb-3">Recent Trades</p>
+            <p className="text-sm font-semibold mb-3">Recent Session Trades</p>
             <div className="space-y-2">
               {recentTrades.map((t, i) => (
                 <div key={i} className="flex items-center justify-between py-2 px-3 bg-muted/20 rounded-xl">
@@ -289,7 +274,7 @@ function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0];
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1"><Info className="w-3 h-3" />Past performance does not guarantee future results.</p>
+            <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1"><Info className="w-3 h-3" />No historical EA performance is claimed here. Session results appear after the EA starts.</p>
           </div>
 
           <Button onClick={onCopy} className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base">
@@ -340,7 +325,7 @@ function TraderCard({ trader, onView, onCopy, isFav, onToggleFav }: { trader: ty
           <p className="text-[10px] text-muted-foreground">Monthly</p>
         </div>
         <div>
-          <p className="text-xs font-bold text-red-400">-{trader.drawdown}%</p>
+          <p className="text-xs font-bold text-red-400">Not yet measured</p>
           <p className="text-[10px] text-muted-foreground">Max DD</p>
         </div>
       </div>
@@ -400,10 +385,10 @@ export default function CopyTrading() {
       {/* Summary stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Expert Traders", value: "100+", sub: "Verified profiles", icon: Users, color: "text-primary" },
-          { label: "Avg Monthly ROI", value: "+14.2%", sub: "Across all traders", icon: TrendingUp, color: "text-green-400" },
-          { label: "Avg Win Rate", value: "69.8%", sub: "Last 30 days", icon: Zap, color: "text-yellow-400" },
-          { label: "Total Copiers", value: "12,400+", sub: "Active copy traders", icon: Copy, color: "text-blue-400" },
+          { label: "Available EAs", value: "120", sub: "Existing auto-trading engines", icon: Users, color: "text-primary" },
+          { label: "EA Fees", value: "0%", sub: "No copy fee charged by engine", icon: TrendingUp, color: "text-green-400" },
+          { label: "Strategy Engines", value: "6", sub: "Trend, scalp, swing, breakout, grid, SMC", icon: Zap, color: "text-yellow-400" },
+          { label: "Session Results", value: "Live", sub: "Shown in the EA terminal", icon: Copy, color: "text-blue-400" },
         ].map(({ label, value, sub, icon: Icon, color }) => (
           <div key={label} className="glass-card rounded-2xl p-4">
             <Icon className={`w-5 h-5 ${color} mb-2`} />
@@ -496,7 +481,7 @@ export default function CopyTrading() {
 
       <div className="glass-card rounded-2xl p-4 flex items-start gap-2 text-xs text-muted-foreground">
         <Shield className="w-4 h-4 flex-shrink-0 mt-0.5 text-primary/50" />
-        Copy trading involves substantial risk of loss. Past performance does not guarantee future results. This is not financial advice.
+        Copy trading involves substantial risk of loss. This EA has no verified historical performance in this directory. Results can be positive or negative. This is not financial advice.
       </div>
     </div>
   );
