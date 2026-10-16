@@ -124,9 +124,12 @@ export default function Deposits() {
   };
 
   const handlePhoneChange = (val: string) => {
-    const digits = val.replace(/\D/g, "");
-    if (!digits.startsWith("254")) setPhone("254" + digits.replace(/^254/, ""));
-    else setPhone(digits);
+    // Normalize pasted or typed Kenyan numbers: 0712..., 712..., or 254712... -> 254712...
+    let digits = val.replace(/\D/g, "");
+    if (digits.startsWith("254")) digits = digits.slice(3);
+    else if (digits.startsWith("0")) digits = digits.slice(1);
+    digits = digits.slice(0, 9);
+    setPhone("254" + digits);
   };
 
   const handleMpesaDeposit = async (e: React.FormEvent) => {
@@ -208,7 +211,7 @@ export default function Deposits() {
                 <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white" style={{ backgroundColor: method.color }}>{method.logo}</div>
                 <div>
                   <CardTitle className="text-base">{method.id === "mpesa" ? "M-PESA P2P" : `${method.label} Deposit`}</CardTitle>
-                  <CardDescription className="text-xs">Minimum: ${method.min} USD · Fee: ${method.fee}</CardDescription>{method.id === "mpesa" && <CardDescription className="text-xs">Secure sandbox test · Verify recipient and amount before authorizing.</CardDescription>}
+                  <CardDescription className="text-xs">Minimum: ${method.min} USD · Fee: ${method.fee}</CardDescription>{method.id === "mpesa" && <CardDescription className="text-xs">Verify the recipient and amount shown on your M-PESA prompt before authorizing.</CardDescription>}
                 </div>
               </div>
             </CardHeader>
@@ -218,10 +221,10 @@ export default function Deposits() {
                   {/* M-PESA P2P */}
                   {method.id === "mpesa" && (
                     <form onSubmit={handleMpesaDeposit} className="space-y-4">
-                      <div className="rounded-xl border border-green-500/25 bg-green-500/5 p-3 space-y-2"><div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">P2P payment recipient</p><span className={`inline-flex items-center gap-1.5 text-xs font-medium ${MPESA_AGENT_ONLINE ? "text-green-500" : "text-muted-foreground"}`}><span className={`h-2 w-2 rounded-full ${MPESA_AGENT_ONLINE ? "bg-green-500" : "bg-muted-foreground"}`} />{MPESA_AGENT_ONLINE ? "Online" : "Status unavailable"}</span></div><p className="text-sm font-semibold">{MPESA_AGENT_NAME}</p><p className="text-xs text-muted-foreground">Check the recipient and amount on the M-PESA prompt before entering your PIN.</p><p className="text-[11px] text-amber-500">Sandbox testing · actual recipient is set by Daraja configuration.</p></div>
+                      <div className="rounded-xl border border-green-500/25 bg-green-500/5 p-3 space-y-2"><div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">P2P payment recipient</p><span className={`inline-flex items-center gap-1.5 text-xs font-medium ${MPESA_AGENT_ONLINE ? "text-green-500" : "text-muted-foreground"}`}><span className={`h-2 w-2 rounded-full ${MPESA_AGENT_ONLINE ? "bg-green-500" : "bg-muted-foreground"}`} />{MPESA_AGENT_ONLINE ? "Online" : "Status unavailable"}</span></div><p className="text-sm font-semibold">{MPESA_AGENT_NAME}</p><p className="text-xs text-muted-foreground">Check the recipient and amount on the M-PESA prompt before entering your PIN.</p><p className="text-[11px] text-amber-500">Only approve the prompt if the displayed recipient and amount are correct.</p></div>
                       <div className="space-y-1.5">
                         <Label className="text-sm">M-PESA phone number</Label>
-                        <Input placeholder="0712 345 678" value={phone} onChange={e => handlePhoneChange(e.target.value)} maxLength={13} className="h-11 bg-card border-border font-mono" />
+                        <Input placeholder="0712 345 678" value={phone} onChange={e => handlePhoneChange(e.target.value)} maxLength={12} className="h-11 bg-card border-border font-mono" />
                         <p className="text-xs text-muted-foreground">Enter the number to receive the STK Push (07XX or 254…).</p>
                       </div>
                       <div className="space-y-1.5">
