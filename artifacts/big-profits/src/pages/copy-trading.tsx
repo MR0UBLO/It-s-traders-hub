@@ -73,7 +73,7 @@ const TRADERS = Array.from({ length: 120 }, (_, i) => {
   const avatarColor = ["#6366f1","#8b5cf6","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#14b8a6"][Math.floor(seeded(s * 71, 8))];
   const ea = eaForNumber(i + 1);
   const actualMin = 10 + ((i + 1) % 10) * 10;
-  return { id: i + 1, name: ea.name, eaId: ea.eaId, eaStrategy: ea.strategy, eaStrategyLabel: ea.strategyLabel, winRate, monthlyRoi, overallRoi, drawdown, followers, copiers, copyFee: 0, profitShare: 0, risk, assets: ["EURUSD","GBPUSD","XAUUSD","BTCUSD","ETHUSD","USDJPY"], strategy: ea.strategyLabel, trades, avgDuration, lastActive: "Ready to start", verified: true, equity, minCopy: actualMin, maxCopy: actualMin * 100, avatarColor, initials: ea.name.split(/\s+/).map((part: string) => part[0]).join("").slice(0,2), isFollowing: false };
+  return { id: i + 1, name: ea.name, eaId: ea.eaId, eaStrategy: ea.strategy, eaStrategyLabel: ea.strategyLabel, winRate, monthlyRoi, overallRoi, drawdown, followers, copiers: 0, copyFee: 0, profitShare: 0, risk, assets: ["EURUSD","GBPUSD","XAUUSD","BTCUSD","ETHUSD","USDJPY"], strategy: ea.strategyLabel, trades, avgDuration: "Set by session", lastActive: "Ready to start", verified: true, equity, minCopy: actualMin, maxCopy: actualMin * 100, avatarColor, initials: ea.name.split(/\s+/).map((part: string) => part[0]).join("").slice(0,2), isFollowing: false };
 });
 
 /* ─── MINI SPARK ─────────────────────────────────────────────────── */
@@ -186,7 +186,7 @@ function CopyDialog({ trader, onClose }: { trader: typeof TRADERS[0]; onClose: (
 /* ─── TRADER PROFILE MODAL ──────────────────────────────────────── */
 function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0]; onClose: () => void; onCopy: () => void }) {
   const monthly = trader.equity.map((e, i) => ({ name: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i], roi: Math.round((Math.random() * 16 - 3) * 10) / 10 }));
-  const recentTrades = Array.from({ length: 6 }, (_, i) => {
+  const recentTrades: { sym: string; dir: string; pnl: number; date: string }[] = [];\n  /* const recentTrades = Array.from({ length: 6 }, (_, i) => {
     const s = trader.id * 100 + i;
     const sym = trader.assets[i % trader.assets.length];
     const dir = seeded(s, 1) > 0.4 ? "BUY" : "SELL";
@@ -217,10 +217,10 @@ function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0];
           {/* Stats grid */}
           <div className="grid grid-cols-4 gap-3 mt-5">
             {[
-              { label: "Win Rate", value: `${trader.winRate}%`, color: "text-green-400" },
-              { label: "Monthly ROI (not yet measured)", value: `+${0%`, color: "text-primary" },
-              { label: "Overall ROI", value: `+${trader.overallRoi}%`, color: "text-primary" },
-              { label: "Configured risk", value: `-${trader.drawdown}%`, color: "text-red-400" },
+              { label: "Win Rate", value: "Session-based", color: "text-green-400" },
+              { label: "Monthly ROI", value: "Not measured", color: "text-primary" },
+              { label: "Overall ROI", value: "Not measured", color: "text-primary" },
+              { label: "Drawdown", value: "Session-based", color: "text-red-400" },
             ].map(({ label, value, color }) => (
               <div key={label} className="bg-background/60 rounded-xl p-3 text-center">
                 <p className={`text-lg font-bold font-mono ${color}`}>{value}</p>
