@@ -127,7 +127,7 @@ export default function Deposits() {
     // Normalize pasted or typed Kenyan numbers: 0712..., 712..., or 254712... -> 254712...
     let digits = val.replace(/\D/g, "");
     if (digits.startsWith("254")) digits = digits.slice(3);
-    else if (digits.startsWith("0")) digits = digits.slice(1);
+    if (digits.startsWith("0")) digits = digits.slice(1);
     digits = digits.slice(0, 9);
     setPhone("254" + digits);
   };
