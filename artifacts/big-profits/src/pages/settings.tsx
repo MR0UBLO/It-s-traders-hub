@@ -39,8 +39,8 @@ export default function SettingsPage() {
   const [name, setName] = useState(user?.name || "");
   const [notifications, setNotifications] = useState<NotificationPrefs>(readNotifications);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
-    try { return localStorage.getItem("tradollar_theme") === "dark" ? "dark" : "light"; }
-    catch { return "light"; }
+    try { return localStorage.getItem("tradollar_theme") === "light" ? "light" : "dark"; }
+    catch { return "dark"; }
   });
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
