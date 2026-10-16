@@ -233,12 +233,11 @@ export default function Home() {
                       <Shield className="h-3.5 w-3.5 text-emerald-400" />
                       <span>Built for focused trading</span>
                     </div>
-                    <Link href={isAuthenticated ? "/dashboard" : "/login"} className="inline-flex items-center gap-1.5 text-xs font-semibold text-white hover:text-primary transition-colors">
-                      {isAuthenticated ? "Open dashboard" : "Explore platform"} <ArrowRight className="h-3.5 w-3.5" />
+                    <Link href="/login" className="inline-flex items-center gap-1.5 text-xs font-semibold text-white hover:text-primary transition-colors">
+                      Open dashboard <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </div>
                 </div>
-                <p className="mt-2 px-1 text-[10px] leading-relaxed text-muted-foreground">Illustrative market data for presentation only. Prices and AI indicators may not reflect live market conditions.</p>
               </motion.div>
             </div>
           </div>
