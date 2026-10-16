@@ -7,26 +7,36 @@ import { sql } from "drizzle-orm";
 
 const router = Router();
 
-const MPESA_CONSUMER_KEY = process.env.MPESA_CONSUMER_KEY || "";
-const MPESA_CONSUMER_SECRET = process.env.MPESA_CONSUMER_SECRET || "";
-const MPESA_PASSKEY = process.env.MPESA_PASSKEY || "";
-const MPESA_SHORTCODE = process.env.MPESA_SHORTCODE || "174379";
-const MPESA_ENV = process.env.MPESA_ENV || "sandbox";
+const MPESA_CONSUMER_KEY = process.env.MPESA_CONSUMER_KEY?.trim() || "";
+const MPESA_CONSUMER_SECRET = process.env.MPESA_CONSUMER_SECRET?.trim() || "";
+const MPESA_PASSKEY = process.env.MPESA_PASSKEY?.trim() || "";
+const MPESA_ENV = (process.env.MPESA_ENV || "sandbox").trim().toLowerCase();
+const IS_PRODUCTION = MPESA_ENV === "production";
+// Never silently use Safaricom's sandbox shortcode for a live payment.
+const MPESA_SHORTCODE = process.env.MPESA_SHORTCODE?.trim() || (IS_PRODUCTION ? "" : "174379");
 const MPESA_USD_RATE = Number(process.env.MPESA_USD_RATE || 130);
 
-const BASE_URL = MPESA_ENV === "production"
+const BASE_URL = IS_PRODUCTION
   ? "https://api.safaricom.co.ke"
   : "https://sandbox.safaricom.co.ke";
 
-const LIVE_CREDENTIALS = !!(MPESA_CONSUMER_KEY && MPESA_CONSUMER_SECRET && MPESA_PASSKEY);
+const LIVE_CREDENTIALS = !!(
+  MPESA_CONSUMER_KEY && MPESA_CONSUMER_SECRET && MPESA_PASSKEY && MPESA_SHORTCODE
+);
 
 async function getMpesaToken(): Promise<string> {
   const credentials = Buffer.from(`${MPESA_CONSUMER_KEY}:${MPESA_CONSUMER_SECRET}`).toString("base64");
   const response = await fetch(`${BASE_URL}/oauth/v1/generate?grant_type=client_credentials`, {
     headers: { Authorization: `Basic ${credentials}` },
   });
-  if (!response.ok) throw new Error(`Failed to get M-PESA token: ${response.status}`);
-  const data = await response.json() as { access_token: string };
+  if (!response.ok) {
+    // Do not log credentials or authorization headers; include only the HTTP status for diagnosis.
+    throw new Error(`Daraja OAuth token request failed (HTTP ${response.status}, environment=${MPESA_ENV})`);
+  }
+  const data = await response.json() as { access_token?: string };
+  if (!data.access_token) {
+    throw new Error(`Daraja OAuth response did not contain an access token (environment=${MPESA_ENV})`);
+  }
   return data.access_token;
 }
 
@@ -60,7 +70,7 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
 
     if (!LIVE_CREDENTIALS) {
       res.status(503).json({
-        error: "M-PESA Daraja is not configured. Set MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, and MPESA_PASSKEY in the backend environment before testing.",
+        error: `M-PESA ${MPESA_ENV} configuration is incomplete. Check MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, MPESA_PASSKEY, and MPESA_SHORTCODE in the backend environment.`,
       });
       return;
     }
@@ -107,11 +117,23 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
       CustomerMessage?: string;
       errorMessage?: string;
       errorCode?: string;
+      ResponseDescription?: string;
     };
 
     if (!stkRes.ok || stkData.ResponseCode !== "0") {
-      logger.warn({ status: stkRes.status, errorCode: stkData.errorCode }, "Daraja STK Push rejected");
-      res.status(400).json({ error: stkData.errorMessage || "STK Push failed. Check Daraja sandbox settings and try again." });
+      // Safaricom's response helps distinguish live credential, shortcode, product, and payload issues.
+      // Never log the consumer secret, passkey, OAuth token, or generated Password.
+      logger.warn({
+        status: stkRes.status,
+        errorCode: stkData.errorCode,
+        responseCode: stkData.ResponseCode,
+        description: stkData.errorMessage || stkData.ResponseDescription,
+        environment: MPESA_ENV,
+      }, "Daraja STK Push rejected");
+      res.status(400).json({
+        error: stkData.errorMessage || stkData.ResponseDescription ||
+          `Safaricom rejected the STK Push request (HTTP ${stkRes.status}, environment=${MPESA_ENV}). Check Render logs for the sanitized error details.`,
+      });
       return;
     }
 
