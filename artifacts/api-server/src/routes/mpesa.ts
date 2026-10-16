@@ -14,6 +14,9 @@ const MPESA_ENV = (process.env.MPESA_ENV || "sandbox").trim().toLowerCase();
 const IS_PRODUCTION = MPESA_ENV === "production";
 // Never silently use Safaricom's sandbox shortcode for a live payment.
 const MPESA_SHORTCODE = process.env.MPESA_SHORTCODE?.trim() || (IS_PRODUCTION ? "" : "174379");
+// Production Buy Goods STK Push requires the actual Till Number as PartyB.
+const MPESA_TILL_NUMBER = process.env.MPESA_TILL_NUMBER?.trim() || "";
+const MPESA_TRANSACTION_TYPE = (process.env.MPESA_TRANSACTION_TYPE?.trim() || (IS_PRODUCTION ? "CustomerBuyGoodsOnline" : "CustomerPayBillOnline"));
 const MPESA_USD_RATE = Number(process.env.MPESA_USD_RATE || 130);
 
 const BASE_URL = IS_PRODUCTION
@@ -21,8 +24,10 @@ const BASE_URL = IS_PRODUCTION
   : "https://sandbox.safaricom.co.ke";
 
 const LIVE_CREDENTIALS = !!(
-  MPESA_CONSUMER_KEY && MPESA_CONSUMER_SECRET && MPESA_PASSKEY && MPESA_SHORTCODE
+  MPESA_CONSUMER_KEY && MPESA_CONSUMER_SECRET && MPESA_PASSKEY && MPESA_SHORTCODE &&
+  (!IS_PRODUCTION || MPESA_TILL_NUMBER)
 );
+const VALID_TRANSACTION_TYPE = MPESA_TRANSACTION_TYPE === "CustomerBuyGoodsOnline" || MPESA_TRANSACTION_TYPE === "CustomerPayBillOnline";
 
 async function getMpesaToken(): Promise<string> {
   const credentials = Buffer.from(`${MPESA_CONSUMER_KEY}:${MPESA_CONSUMER_SECRET}`).toString("base64");
@@ -70,8 +75,17 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
 
     if (!LIVE_CREDENTIALS) {
       res.status(503).json({
-        error: `M-PESA ${MPESA_ENV} configuration is incomplete. Check MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, MPESA_PASSKEY, and MPESA_SHORTCODE in the backend environment.`,
+        error: `M-PESA ${MPESA_ENV} configuration is incomplete. Check MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, MPESA_PASSKEY, MPESA_SHORTCODE${IS_PRODUCTION ? ", and MPESA_TILL_NUMBER" : ""} in the backend environment.`,
       });
+      return;
+    }
+
+    if (!VALID_TRANSACTION_TYPE) {
+      res.status(503).json({ error: "Invalid MPESA_TRANSACTION_TYPE. Use CustomerBuyGoodsOnline for a supported Buy Goods Till integration or CustomerPayBillOnline for PayBill." });
+      return;
+    }
+    if (IS_PRODUCTION && MPESA_TRANSACTION_TYPE !== "CustomerBuyGoodsOnline") {
+      res.status(503).json({ error: "Production is configured for a Buy Goods Till. Set MPESA_TRANSACTION_TYPE=CustomerBuyGoodsOnline." });
       return;
     }
 
@@ -112,10 +126,10 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
         BusinessShortCode: MPESA_SHORTCODE,
         Password: password,
         Timestamp: timestamp,
-        TransactionType: process.env.MPESA_TRANSACTION_TYPE === "CustomerBuyGoodsOnline" ? "CustomerBuyGoodsOnline" : "CustomerPayBillOnline",
+        TransactionType: MPESA_TRANSACTION_TYPE,
         Amount: Math.round(amt),
         PartyA: normalizedPhone,
-        PartyB: MPESA_SHORTCODE,
+        PartyB: IS_PRODUCTION ? MPESA_TILL_NUMBER : MPESA_SHORTCODE,
         PhoneNumber: normalizedPhone,
         CallBackURL: callbackUrl,
         AccountReference: "Tradollar",
