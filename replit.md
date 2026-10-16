@@ -78,9 +78,12 @@ Set these secrets for live M-PESA integration:
 - `MPESA_CONSUMER_KEY` — Daraja API consumer key
 - `MPESA_CONSUMER_SECRET` — Daraja API consumer secret
 - `MPESA_PASSKEY` — Lipa na M-PESA online passkey
-- `MPESA_SHORTCODE` — Business shortcode (default: 174379 for sandbox)
-- `MPESA_ENV` — `sandbox` or `production` (default: sandbox)
-- `CALLBACK_BASE_URL` — Your public domain for M-PESA callbacks
+- `MPESA_SHORTCODE` — Live Business Shortcode from Safaricom Go Live configuration (no sandbox fallback)
+- `MPESA_TILL_NUMBER` — Live Buy Goods Till number configured for STK Push
+- `MPESA_TRANSACTION_TYPE` — Set to `CustomerBuyGoodsOnline`
+- `MPESA_ENV` — Set to `production` (the deployed integration rejects sandbox mode)
+- `MPESA_USD_RATE` — KES per USD; must match the frontend `VITE_MPESA_USD_RATE`
+- `CALLBACK_BASE_URL` — Public HTTPS backend origin, without a path (for example `https://your-api.onrender.com`)
 - `JWT_SECRET` — JWT signing secret (falls back to SESSION_SECRET)
 
 ## Pointers
