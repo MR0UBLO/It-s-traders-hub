@@ -21,7 +21,7 @@ type PayMethod = {
 };
 
 const USD_RATE = Number(import.meta.env.VITE_MPESA_USD_RATE || 130); // Must match backend MPESA_USD_RATE
-const MPESA_AGENT_NAME = String(import.meta.env.VITE_MPESA_AGENT_NAME || "Designated M-PESA agent");
+const MPESA_AGENT_NAME = "Stephen Meja Muhoro";
 const MPESA_AGENT_ONLINE = String(import.meta.env.VITE_MPESA_AGENT_ONLINE || "false").toLowerCase() === "true";
 
 const METHODS: PayMethod[] = [
@@ -83,6 +83,7 @@ export default function Deposits() {
 
   const [method, setMethod]       = useState<PayMethod>(METHODS[0]);
   const [phone, setPhone]         = useState("254");
+  const [agentNameAcknowledged, setAgentNameAcknowledged] = useState(false);
   const [amount, setAmount]       = useState("");
   const [isSending, setIsSending] = useState(false);
   const [depositState, setDepositState] = useState<DepositState>("idle");
@@ -137,6 +138,7 @@ export default function Deposits() {
     const numAmount = Number(amount);
     if (isNaN(numAmount) || numAmount < 10) { toast({ title: "Invalid amount", description: "Minimum deposit is $10 USD (KES 1,300)", variant: "destructive" }); return; }
     if (phone.length < 12) { toast({ title: "Invalid phone", description: "Enter a valid Safaricom number", variant: "destructive" }); return; }
+    if (!agentNameAcknowledged) { toast({ title: "Confirm recipient first", description: "Confirm that you will only approve the M-PESA prompt if it names Stephen Meja Muhoro and shows the correct amount.", variant: "destructive" }); return; }
     setIsSending(true);
     try {
       const kesAmount = Math.round(numAmount * USD_RATE);
@@ -163,7 +165,7 @@ export default function Deposits() {
     setAmount(""); setIsSending(false);
   };
 
-  const handleReset = () => { stopPolling(); setDepositState("idle"); setCheckoutRequestId(null); setReceipt(null); };
+  const handleReset = () => { stopPolling(); setDepositState("idle"); setCheckoutRequestId(null); setReceipt(null); setAgentNameAcknowledged(false); };
 
   const isCrypto = method.type === "crypto";
   const cryptoAddr = CRYPTO_ADDRESSES[method.id];
@@ -221,7 +223,7 @@ export default function Deposits() {
                   {/* M-PESA P2P */}
                   {method.id === "mpesa" && (
                     <form onSubmit={handleMpesaDeposit} className="space-y-4">
-                      <div className="rounded-xl border border-green-500/25 bg-green-500/5 p-3 space-y-2"><div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold">P2P payment recipient</p><span className={`inline-flex items-center gap-1.5 text-xs font-medium ${MPESA_AGENT_ONLINE ? "text-green-500" : "text-muted-foreground"}`}><span className={`h-2 w-2 rounded-full ${MPESA_AGENT_ONLINE ? "bg-green-500" : "bg-muted-foreground"}`} />{MPESA_AGENT_ONLINE ? "Online" : "Status unavailable"}</span></div><p className="text-sm font-semibold">{MPESA_AGENT_NAME}</p><p className="text-xs text-muted-foreground">Check the recipient and amount on the M-PESA prompt before entering your PIN.</p><p className="text-[11px] text-amber-500">Only approve the prompt if the displayed recipient and amount are correct.</p></div>
+                      <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-card p-4 space-y-3 shadow-sm"><div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-500"><CheckCircle2 className="h-5 w-5" /></div><div><p className="text-sm font-semibold">Tradollar P2P agent</p><p className="text-[11px] text-muted-foreground">Recipient name to match</p></div></div><span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-600"><CheckCircle2 className="h-3 w-3" />Tradollar-listed</span></div><p className="text-lg font-bold tracking-tight">{MPESA_AGENT_NAME}</p><div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3"><p className="text-xs font-semibold text-amber-600">Important security check</p><p className="mt-1 text-xs text-muted-foreground">After the STK Push arrives, check the recipient name and amount on your actual M-PESA screen. Do not enter your PIN if either one differs.</p></div><label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-background/60 p-3 text-xs leading-relaxed"><input type="checkbox" checked={agentNameAcknowledged} onChange={e => setAgentNameAcknowledged(e.target.checked)} className="mt-0.5 h-4 w-4 accent-emerald-600" /><span>I understand the recipient must be <strong>{MPESA_AGENT_NAME}</strong>. I will only authorize the payment if the name and amount shown in the M-PESA prompt match.</span></label><p className="text-[10px] text-muted-foreground">This label identifies the intended recipient; it does not independently verify the identity displayed by Safaricom.</p></div>
                       <div className="space-y-1.5">
                         <Label className="text-sm">M-PESA phone number</Label>
                         <Input placeholder="0712 345 678" value={phone} onChange={e => handlePhoneChange(e.target.value)} maxLength={12} className="h-11 bg-card border-border font-mono" />
@@ -244,8 +246,8 @@ export default function Deposits() {
                           ))}
                         </div>
                       </div>
-                      <Button type="submit" className="w-full h-11 bg-green-600 hover:bg-green-700 text-white font-semibold" disabled={isSending || !amount || Number(amount) < 10}>
-                        {isSending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</> : "Pay with M-PESA P2P"}
+                      <Button type="submit" className="w-full h-11 bg-green-600 hover:bg-green-700 text-white font-semibold" disabled={isSending || !amount || Number(amount) < 10 || !agentNameAcknowledged}>
+                        {isSending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</> : "Continue to M-PESA prompt"}
                       </Button>
                     </form>
                   )}
@@ -328,7 +330,7 @@ export default function Deposits() {
               {depositState === "pending" && (
                 <div className="text-center space-y-5 py-4">
                   <div className="w-16 h-16 rounded-full bg-yellow-500/10 border-2 border-yellow-500/30 flex items-center justify-center mx-auto"><Smartphone className="w-7 h-7 text-yellow-500 animate-pulse" /></div>
-                  <div><p className="font-semibold">Check your phone</p><p className="text-muted-foreground text-sm mt-1">STK push sent to <span className="font-mono font-medium">{phone}</span></p></div>
+                  <div><p className="font-semibold">Verify before entering your PIN</p><p className="text-muted-foreground text-sm mt-1">STK Push sent to <span className="font-mono font-medium">{phone}</span>.</p><p className="mt-2 text-sm font-semibold">Expected recipient: {MPESA_AGENT_NAME}</p><p className="mt-1 text-xs text-amber-600">On your phone, confirm the recipient name is exactly the expected name and the KES amount is correct. Cancel the prompt if anything differs. Never share your M-PESA PIN.</p></div>
                   <div className="bg-card border border-border rounded-lg p-4 space-y-1"><p className="text-xs text-muted-foreground">Amount</p><p className="text-2xl font-bold font-mono">${pendingAmount.toLocaleString()} USD</p><p className="text-xs text-muted-foreground">≈ KES {(pendingAmount * USD_RATE).toLocaleString()}</p></div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center"><Loader2 className="w-3.5 h-3.5 animate-spin" />Waiting for confirmation…</div>
                   <button onClick={handleReset} className="text-xs text-muted-foreground hover:text-foreground underline">Cancel</button>
