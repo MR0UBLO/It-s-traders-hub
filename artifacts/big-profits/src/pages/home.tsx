@@ -199,7 +199,6 @@ export default function Home() {
                         <p className="mt-3 text-lg sm:text-xl font-bold font-mono tracking-tight tabular-nums">{market.price}</p>
                         <div className="mt-1 flex items-center justify-between gap-2">
                           <span className="text-[11px] font-semibold text-emerald-400">{market.change}</span>
-                          <span className="text-[9px] uppercase tracking-wider text-slate-500">Demo preview</span>
                         </div>
                         <div className="mt-2">
                           <AnimatedChart color={market.color} delay={market.delay + 0.2} />
