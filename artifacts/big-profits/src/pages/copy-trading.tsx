@@ -44,27 +44,27 @@ function seeded(seed: number, max: number, min = 0) {
 function makeEquityCurve(seed: number, length = 12) {
   let v = 100;
   return Array.from({ length }, (_, i) => {
-    v += (seeded(seed * 13 + i, 8, -3));
+    v += 0;
     return { m: i + 1, v: Math.max(60, Math.round(v * 10) / 10) };
   });
 }
 
-const TRADERS = Array.from({ length: 100 }, (_, i) => {
+const TRADERS = Array.from({ length: 120 }, (_, i) => {
   const s = i + 7;
   const fn = FIRST_NAMES[i % FIRST_NAMES.length];
   const ln = LAST_NAMES[Math.floor(seeded(s * 3, LAST_NAMES.length))];
-  const winRate = Math.round(seeded(s * 5, 89, 51));
-  const monthlyRoi = Math.round(seeded(s * 7, 32, 2) * 10) / 10;
-  const overallRoi = Math.round(seeded(s * 11, 420, 18) * 10) / 10;
-  const drawdown = Math.round(seeded(s * 13, 28, 4) * 10) / 10;
-  const followers = Math.floor(seeded(s * 17, 4800, 12));
-  const copiers = Math.floor(seeded(s * 19, 340, 2));
+  const winRate = 0;
+  const monthlyRoi = 0;
+  const overallRoi = 0;
+  const drawdown = 0;
+  const followers = 0;
+  const copiers = 0;
   const copyFee = Math.floor(seeded(s * 23, 5, 0));
   const profitShare = Math.floor(seeded(s * 29, 30, 10));
   const risk = RISKS[Math.floor(seeded(s * 31, RISKS.length))];
   const assets = ASSETS[Math.floor(seeded(s * 37, ASSETS.length))];
   const strategy = STRATEGIES[Math.floor(seeded(s * 41, STRATEGIES.length))];
-  const trades = Math.floor(seeded(s * 43, 4800, 120));
+  const trades = 0;
   const avgDuration = `${Math.floor(seeded(s * 47, 8, 1))}h ${Math.floor(seeded(s * 53, 59, 5))}m`;
   const lastActive = ["Just now","2 min ago","5 min ago","12 min ago","1 hr ago","3 hrs ago","Today","Yesterday"][Math.floor(seeded(s * 59, 8))];
   const verified = seeded(s * 61, 1) > 0.35;
@@ -73,7 +73,7 @@ const TRADERS = Array.from({ length: 100 }, (_, i) => {
   const avatarColor = ["#6366f1","#8b5cf6","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#14b8a6"][Math.floor(seeded(s * 71, 8))];
   const ea = eaForNumber(i + 1);
   const actualMin = 10 + ((i + 1) % 10) * 10;
-  return { id: i + 1, name: ea.name, eaId: ea.eaId, eaStrategy: ea.strategy, eaStrategyLabel: ea.strategyLabel, winRate, monthlyRoi, overallRoi, drawdown, followers, copiers, copyFee: 0, profitShare: 0, risk, assets: ["EURUSD","GBPUSD","XAUUSD","BTCUSD","ETHUSD","USDJPY"], strategy: ea.strategyLabel, trades, avgDuration, lastActive: "Ready to start", verified: true, equity, minCopy: actualMin, maxCopy: actualMin * 100, avatarColor, initials: ea.name.split(/\\s+/).map((part: string) => part[0]).join("").slice(0,2), isFollowing: false };
+  return { id: i + 1, name: ea.name, eaId: ea.eaId, eaStrategy: ea.strategy, eaStrategyLabel: ea.strategyLabel, winRate, monthlyRoi, overallRoi, drawdown, followers, copiers, copyFee: 0, profitShare: 0, risk, assets: ["EURUSD","GBPUSD","XAUUSD","BTCUSD","ETHUSD","USDJPY"], strategy: ea.strategyLabel, trades, avgDuration, lastActive: "Ready to start", verified: true, equity, minCopy: actualMin, maxCopy: actualMin * 100, avatarColor, initials: ea.name.split(/\s+/).map((part: string) => part[0]).join("").slice(0,2), isFollowing: false };
 });
 
 /* ─── MINI SPARK ─────────────────────────────────────────────────── */
@@ -218,9 +218,9 @@ function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0];
           <div className="grid grid-cols-4 gap-3 mt-5">
             {[
               { label: "Win Rate", value: `${trader.winRate}%`, color: "text-green-400" },
-              { label: "Monthly ROI", value: `+${trader.monthlyRoi}%`, color: "text-primary" },
+              { label: "Monthly ROI (not yet measured)", value: `+${0%`, color: "text-primary" },
               { label: "Overall ROI", value: `+${trader.overallRoi}%`, color: "text-primary" },
-              { label: "Max Drawdown", value: `-${trader.drawdown}%`, color: "text-red-400" },
+              { label: "Configured risk", value: `-${trader.drawdown}%`, color: "text-red-400" },
             ].map(({ label, value, color }) => (
               <div key={label} className="bg-background/60 rounded-xl p-3 text-center">
                 <p className={`text-lg font-bold font-mono ${color}`}>{value}</p>
@@ -281,7 +281,7 @@ function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0];
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1"><Info className="w-3 h-3" />Past performance does not guarantee future results.</p>
+            <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1"><Info className="w-3 h-3" />No historical EA performance is claimed here. Session results appear after the EA starts.</p>
           </div>
 
           <Button onClick={onCopy} className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base">
@@ -332,7 +332,7 @@ function TraderCard({ trader, onView, onCopy, isFav, onToggleFav }: { trader: ty
           <p className="text-[10px] text-muted-foreground">Monthly</p>
         </div>
         <div>
-          <p className="text-xs font-bold text-red-400">-{trader.drawdown}%</p>
+          <p className="text-xs font-bold text-red-400">Not yet measured</p>
           <p className="text-[10px] text-muted-foreground">Max DD</p>
         </div>
       </div>
@@ -392,10 +392,10 @@ export default function CopyTrading() {
       {/* Summary stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Expert Traders", value: "100+", sub: "Verified profiles", icon: Users, color: "text-primary" },
-          { label: "Avg Monthly ROI", value: "+14.2%", sub: "Across all traders", icon: TrendingUp, color: "text-green-400" },
-          { label: "Avg Win Rate", value: "69.8%", sub: "Last 30 days", icon: Zap, color: "text-yellow-400" },
-          { label: "Total Copiers", value: "12,400+", sub: "Active copy traders", icon: Copy, color: "text-blue-400" },
+          { label: "Available EAs", value: "120", sub: "Existing auto-trading engines", icon: Users, color: "text-primary" },
+          { label: "EA Fees", value: "0%", sub: "No copy fee charged by engine", icon: TrendingUp, color: "text-green-400" },
+          { label: "Strategy Engines", value: "6", sub: "Trend, scalp, swing, breakout, grid, SMC", icon: Zap, color: "text-yellow-400" },
+          { label: "Session Results", value: "Live", sub: "Shown in the EA terminal", icon: Copy, color: "text-blue-400" },
         ].map(({ label, value, sub, icon: Icon, color }) => (
           <div key={label} className="glass-card rounded-2xl p-4">
             <Icon className={`w-5 h-5 ${color} mb-2`} />
@@ -488,7 +488,7 @@ export default function CopyTrading() {
 
       <div className="glass-card rounded-2xl p-4 flex items-start gap-2 text-xs text-muted-foreground">
         <Shield className="w-4 h-4 flex-shrink-0 mt-0.5 text-primary/50" />
-        Copy trading involves substantial risk of loss. Past performance does not guarantee future results. This is not financial advice.
+        Copy trading involves substantial risk of loss. This EA has no verified historical performance in this directory. Results can be positive or negative. This is not financial advice.
       </div>
     </div>
   );
