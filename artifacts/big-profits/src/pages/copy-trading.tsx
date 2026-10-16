@@ -226,7 +226,7 @@ function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0];
         <div className="p-6 space-y-6">
           {/* Equity curve */}
           <div>
-            <p className="text-sm font-semibold mb-3">Historical Equity Curve</p>
+            <p className="text-sm font-semibold mb-3">EA Strategy Preview (not historical performance)</p>
             <div className="h-32">
               <Spark data={trader.equity} color={trader.avatarColor} />
             </div>
@@ -259,7 +259,7 @@ function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0];
 
           {/* Recent trades */}
           <div>
-            <p className="text-sm font-semibold mb-3">Recent Trades</p>
+            <p className="text-sm font-semibold mb-3">Recent Session Trades</p>
             <div className="space-y-2">
               {recentTrades.map((t, i) => (
                 <div key={i} className="flex items-center justify-between py-2 px-3 bg-muted/20 rounded-xl">
