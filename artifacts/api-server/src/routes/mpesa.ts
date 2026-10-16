@@ -83,10 +83,23 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    // Daraja STK Push; sandbox/production host follows MPESA_ENV.
-    const timestamp = new Date().toISOString().replace(/[-T:.Z]/g, "").slice(0, 14);
+    // Daraja expects a Nairobi-local timestamp in yyyyMMddHHmmss format.
+    // ISO UTC timestamps can be rejected by production even when credentials are valid.
+    const now = new Date();
+    const nairobiParts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Africa/Nairobi",
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(now);
+    const part = (type: string) => nairobiParts.find((p) => p.type === type)?.value ?? "";
+    const timestamp = `${part("year")}${part("month")}${part("day")}${part("hour")}${part("minute")}${part("second")}`;
     const password = Buffer.from(`${MPESA_SHORTCODE}${MPESA_PASSKEY}${timestamp}`).toString("base64");
     const callbackUrl = `${callbackBaseUrl}/api/mpesa/callback`;
+    if (callbackUrl.length > 256) {
+      res.status(503).json({ error: "M-PESA callback URL is too long. Check CALLBACK_BASE_URL." });
+      return;
+    }
 
     const token = await getMpesaToken();
     const stkRes = await fetch(`${BASE_URL}/mpesa/stkpush/v1/processrequest`, {
