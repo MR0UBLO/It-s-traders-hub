@@ -11,6 +11,7 @@ const MPESA_CONSUMER_KEY = process.env.MPESA_CONSUMER_KEY?.trim() || "";
 const MPESA_CONSUMER_SECRET = process.env.MPESA_CONSUMER_SECRET?.trim() || "";
 const MPESA_PASSKEY = process.env.MPESA_PASSKEY?.trim() || "";
 const MPESA_ENV = (process.env.MPESA_ENV || "sandbox").trim().toLowerCase();
+const VALID_MPESA_ENV = MPESA_ENV === "production" || MPESA_ENV === "sandbox";
 const IS_PRODUCTION = MPESA_ENV === "production";
 // Never silently use Safaricom's sandbox shortcode for a live payment.
 const MPESA_SHORTCODE = process.env.MPESA_SHORTCODE?.trim() || (IS_PRODUCTION ? "" : "174379");
@@ -73,6 +74,11 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
+    if (!VALID_MPESA_ENV) {
+      res.status(503).json({ error: "Invalid MPESA_ENV. Set it explicitly to production or sandbox in the backend environment." });
+      return;
+    }
+
     if (!LIVE_CREDENTIALS) {
       res.status(503).json({
         error: `M-PESA ${MPESA_ENV} configuration is incomplete. Check MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, MPESA_PASSKEY, MPESA_SHORTCODE${IS_PRODUCTION ? ", and MPESA_TILL_NUMBER" : ""} in the backend environment.`,
@@ -89,7 +95,8 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    const callbackBaseUrl = process.env.CALLBACK_BASE_URL?.trim().replace(/\/$/, "");
+    // Accept either the backend origin or an origin ending in /api, but never create /api/api/... .
+    const callbackBaseUrl = process.env.CALLBACK_BASE_URL?.trim().replace(/\/+$/, "").replace(/\/api$/i, "");
     if (!callbackBaseUrl || !/^https:\/\//i.test(callbackBaseUrl)) {
       res.status(503).json({
         error: "M-PESA callback is not configured. Set CALLBACK_BASE_URL to the public HTTPS backend URL.",
@@ -133,7 +140,8 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
         PhoneNumber: normalizedPhone,
         CallBackURL: callbackUrl,
         AccountReference: "Tradollar",
-        TransactionDesc: "Tradollar Wallet Deposit",
+        // Daraja documents TransactionDesc as a maximum of 13 characters.
+        TransactionDesc: "WalletTopup",
       }),
     });
 
@@ -230,10 +238,13 @@ router.post("/callback", async (req, res) => {
       return;
     }
 
-    const { CheckoutRequestID, ResultCode, CallbackMetadata } = callback;
-    logger.info({ CheckoutRequestID, ResultCode }, "M-PESA callback received");
+    const { CheckoutRequestID, ResultCode, ResultDesc, CallbackMetadata } = callback;
+    const numericResultCode = Number(ResultCode);
+    // Log Safaricom's human-readable result without credentials or customer PIN data.
+    logger.info({ CheckoutRequestID, ResultCode: numericResultCode, ResultDesc }, "M-PESA callback received");
 
-    if (ResultCode !== 0) {
+    if (!Number.isFinite(numericResultCode) || numericResultCode !== 0) {
+      logger.warn({ CheckoutRequestID, ResultCode: numericResultCode, ResultDesc }, "M-PESA STK transaction did not complete");
       await db.update(depositsTable)
         .set({ status: "failed" })
         .where(and(
