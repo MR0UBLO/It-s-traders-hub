@@ -185,9 +185,8 @@ export default function Deposits() {
             <Button type="button" variant="outline" size="sm" onClick={() => setGatewayOpen(false)} className="mt-1 shrink-0">
               ← Back to payment methods
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">{method.label} Deposit</h1>
-              <p className="text-muted-foreground mt-1 text-sm">Complete your deposit using {method.label}.</p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Use our Tradollar agent for the deposit</h1>
             </div>
           </div>
         ) : (
