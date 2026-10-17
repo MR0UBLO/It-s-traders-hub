@@ -137,7 +137,7 @@ export default function Deposits() {
   const [method, setMethod]       = useState<PayMethod>(METHODS[0]);
   const [gatewayOpen, setGatewayOpen] = useState(false);
   const [mpesaStep, setMpesaStep] = useState<1 | 2>(1);
-  const [phone, setPhone]         = useState("254");
+  const [phone, setPhone]         = useState("");
   const [agentNameAcknowledged, setAgentNameAcknowledged] = useState(false);
   const [amount, setAmount]       = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -180,19 +180,17 @@ export default function Deposits() {
   };
 
   const handlePhoneChange = (val: string) => {
-    // Normalize pasted or typed Kenyan numbers: 0712..., 712..., or 254712... -> 254712...
-    let digits = val.replace(/\D/g, "");
-    if (digits.startsWith("254")) digits = digits.slice(3);
-    if (digits.startsWith("0")) digits = digits.slice(1);
-    digits = digits.slice(0, 9);
-    setPhone("254" + digits);
+    // Keep the number in the format the user types (07... or 254...).
+    // The API normalizes both formats to 254... before sending the STK Push.
+    setPhone(val.replace(/\D/g, "").slice(0, 12));
   };
 
   const handleMpesaDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = Number(amount);
     if (isNaN(numAmount) || numAmount < 10) { toast({ title: "Invalid amount", description: "Minimum deposit is $10 USD (KES 1,300)", variant: "destructive" }); return; }
-    if (phone.length < 12) { toast({ title: "Invalid phone", description: "Enter a valid Safaricom number", variant: "destructive" }); return; }
+    const normalizedPhone = phone.startsWith("0") ? "254" + phone.slice(1) : phone.startsWith("254") ? phone : "254" + phone;
+    if (!/^254(?:7|1)\d{8}$/.test(normalizedPhone)) { toast({ title: "Invalid phone", description: "Enter a valid Kenyan mobile number starting with 07… or 254…", variant: "destructive" }); return; }
     if (!agentNameAcknowledged) { toast({ title: "Confirm recipient first", description: "Confirm that you will only approve the M-PESA prompt if it names Stephen Meja Muhoro and shows the correct amount.", variant: "destructive" }); return; }
     setIsSending(true);
     try {
@@ -301,7 +299,7 @@ export default function Deposits() {
                       {mpesaStep === 2 && <>
                       <div className="space-y-1.5">
                         <Label className="text-sm">M-PESA phone number</Label>
-                        <Input placeholder="0712 345 678" value={phone} onChange={e => handlePhoneChange(e.target.value)} maxLength={12} className="h-11 bg-card border-border font-mono" />
+                        <Input placeholder="07XX XXX XXX or 2547XXXXXXXX" value={phone} onChange={e => handlePhoneChange(e.target.value)} maxLength={12} inputMode="numeric" className="h-11 bg-card border-border font-mono" />
                         <p className="text-xs text-muted-foreground">Enter the number to receive the STK Push (07XX or 254…).</p>
                       </div>
                       <div className="space-y-1.5">
