@@ -239,7 +239,7 @@ export default function Deposits() {
               ← Back to payment methods
             </Button>
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Use our Tradollar agent for the deposit</h1>
+              {method.id === "mpesa" && <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Use our Tradollar agent for the deposit</h1>}
             </div>
           </div>
         ) : (
