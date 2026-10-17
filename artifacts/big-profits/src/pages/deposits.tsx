@@ -82,6 +82,7 @@ export default function Deposits() {
   const { token } = useAuth();
 
   const [method, setMethod]       = useState<PayMethod>(METHODS[0]);
+  const [gatewayOpen, setGatewayOpen] = useState(false);
   const [phone, setPhone]         = useState("254");
   const [agentNameAcknowledged, setAgentNameAcknowledged] = useState(false);
   const [amount, setAmount]       = useState("");
@@ -178,13 +179,28 @@ export default function Deposits() {
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Deposit</h1>
-        <p className="text-muted-foreground mt-1 text-sm">Fund your wallet using your preferred payment method.</p>
+        {gatewayOpen ? (
+          <div className="flex items-start gap-3">
+            <Button type="button" variant="outline" size="sm" onClick={() => setGatewayOpen(false)} className="mt-1 shrink-0">
+              ← Back to payment methods
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">{method.label} Deposit</h1>
+              <p className="text-muted-foreground mt-1 text-sm">Complete your deposit using {method.label}.</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <h1 className="text-3xl font-bold tracking-tight">Deposit</h1>
+            <p className="text-muted-foreground mt-1 text-sm">Fund your wallet using your preferred payment method.</p>
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left: method picker + form */}
         <div className="lg:col-span-2 space-y-4">
+          {!gatewayOpen && <>
           {/* Method type filter */}
           <div className="flex gap-1 bg-muted/30 rounded-xl p-1">
             {[["mobile","Mobile"],["card","Card/E-wallet"],["bank","Bank"],["crypto","Crypto"]].map(([v, l]) => (
@@ -195,19 +211,21 @@ export default function Deposits() {
           {/* Method grid */}
           <div className="grid grid-cols-2 gap-2">
             {METHODS.filter(m => m.type === typeFilter).map(m => (
-              <MethodCard key={m.id} m={m} selected={method.id === m.id} onClick={() => { setMethod(m); setDepositState("idle"); setAmount(""); }} />
+              <MethodCard key={m.id} m={m} selected={false} onClick={() => { setMethod(m); setDepositState("idle"); setAmount(""); setReceipt(null); setCheckoutRequestId(null); setAgentNameAcknowledged(false); setGatewayOpen(true); }} />
             ))}
           </div>
 
-          {method.sim && (
+          </>}
+
+          {gatewayOpen && method.sim && (
             <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 border border-border rounded-xl p-3">
               <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
               <span>{method.label} deposits are processed manually. Contact support after submitting.</span>
             </div>
           )}
 
-          {/* Form */}
-          <Card className={method.id === "mpesa" ? "border-green-500/30 shadow-lg shadow-green-950/10" : "border-border"}>
+          {/* Dedicated payment gateway view */}
+          {gatewayOpen && <Card className={method.id === "mpesa" ? "border-green-500/30 shadow-lg shadow-green-950/10" : "border-border"}>
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white" style={{ backgroundColor: method.color }}>{method.logo}</div>
@@ -356,11 +374,11 @@ export default function Deposits() {
                 </div>
               )}
             </CardContent>
-          </Card>
+          </Card>}
         </div>
 
-        {/* Right: History */}
-        <div className="lg:col-span-3 space-y-4">
+        {/* Right: History stays on the method-selection page */}
+        {!gatewayOpen && <div className="lg:col-span-3 space-y-4">
           {/* Summary */}
           <div className="grid grid-cols-3 gap-3">
             {[
@@ -428,7 +446,7 @@ export default function Deposits() {
               </Table>
             </CardContent>
           </Card>
-        </div>
+        </div>}
       </div>
     </div>
   );
