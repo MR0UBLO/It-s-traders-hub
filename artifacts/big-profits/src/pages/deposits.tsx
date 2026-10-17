@@ -263,7 +263,7 @@ export default function Deposits() {
 
           {/* Method grid */}
           <div className="grid grid-cols-2 gap-2">
-            {METHODS.filter(m => m.type === typeFilter).map(m => (
+            {METHODS.filter(m => ["mpesa","visa","master","usdttrc"].includes(m.id) && (typeFilter === "mobile" ? m.id === "mpesa" : typeFilter === "card" ? ["visa","master"].includes(m.id) : m.id === "usdttrc")).map(m => (
               <MethodCard key={m.id} m={m} selected={false} onClick={() => { setMethod(m); setDepositState("idle"); setAmount(""); setReceipt(null); setCheckoutRequestId(null); setAgentNameAcknowledged(false); setMpesaStep(1); setGatewayOpen(true); }} />
             ))}
           </div>
