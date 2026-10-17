@@ -66,12 +66,65 @@ function MethodCard({ m, selected, onClick }: { m: PayMethod; selected: boolean;
 const CRYPTO_ADDRESSES: Record<string, string> = {
   btc:     "1A1zP1eP5QGefi2DMPTfTL5SLmv7Divf8N",
   eth:     "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-  usdttrc: "TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE",
+  usdttrc: "TAi4xZEbbKmwbBZdEpvcJWn5UZ6qPr7kjQ",
   usdterc: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
   usdc:    "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
   ltc:     "LQ3Kng1eLGMmLuSTqRmhwKMqHcSmMXSGX8",
   sol:     "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin",
 };
+
+function UsdtTrc20Deposit({ address, toast }: { address: string; toast: ReturnType<typeof useToast>["toast"] }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=12&data=${encodeURIComponent(address)}`;
+  const copyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(address);
+      toast({ title: "Address copied", description: "USDT TRC20 deposit address copied to clipboard." });
+    } catch {
+      toast({ title: "Copy unavailable", description: "Please select and copy the address manually.", variant: "destructive" });
+    }
+  };
+  const saveAndShare = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: "USDT TRC20 deposit address", text: address }); return; } catch {}
+    }
+    await copyAddress();
+  };
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-border bg-slate-900 p-4 text-slate-100 space-y-4">
+        <div className="rounded-2xl bg-slate-800 p-4">
+          <p className="text-xs text-slate-400">Network</p>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <div><span className="font-bold text-lg">TRX</span><span className="ml-2 text-sm text-slate-300">Tron (TRC20)</span></div>
+            <span className="text-slate-400">›</span>
+          </div>
+          <p className="mt-2 text-xs text-slate-400">Asset: USDT · Network: TRON</p>
+        </div>
+        <div className="rounded-2xl bg-slate-800 p-4 space-y-5">
+          <div className="mx-auto w-fit rounded-2xl bg-white p-3">
+            <img src={qrUrl} alt="QR code for the USDT TRC20 deposit address" className="block h-56 w-56 max-w-full" />
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">Deposit Address</p>
+            <div className="mt-2 flex items-center gap-3">
+              <p className="min-w-0 flex-1 break-all font-mono text-base font-bold leading-7 text-white">{address}</p>
+              <button type="button" onClick={copyAddress} aria-label="Copy deposit address" className="shrink-0 rounded-full bg-slate-700 p-3 hover:bg-slate-600"><span className="text-xl">▢</span></button>
+            </div>
+          </div>
+          <div className="border-t border-slate-700 pt-3">
+            <button type="button" onClick={() => setDetailsOpen(v => !v)} className="flex w-full items-center justify-center gap-2 py-1 text-sm text-slate-300">
+              {detailsOpen ? "Less Details" : "More Details"} <span>{detailsOpen ? "⌃" : "⌄"}</span>
+            </button>
+            {detailsOpen && <div className="mt-3 space-y-2 text-xs text-slate-300"><p>Only send USDT using the TRON (TRC20) network to this address.</p><p>Sending another token or using a different network may result in permanent loss of funds.</p><p>Confirm the address and network in your wallet before sending.</p></div>}
+          </div>
+        </div>
+      </div>
+      <Button type="button" onClick={saveAndShare} className="h-12 w-full bg-amber-400 text-slate-900 hover:bg-amber-300 font-semibold">Save and Share Address</Button>
+      <p className="text-center text-xs text-muted-foreground">USDT TRC20 only. Verify the address and network before transferring.</p>
+    </div>
+  );
+}
 
 /* ─── MAIN ─────────────────────────────────────────────────────────── */
 export default function Deposits() {
@@ -276,7 +329,9 @@ export default function Deposits() {
                   )}
 
                   {/* Crypto */}
-                  {isCrypto && (
+                  {method.id === "usdttrc" ? (
+                    <UsdtTrc20Deposit address={cryptoAddr} toast={toast} />
+                  ) : isCrypto && (
                     <div className="space-y-4">
                       <div className="bg-muted/30 rounded-xl p-4 text-center space-y-3">
                         <p className="text-xs text-muted-foreground">Send {method.currency} to this address</p>
