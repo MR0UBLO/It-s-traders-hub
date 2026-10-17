@@ -1015,14 +1015,14 @@ useEffect(() => {
                   {symbolMenuOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                      className="absolute top-full left-0 mt-1 z-50 glass-card rounded-xl p-2 shadow-xl min-w-[160px]"
+                      className="absolute top-full left-0 mt-2 z-[100] w-[min(220px,calc(100vw-2rem))] max-h-[min(70vh,420px)] overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#111318] p-2 shadow-2xl shadow-black/50 ring-1 ring-white/5"
                     >
                       {Object.entries(SYMBOL_GROUPS).map(([group, syms]) => (
                         <div key={group} className="mb-3 last:mb-0">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-widest px-2 py-1 mb-1">{group}</p>
+                          <p className="text-[10px] text-gray-400 uppercase tracking-widest px-2 py-1 mb-1">{group}</p>
                           {syms.filter((s) => ALL_SYMBOLS.includes(s)).map((s) => (
                             <button key={s} onClick={() => { setSymbol(s); setSymbolMenuOpen(false); }}
-                              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold leading-5 whitespace-nowrap transition-colors hover:bg-accent ${symbol === s ? "bg-primary/10" : ""}`}
+                              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold leading-5 whitespace-nowrap transition-colors hover:bg-white/10 ${symbol === s ? "bg-white/10 ring-1 ring-white/10" : ""}`}
                               style={{ color: SYMBOL_COLORS[s] || "inherit" }}
                             >{s}</button>
                           ))}
