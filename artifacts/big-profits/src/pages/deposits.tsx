@@ -256,7 +256,7 @@ export default function Deposits() {
           {!gatewayOpen && <>
           {/* Method type filter */}
           <div className="flex gap-1 bg-muted/30 rounded-xl p-1">
-            {[["mobile","Mobile"],["card","Card/E-wallet"],["bank","Bank"],["crypto","Crypto"]].map(([v, l]) => (
+            {[["mobile","Mobile"],["card","Card/E-wallet"],["crypto","Crypto"]].map(([v, l]) => (
               <button key={v} onClick={() => setTypeFilter(v)} className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${typeFilter === v ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>{l}</button>
             ))}
           </div>
