@@ -1068,11 +1068,11 @@ useEffect(() => {
                   {indicatorMenuOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                      className="absolute top-full left-0 mt-1 z-50 glass-card rounded-xl p-2 shadow-xl min-w-[160px]"
+                      className="absolute top-full left-0 mt-2 z-[100] w-[min(220px,calc(100vw-2rem))] max-h-[min(70vh,420px)] overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#111318] p-2 shadow-2xl shadow-black/50 ring-1 ring-white/5"
                     >
                       {indicatorList.map(({ key, label, color }) => (
                         <button key={key} onClick={() => setIndicators((p) => ({ ...p, [key]: !p[key] }))}
-                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-accent ${indicators[key] ? "bg-primary/5" : ""}`}
+                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-white/10 ${indicators[key] ? "bg-white/10" : ""}`}
                         >
                           <span className={`w-2 h-2 rounded-full ${indicators[key] ? "bg-current" : "border border-current opacity-40"} ${color}`} />
                           <span className={indicators[key] ? color : "text-muted-foreground"}>{label}</span>
