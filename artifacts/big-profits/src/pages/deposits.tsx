@@ -83,6 +83,7 @@ export default function Deposits() {
 
   const [method, setMethod]       = useState<PayMethod>(METHODS[0]);
   const [gatewayOpen, setGatewayOpen] = useState(false);
+  const [mpesaStep, setMpesaStep] = useState<1 | 2>(1);
   const [phone, setPhone]         = useState("254");
   const [agentNameAcknowledged, setAgentNameAcknowledged] = useState(false);
   const [amount, setAmount]       = useState("");
@@ -211,7 +212,7 @@ export default function Deposits() {
           {/* Method grid */}
           <div className="grid grid-cols-2 gap-2">
             {METHODS.filter(m => m.type === typeFilter).map(m => (
-              <MethodCard key={m.id} m={m} selected={false} onClick={() => { setMethod(m); setDepositState("idle"); setAmount(""); setReceipt(null); setCheckoutRequestId(null); setAgentNameAcknowledged(false); setGatewayOpen(true); }} />
+              <MethodCard key={m.id} m={m} selected={false} onClick={() => { setMethod(m); setDepositState("idle"); setAmount(""); setReceipt(null); setCheckoutRequestId(null); setAgentNameAcknowledged(false); setMpesaStep(1); setGatewayOpen(true); }} />
             ))}
           </div>
 
@@ -241,7 +242,11 @@ export default function Deposits() {
                   {/* M-PESA P2P */}
                   {method.id === "mpesa" && (
                     <form onSubmit={handleMpesaDeposit} className="space-y-4">
+                      {mpesaStep === 1 && <>
                       <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card to-card p-4 space-y-3 shadow-sm"><div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-500"><CheckCircle2 className="h-5 w-5" /></div><div><p className="text-sm font-semibold">Tradollar P2P agent</p><p className="text-[11px] text-muted-foreground">Recipient name to match</p></div></div><span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-600"><CheckCircle2 className="h-3 w-3" />Tradollar-listed</span></div><p className="text-lg font-bold tracking-tight">{MPESA_AGENT_NAME}</p><div className="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3"><p className="text-xs font-semibold text-amber-600">Important security check</p><p className="mt-1 text-xs text-muted-foreground">After the STK Push arrives, check the recipient name and amount on your actual M-PESA screen. Do not enter your PIN if either one differs.</p></div><label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-background/60 p-3 text-xs leading-relaxed"><input type="checkbox" checked={agentNameAcknowledged} onChange={e => setAgentNameAcknowledged(e.target.checked)} className="mt-0.5 h-4 w-4 accent-emerald-600" /><span>I understand the recipient must be <strong>{MPESA_AGENT_NAME}</strong>. I will only authorize the payment if the name and amount shown in the M-PESA prompt match.</span></label><p className="text-[10px] text-muted-foreground">This label identifies the intended recipient; it does not independently verify the identity displayed by Safaricom.</p></div>
+                      <Button type="button" className="w-full h-11 bg-green-600 hover:bg-green-700 text-white font-semibold" onClick={() => setMpesaStep(2)}>Next</Button>
+                      </>}
+                      {mpesaStep === 2 && <>
                       <div className="space-y-1.5">
                         <Label className="text-sm">M-PESA phone number</Label>
                         <Input placeholder="0712 345 678" value={phone} onChange={e => handlePhoneChange(e.target.value)} maxLength={12} className="h-11 bg-card border-border font-mono" />
@@ -267,6 +272,7 @@ export default function Deposits() {
                       <Button type="submit" className="w-full h-11 bg-green-600 hover:bg-green-700 text-white font-semibold" disabled={isSending || !amount || Number(amount) < 10 || !agentNameAcknowledged}>
                         {isSending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</> : "Continue to M-PESA prompt"}
                       </Button>
+                      </>}
                     </form>
                   )}
 
