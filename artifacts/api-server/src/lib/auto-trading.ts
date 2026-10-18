@@ -118,7 +118,7 @@ function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sel
         && simulation.ticksRemaining > minimumTrendLife
         && trendAligned && momentumAligned && priceAlignedWithMean
         && alignedMoves >= minimumAlignedMoves;
-      if (!confirmed) continue;
+      if (!baseDirection || !confirmed) continue;
       direction = baseDirection;
       confidence = Math.min(97, signal.confidence + alignedMoves);
       strategyReason = `Fortunex tier ${tier}: AI signal, simulator trend, ${alignedMoves}/9 tick momentum, price-average alignment, and volatility checks confirmed`;
