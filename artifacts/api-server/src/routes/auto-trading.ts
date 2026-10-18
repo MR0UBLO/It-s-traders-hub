@@ -92,7 +92,8 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
     if (!match || Number(match[1]) < 1 || Number(match[1]) > 120) {
       return res.status(400).json({ error: "Select a valid EA from the list." });
     }
-    const minimumInvestment = 10 + (Number(match[1]) % 10) * 10;
+    const eaNumber = Number(match[1]);
+    const minimumInvestment = eaNumber === 1 ? 10 : eaNumber === 2 ? 50 : eaNumber === 3 ? 100 : 10 + (eaNumber % 10) * 10;
     const investmentAmount = Number(body.investmentAmount);
     if (!Number.isFinite(investmentAmount) || investmentAmount < minimumInvestment) {
       return res.status(400).json({ error: "This EA requires a minimum investment of $" + minimumInvestment.toFixed(2) + "." });
