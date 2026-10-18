@@ -33,15 +33,22 @@ const EAS: EA[] = Array.from({ length: 120 }, (_, index) => {
   const isPipMover = name.toLowerCase().startsWith("pip mover");
   // Route every Pip Mover-branded EA through the existing Smart Money strategy
   // implementation; the backend receives this selected strategy when the EA starts.
-  const strategy = isPipMover
+  const fortunex = n <= 3;
+  const strategy = isPipMover || fortunex
     ? STRATEGIES.find((item) => item.value === "smc")!
     : STRATEGIES[(n * 7 + Math.floor(n / 3)) % STRATEGIES.length];
+  const fortunexLabels = ["Fortunex AI Fusion", "Fortunex AI Fusion Pro", "Fortunex AI Multi-Filter Elite"];
   const asset = "ALL";
   return {
     id: "EA-" + String(n).padStart(3, "0"), name: name + suffix,
-    strategy: strategy.value, strategyLabel: strategy.label, asset, risk: RISKS[(n * 11) % RISKS.length],
+    strategy: strategy.value,
+    strategyLabel: fortunex ? fortunexLabels[n - 1] : strategy.label,
+    asset,
+    risk: fortunex ? "Low" : RISKS[(n * 11) % RISKS.length],
     minInvestment: n === 1 ? 10 : n === 2 ? 50 : n === 3 ? 100 : 10 + (n % 10) * 10,
-    description: strategy.label + " strategy scans all supported markets and selects the strongest confirmed signal.",
+    description: fortunex
+      ? ["Multi-confirmation entries combine AI signals, trend alignment, momentum, and volatility filtering.", "Advanced multi-filter entries with stronger signal thresholds and conservative risk controls.", "Strictest confirmation tier: AI signal, trend strength, momentum, and volatility checks must align."][n - 1]
+      : strategy.label + " strategy scans all supported markets and selects the strongest confirmed signal.",
   };
 });
 
