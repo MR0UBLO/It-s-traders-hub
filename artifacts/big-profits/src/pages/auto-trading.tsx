@@ -28,7 +28,7 @@ const RISKS = ["Low", "Moderate", "High"] as const;
 type EA = { id: string; name: string; strategy: string; strategyLabel: string; asset: string; risk: typeof RISKS[number]; minInvestment: number; description: string };
 const EAS: EA[] = Array.from({ length: 120 }, (_, index) => {
   const n = index + 1;
-  const name = NAMES[(n - 1) % NAMES.length];
+  const name = n === 1 ? "Fortunex Ai" : n === 2 ? "Fortunex Ai premium" : n === 3 ? "Fortunex Ai elite" : NAMES[(n - 1) % NAMES.length];
   const suffix = n > NAMES.length ? " " + ["Pro", "Prime", "Elite"][Math.floor((n - 1) / NAMES.length) % 3] + " " + Math.ceil(n / NAMES.length) : "";
   const isPipMover = name.toLowerCase().startsWith("pip mover");
   // Route every Pip Mover-branded EA through the existing Smart Money strategy
@@ -40,7 +40,7 @@ const EAS: EA[] = Array.from({ length: 120 }, (_, index) => {
   return {
     id: "EA-" + String(n).padStart(3, "0"), name: name + suffix,
     strategy: strategy.value, strategyLabel: strategy.label, asset, risk: RISKS[(n * 11) % RISKS.length],
-    minInvestment: 10 + (n % 10) * 10,
+    minInvestment: n === 1 ? 10 : n === 2 ? 50 : n === 3 ? 100 : 10 + (n % 10) * 10,
     description: strategy.label + " strategy scans all supported markets and selects the strongest confirmed signal.",
   };
 });
