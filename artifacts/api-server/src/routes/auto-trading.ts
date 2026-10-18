@@ -114,6 +114,14 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
     if (body.trailingStop !== undefined) config.trailingStop = Boolean(body.trailingStop);
     if (body.breakEven !== undefined) config.breakEven = Boolean(body.breakEven);
     if (body.aiSpeed === "fast" || body.aiSpeed === "slow") config.aiSpeed = body.aiSpeed;
+    // Enforce Fortunex-specific strategy and conservative risk settings on the
+    // server, so a modified client cannot bypass the advanced EA configuration.
+    if (eaNumber <= 3) {
+      config.strategy = "smc";
+      config.riskPct = eaNumber === 1 ? 1 : eaNumber === 2 ? 0.75 : 0.5;
+      config.trailingStop = true;
+      config.breakEven = true;
+    }
     if (body.asset !== undefined) {
       const asset = String(body.asset).toUpperCase();
       const validAssets: string[] = [...SYMBOLS, "ALL"];
