@@ -93,6 +93,40 @@ function pickSignal(runtime: Runtime): { symbol: string; direction: "buy" | "sel
     let confidence = signal.confidence;
     let strategyReason = "";
 
+    // Fortunex EAs use a dedicated confluence engine instead of the generic
+    // single-strategy path. Higher tiers require stronger independent confirmation.
+    const fortunexMatch = /^EA-00([1-3])$/.exec(runtime.config.eaId ?? "");
+    if (fortunexMatch) {
+      const tier = Number(fortunexMatch[1]);
+      const minimumConfidence = tier === 1 ? 70 : tier === 2 ? 77 : 83;
+      const minimumStrength = tier === 1 ? 0.35 : tier === 2 ? 0.5 : 0.65;
+      const minimumTrendLife = tier === 1 ? 8 : tier === 2 ? 14 : 20;
+      const minimumAlignedMoves = tier === 1 ? 5 : tier === 2 ? 6 : 7;
+      const recentWindow = ticks.slice(-10);
+      const moves = recentWindow.slice(1).map((value, i) => value - recentWindow[i]);
+      const alignedMoves = baseDirection
+        ? moves.filter((move) => baseDirection === "buy" ? move > 0 : move < 0).length
+        : 0;
+      const netMove = recentWindow.length >= 2 ? recentWindow[recentWindow.length - 1] - recentWindow[0] : 0;
+      const momentumAligned = baseDirection === "buy" ? netMove > 0 : baseDirection === "sell" ? netMove < 0 : false;
+      const trendAligned = !!baseDirection && !!simulation
+        && simulation.direction === (baseDirection === "buy" ? 1 : -1);
+      const priceAlignedWithMean = baseDirection === "buy" ? current >= mean : baseDirection === "sell" ? current <= mean : false;
+      const confirmed = !!baseDirection && !!simulation && !spike
+        && signal.confidence >= minimumConfidence
+        && simulation.strength >= minimumStrength
+        && simulation.ticksRemaining > minimumTrendLife
+        && trendAligned && momentumAligned && priceAlignedWithMean
+        && alignedMoves >= minimumAlignedMoves;
+      if (!confirmed) continue;
+      direction = baseDirection;
+      confidence = Math.min(97, signal.confidence + alignedMoves);
+      strategyReason = `Fortunex tier ${tier}: AI signal, simulator trend, ${alignedMoves}/9 tick momentum, price-average alignment, and volatility checks confirmed`;
+      const candidate = { symbol, direction, confidence, reason: `${strategyReason}; ${signal.reason}` };
+      if (!best || candidate.confidence > best.confidence) best = candidate;
+      continue;
+    }
+
     switch (runtime.config.strategy) {
       case "trend": {
         if (baseDirection && simulation && simulation.direction === (baseDirection === "buy" ? 1 : -1)
