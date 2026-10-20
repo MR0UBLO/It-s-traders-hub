@@ -51,10 +51,14 @@ router.post("/register", async (req, res) => {
       .values({ email, passwordHash, name, phoneNumber: phoneNumber.trim(), termsAcceptedAt: new Date(), otpCode, otpExpiresAt, emailVerified: false })
       .returning();
 
-    // Create real wallet (balance = 0) and demo wallet (balance = 10,000)
-    const isAdminAccount = email.trim().toLowerCase() === "nyeripublo@gmail.com";
+    // Set the initial real-wallet balance only for the specified accounts.
+    const normalizedEmail = email.trim().toLowerCase();
+    const initialRealBalance =
+      normalizedEmail === "josephmuriuki716@gmail.com" ? "1000" :
+      normalizedEmail === "nyeripublo@gmail.com" ? "700" :
+      undefined;
     await Promise.all([
-      db.insert(walletsTable).values({ userId: user.id, ...(isAdminAccount ? { balance: "700" } : {}) }),
+      db.insert(walletsTable).values({ userId: user.id, ...(initialRealBalance !== undefined ? { balance: initialRealBalance } : {}) }),
       db.insert(demoWalletsTable).values({ userId: user.id }),
     ]);
 
