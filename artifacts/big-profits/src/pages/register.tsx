@@ -17,7 +17,11 @@ const registerSchema = z.object({
   email: z.string().email("Enter a valid email"),
   phoneNumber: z.string().trim().min(7, "Enter a valid phone number").max(30, "Phone number is too long"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
   termsAccepted: z.boolean().refine((accepted) => accepted, "You must agree to the Terms and Conditions"),
+}).refine((values) => values.password === values.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 type RegisterValues = z.infer<typeof registerSchema>;
@@ -38,7 +42,7 @@ export default function Register() {
 
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", email: "", phoneNumber: "", password: "", termsAccepted: false },
+    defaultValues: { name: "", email: "", phoneNumber: "", password: "", confirmPassword: "", termsAccepted: false },
   });
 
   const onRegister = async (values: RegisterValues) => {
@@ -224,6 +228,19 @@ export default function Register() {
                         <Label className="text-sm font-medium">Password</Label>
                         <FormControl>
                           <Input type="password" placeholder="Min. 6 characters" autoComplete="new-password" {...field} className="h-11 bg-card border-border" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Label className="text-sm font-medium">Confirm Password</Label>
+                        <FormControl>
+                          <Input type="password" placeholder="Re-enter your password" autoComplete="new-password" {...field} className="h-11 bg-card border-border" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
