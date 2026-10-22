@@ -180,6 +180,7 @@ export default function Withdraw() {
             <p className="text-3xl font-bold font-mono mt-1">${balance.toFixed(2)} <span className="text-lg text-muted-foreground font-normal">USD</span></p>
           </div>
 
+          {!gatewayOpen && <>
           {/* Method type filter */}
           <div className="flex gap-1 bg-muted/30 rounded-xl p-1">
             {[["mobile","Mobile"],["card","Card"],["crypto","USDT TRC20"]].map(([v, l]) => (
@@ -195,6 +196,8 @@ export default function Withdraw() {
           </div>
 
 
+          </>}
+          
           {/* Selected payment gateway: shown only after a method is chosen */}
           {gatewayOpen && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-5">
             <Button type="button" variant="ghost" className="mb-3 px-0" onClick={() => setGatewayOpen(false)}>← Back to withdrawal methods</Button>
