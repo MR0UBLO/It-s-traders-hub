@@ -92,6 +92,7 @@ export default function Withdraw() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState("mobile");
+  const [gatewayOpen, setGatewayOpen] = useState(false);
 
   const balance = wallet ? Number(wallet.balance) : 0;
 
@@ -182,20 +183,21 @@ export default function Withdraw() {
           {/* Method type filter */}
           <div className="flex gap-1 bg-muted/30 rounded-xl p-1">
             {[["mobile","Mobile"],["card","Card"],["crypto","USDT TRC20"]].map(([v, l]) => (
-              <button key={v} onClick={() => setTypeFilter(v)} className={`flex-1 py-1 rounded-lg text-[9px] font-bold transition-all ${typeFilter === v ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>{l}</button>
+              <button key={v} onClick={() => { setTypeFilter(v); setGatewayOpen(false); }} className={`flex-1 py-1 rounded-lg text-[9px] font-bold transition-all ${typeFilter === v ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>{l}</button>
             ))}
           </div>
 
           {/* Methods */}
           <div className="grid grid-cols-2 gap-2">
             {WMETHODS.filter(m => ["mpesa","visa","master","usdt"].includes(m.id) && (typeFilter === "mobile" ? m.id === "mpesa" : typeFilter === "card" ? ["visa","master"].includes(m.id) : m.id === "usdt")).map(m => (
-              <MethodCard key={m.id} m={m} selected={method.id === m.id} onClick={() => { setMethod(m); setSubmitted(false); setAmount(""); setAddress(""); setAccount(""); }} />
+              <MethodCard key={m.id} m={m} selected={method.id === m.id} onClick={() => { setMethod(m); setSubmitted(false); setAmount(""); setAddress(""); setAccount(""); setGatewayOpen(true); }} />
             ))}
           </div>
 
 
-          {/* Form */}
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-5">
+          {/* Selected payment gateway: shown only after a method is chosen */}
+          {gatewayOpen && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-2xl p-5">
+            <Button type="button" variant="ghost" className="mb-3 px-0" onClick={() => setGatewayOpen(false)}>← Back to withdrawal methods</Button>
             {submitted ? (
               <div className="text-center py-6 space-y-4">
                 <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center mx-auto"><CheckCircle className="w-7 h-7 text-green-500" /></div>
@@ -292,7 +294,7 @@ export default function Withdraw() {
                 </form>
               </>
             )}
-          </motion.div>
+          </motion.div>}
         </div>
 
         {/* Right: History */}
