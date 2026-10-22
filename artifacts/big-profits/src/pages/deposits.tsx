@@ -485,7 +485,7 @@ export default function Deposits() {
                       <TableRow key={dep.id} className="border-border hover:bg-muted/20 transition-colors">
                         <TableCell className="pl-6 text-muted-foreground text-xs">{format(new Date(dep.createdAt), "MMM d, yy HH:mm")}</TableCell>
                         <TableCell className="font-mono font-bold text-sm">${(Number(dep.amount) / USD_RATE).toFixed(2)} <span className="text-muted-foreground font-normal text-xs">USD</span></TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{dep.phone === "INITIAL_ACCOUNT_CREDIT" ? "Initial Account Credit" : "M-PESA"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{dep.phone === "INITIAL_ACCOUNT_CREDIT" ? "Account Credit" : "M-PESA"}</TableCell>
                         <TableCell>
                           <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${dep.status === "completed" ? "bg-green-500/10 text-green-500" : dep.status === "failed" ? "bg-red-500/10 text-red-500" : "bg-yellow-500/10 text-yellow-500"}`}>
                             {dep.status === "completed" && <CheckCircle2 className="w-3 h-3" />}
