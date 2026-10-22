@@ -467,41 +467,43 @@ export default function Deposits() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border">
-                    <TableHead className="pl-6 text-xs">Date</TableHead>
-                    <TableHead className="text-xs">Amount</TableHead>
-                    <TableHead className="text-xs">Method</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
-                    <TableHead className="pr-6 text-xs">Reference</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></TableCell></TableRow>
-                  ) : filteredDeposits && filteredDeposits.length > 0 ? (
-                    filteredDeposits.map(dep => (
-                      <TableRow key={dep.id} className="border-border hover:bg-muted/20 transition-colors">
-                        <TableCell className="pl-6 text-muted-foreground text-xs">{format(new Date(dep.createdAt), "MMM d, yy HH:mm")}</TableCell>
-                        <TableCell className="font-mono font-bold text-sm">${(Number(dep.amount) / USD_RATE).toFixed(2)} <span className="text-muted-foreground font-normal text-xs">USD</span></TableCell>
-                        <TableCell className="text-xs text-muted-foreground">M-PESA</TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${dep.status === "completed" ? "bg-green-500/10 text-green-500" : dep.status === "failed" ? "bg-red-500/10 text-red-500" : "bg-yellow-500/10 text-yellow-500"}`}>
-                            {dep.status === "completed" && <CheckCircle2 className="w-3 h-3" />}
-                            {dep.status === "failed" && <XCircle className="w-3 h-3" />}
-                            {dep.status === "pending" && <Clock className="w-3 h-3" />}
-                            {dep.status}
-                          </span>
-                        </TableCell>
-                        <TableCell className="pr-6 font-mono text-xs text-muted-foreground">{dep.mpesaReceiptNumber || "—"}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground text-sm">No deposit history yet.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-[620px]">
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="pl-6 text-xs whitespace-nowrap">Date</TableHead>
+                      <TableHead className="text-xs whitespace-nowrap">Amount</TableHead>
+                      <TableHead className="text-xs whitespace-nowrap">Method</TableHead>
+                      <TableHead className="text-xs whitespace-nowrap">Status</TableHead>
+                      <TableHead className="pr-6 text-xs whitespace-nowrap">Reference</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></TableCell></TableRow>
+                    ) : filteredDeposits && filteredDeposits.length > 0 ? (
+                      filteredDeposits.map(dep => (
+                        <TableRow key={dep.id} className="border-border hover:bg-muted/20 transition-colors">
+                          <TableCell className="pl-6 text-muted-foreground text-xs whitespace-nowrap">{format(new Date(dep.createdAt), "MMM d, yy HH:mm")}</TableCell>
+                          <TableCell className="font-mono font-bold text-sm whitespace-nowrap">${(Number(dep.amount) / USD_RATE).toFixed(2)} <span className="text-muted-foreground font-normal text-xs">USD</span></TableCell>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">M-PESA</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${dep.status === "completed" ? "bg-green-500/10 text-green-500" : dep.status === "failed" ? "bg-red-500/10 text-red-500" : "bg-yellow-500/10 text-yellow-500"}`}>
+                              {dep.status === "completed" && <CheckCircle2 className="w-3 h-3" />}
+                              {dep.status === "failed" && <XCircle className="w-3 h-3" />}
+                              {dep.status === "pending" && <Clock className="w-3 h-3" />}
+                              {dep.status}
+                            </span>
+                          </TableCell>
+                          <TableCell className="pr-6 font-mono text-xs text-muted-foreground whitespace-nowrap">{dep.mpesaReceiptNumber || "—"}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground text-sm">No deposit history yet.</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         </div>}
