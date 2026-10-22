@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { db, usersTable, walletsTable, demoWalletsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, usersTable, walletsTable, demoWalletsTable, depositsTable } from "@workspace/db";
+import { eq, and, sql } from "drizzle-orm";
 import { requireAuth, signToken, type AuthRequest } from "../middlewares/auth.js";
 import { logger } from "../lib/logger.js";
 import { sendOtpEmail } from "../lib/email.js";
@@ -9,6 +9,45 @@ import { sendOtpEmail } from "../lib/email.js";
 const router = Router();
 
 const EMAIL_ENABLED = false; // OTP shown on screen
+
+// Initial real-account credits are tracked separately from M-PESA transactions.
+const INITIAL_CREDIT_PHONE_MARKER = "INITIAL_ACCOUNT_CREDIT";
+const MPESA_USD_RATE = Number(process.env.MPESA_USD_RATE || 130);
+
+function initialRealCreditUsd(email: string): number | undefined {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail === "josephmuriuki716@gmail.com") return 1000;
+  if (normalizedEmail === "nyeripublo@gmail.com") return 700;
+  return undefined;
+}
+
+// Backfill the initial credit for these two existing accounts on login, idempotently.
+async function ensureInitialCreditRecord(userId: number, email: string): Promise<void> {
+  const initialUsd = initialRealCreditUsd(email);
+  if (initialUsd === undefined) return;
+
+  const [existingCredit] = await db.select({ id: depositsTable.id })
+    .from(depositsTable)
+    .where(and(
+      eq(depositsTable.userId, userId),
+      eq(depositsTable.accountType, "real"),
+      eq(depositsTable.phone, INITIAL_CREDIT_PHONE_MARKER),
+    ))
+    .limit(1);
+  if (existingCredit) return;
+
+  await db.insert(depositsTable).values({
+    userId,
+    accountType: "real",
+    amount: String(initialUsd * MPESA_USD_RATE),
+    status: "completed",
+    phone: INITIAL_CREDIT_PHONE_MARKER,
+    completedAt: new Date(),
+  });
+  await db.update(walletsTable)
+    .set({ totalDeposited: sql`${walletsTable.totalDeposited} + ${String(initialUsd)}` })
+    .where(eq(walletsTable.userId, userId));
+}
 
 
 function generateOtp(): string {
@@ -52,14 +91,25 @@ router.post("/register", async (req, res) => {
       .returning();
 
     // Set the initial real-wallet balance only for the specified accounts.
-    const normalizedEmail = email.trim().toLowerCase();
-    const initialRealBalance =
-      normalizedEmail === "josephmuriuki716@gmail.com" ? "1000" :
-      normalizedEmail === "nyeripublo@gmail.com" ? "700" :
-      undefined;
+    const initialRealBalance = initialRealCreditUsd(email);
     await Promise.all([
-      db.insert(walletsTable).values({ userId: user.id, ...(initialRealBalance !== undefined ? { balance: initialRealBalance } : {}) }),
+      db.insert(walletsTable).values({
+        userId: user.id,
+        ...(initialRealBalance !== undefined
+          ? { balance: String(initialRealBalance), totalDeposited: String(initialRealBalance) }
+          : {}),
+      }),
       db.insert(demoWalletsTable).values({ userId: user.id }),
+      ...(initialRealBalance !== undefined
+        ? [db.insert(depositsTable).values({
+            userId: user.id,
+            accountType: "real",
+            amount: String(initialRealBalance * MPESA_USD_RATE),
+            status: "completed",
+            phone: INITIAL_CREDIT_PHONE_MARKER,
+            completedAt: new Date(),
+          })]
+        : []),
     ]);
 
     const emailSent = EMAIL_ENABLED ? await sendOtpEmail(email, name, otpCode) : false;
@@ -218,6 +268,10 @@ logger.info(
 
 // Do not reset wallet balance on login. The real wallet is persistent and
 // withdrawals are deducted server-side by the withdrawal transaction.
+
+// Keep the initial-credit history and portfolio totals in sync for the two
+// configured accounts, including accounts created before this fix.
+await ensureInitialCreditRecord(user.id, user.email);
 
 const [demoWallet] = await db
   .select()
