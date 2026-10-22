@@ -22,7 +22,7 @@ function initialRealCreditUsd(email: string): number | undefined {
 }
 
 // Backfill the initial credit for these two existing accounts on login, idempotently.
-async function ensureInitialCreditRecord(userId: number, email: string): Promise<void> {
+async function ensureInitialCreditRecord(userId: number, email: string, accountCreatedAt: Date): Promise<void> {
   const initialUsd = initialRealCreditUsd(email);
   if (initialUsd === undefined) return;
 
@@ -42,7 +42,7 @@ async function ensureInitialCreditRecord(userId: number, email: string): Promise
     amount: String(initialUsd * MPESA_USD_RATE),
     status: "completed",
     phone: INITIAL_CREDIT_PHONE_MARKER,
-    completedAt: new Date(),
+    completedAt: accountCreatedAt,
   });
   await db.update(walletsTable)
     .set({ totalDeposited: sql`${walletsTable.totalDeposited} + ${String(initialUsd)}` })
@@ -107,7 +107,7 @@ router.post("/register", async (req, res) => {
             amount: String(initialRealBalance * MPESA_USD_RATE),
             status: "completed",
             phone: INITIAL_CREDIT_PHONE_MARKER,
-            completedAt: new Date(),
+            completedAt: user.createdAt,
           })]
         : []),
     ]);
@@ -271,7 +271,7 @@ logger.info(
 
 // Keep the initial-credit history and portfolio totals in sync for the two
 // configured accounts, including accounts created before this fix.
-await ensureInitialCreditRecord(user.id, user.email);
+await ensureInitialCreditRecord(user.id, user.email, user.createdAt);
 
 const [demoWallet] = await db
   .select()
