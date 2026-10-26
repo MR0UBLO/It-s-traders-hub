@@ -295,6 +295,41 @@ if (!demoWallet) {
   }
 });
 
+
+// POST /api/auth/change-password-by-email — verify the email and last known password.
+router.post("/change-password-by-email", async (req, res) => {
+  try {
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
+    if (!email || !currentPassword || !newPassword) {
+      res.status(400).json({ error: "Email, last remembered password, and new password are required" });
+      return;
+    }
+    if (newPassword.length < 6 || newPassword.length > 128) {
+      res.status(400).json({ error: "New password must be between 6 and 128 characters" });
+      return;
+    }
+    if (currentPassword === newPassword) {
+      res.status(400).json({ error: "Choose a new password different from your last password" });
+      return;
+    }
+    const [user] = await db.select().from(usersTable).where(sql`lower(${usersTable.email}) = ${email}`).limit(1);
+    if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      res.status(400).json({ error: "Email or last remembered password is incorrect" });
+      return;
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await db.update(usersTable)
+      .set({ passwordHash, otpCode: null, otpExpiresAt: null })
+      .where(eq(usersTable.id, user.id));
+    res.json({ success: true, message: "Password changed successfully. You can now log in." });
+  } catch (err) {
+    logger.error({ err }, "Change password by email error");
+    res.status(500).json({ error: "Unable to change password right now" });
+  }
+});
+
 // POST /api/auth/logout
 router.post("/logout", (_req, res) => {
   res.json({ success: true });

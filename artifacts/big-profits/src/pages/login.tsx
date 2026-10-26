@@ -139,6 +139,11 @@ export default function Login() {
                   </FormItem>
                 )}
               />
+              <div className="-mt-2 flex justify-end">
+                <Link href="/forgot-password" className="text-sm text-primary hover:underline font-medium">
+                  Forgot password?
+                </Link>
+              </div>
               <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold" disabled={isPending}>
                 {isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Logging in...</> : "Log In"}
               </Button>
