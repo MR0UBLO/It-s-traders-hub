@@ -296,37 +296,68 @@ if (!demoWallet) {
 });
 
 
-// POST /api/auth/change-password-by-email — verify the email and last known password.
-router.post("/change-password-by-email", async (req, res) => {
+// POST /api/auth/request-password-reset — OTP is displayed on screen when email delivery is disabled.
+router.post("/request-password-reset", async (req, res) => {
   try {
     const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
-    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    if (!email) {
+      res.status(400).json({ error: "Email address is required" });
+      return;
+    }
+    const [user] = await db.select().from(usersTable).where(sql`lower(${usersTable.email}) = ${email}`).limit(1);
+    if (!user) {
+      res.status(404).json({ error: "No account was found for that email address" });
+      return;
+    }
+    const otpCode = generateOtp();
+    const otpExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    await db.update(usersTable).set({ otpCode, otpExpiresAt }).where(eq(usersTable.id, user.id));
+    const emailSent = EMAIL_ENABLED ? await sendOtpEmail(user.email, user.name, otpCode) : false;
+    res.json({
+      success: true,
+      emailSent,
+      ...(!emailSent && { devOtp: otpCode }),
+      message: emailSent ? "A reset code has been sent to your email." : "Your reset code is shown on this screen."
+    });
+  } catch (err) {
+    logger.error({ err }, "Request password reset error");
+    res.status(500).json({ error: "Unable to request a reset code right now" });
+  }
+});
+
+// POST /api/auth/reset-password-with-otp — validate the short-lived reset code before changing the password.
+router.post("/reset-password-with-otp", async (req, res) => {
+  try {
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    const otp = typeof req.body?.otp === "string" ? req.body.otp.trim() : "";
     const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
-    if (!email || !currentPassword || !newPassword) {
-      res.status(400).json({ error: "Email, last remembered password, and new password are required" });
+    if (!email || !otp || !newPassword) {
+      res.status(400).json({ error: "Email, reset code, and new password are required" });
+      return;
+    }
+    if (!/^\\d{6}$/.test(otp)) {
+      res.status(400).json({ error: "Enter the 6-digit reset code" });
       return;
     }
     if (newPassword.length < 6 || newPassword.length > 128) {
       res.status(400).json({ error: "New password must be between 6 and 128 characters" });
       return;
     }
-    if (currentPassword === newPassword) {
-      res.status(400).json({ error: "Choose a new password different from your last password" });
+    const [user] = await db.select().from(usersTable).where(sql`lower(${usersTable.email}) = ${email}`).limit(1);
+    if (!user || !user.otpCode || user.otpCode !== otp) {
+      res.status(400).json({ error: "Invalid reset code. Request a new code and try again." });
       return;
     }
-    const [user] = await db.select().from(usersTable).where(sql`lower(${usersTable.email}) = ${email}`).limit(1);
-    if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
-      res.status(400).json({ error: "Email or last remembered password is incorrect" });
+    if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+      res.status(400).json({ error: "Reset code expired. Request a new code and try again." });
       return;
     }
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    await db.update(usersTable)
-      .set({ passwordHash, otpCode: null, otpExpiresAt: null })
-      .where(eq(usersTable.id, user.id));
+    await db.update(usersTable).set({ passwordHash, otpCode: null, otpExpiresAt: null }).where(eq(usersTable.id, user.id));
     res.json({ success: true, message: "Password changed successfully. You can now log in." });
   } catch (err) {
-    logger.error({ err }, "Change password by email error");
-    res.status(500).json({ error: "Unable to change password right now" });
+    logger.error({ err }, "Reset password with OTP error");
+    res.status(500).json({ error: "Unable to reset password right now" });
   }
 });
 
