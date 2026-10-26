@@ -57,7 +57,6 @@ export default function ForgotPassword() {
         </div>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Change password</h1>
-          <p className="text-sm text-muted-foreground mt-2">Enter your email, the last password you remember, and your new password.</p>
         </div>
         <form onSubmit={changePassword} className="space-y-5">
           <div className="space-y-2">
