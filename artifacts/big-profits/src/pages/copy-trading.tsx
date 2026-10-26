@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useLocation } from "wouter";
 import { useAccountStore } from "@/store/account-store";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Search, SlidersHorizontal, Star, BadgeCheck, TrendingUp, TrendingDown, X, ChevronDown, Copy, Shield, AlertTriangle, Info, Zap } from "lucide-react";
@@ -12,7 +13,7 @@ import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 const FIRST_NAMES = ["James","John","Peter","David","Michael","Joseph","Samuel","Daniel","Stephen","Benjamin","Anthony","Charles","Paul","Patrick","Francis","Eric","Kevin","Alex","Brian","Dennis","Felix","Gilbert","Henry","Isaac","Kenneth","Leonard","Martin","Nathan","Oliver","Philip","Richard","Simon","Thomas","Victor","William","Alfred","Edward","Emmanuel","George","Bernard","Mary","Grace","Faith","Hope","Mercy","Anne","Jane","Sarah","Esther","Ruth","Lydia","Rebecca","Elizabeth","Catherine","Margaret","Agnes","Alice","Betty","Caroline","Diana","Florence","Gloria","Hannah","Irene","Janet","Karen","Lucy","Nancy","Patricia","Rachel","Sandra","Susan","Teresa","Wanjiku","Achieng","Chebet","Auma","Njeri","Wambui","Muthoni","Wangari","Amina","Zawadi"];
 const LAST_NAMES = ["Kamau","Mwangi","Otieno","Karanja","Njoroge","Mutua","Wambua","Gitonga","Ochieng","Ndegwa","Njogu","Waweru","Mugo","Kibe","Korir","Rotich","Kiptoo","Ruto","Sang","Tanui","Bett","Ngetich","Ogola","Onyango","Owino","Omondi","Onyando","Wanyama","Baraza","Makokha","Simiyu","Wekesa","Masika","Adhiambo","Sifuna","Wesonga","Muthee","Kiprotich","Chepkorir","Langat","Kiplagat","Ndirangu","Gatheru","Njeru","Kimani","Maina","Gicheru","Wainaina","Mwenda","Ngugi"];
 const ASSETS = [["EURUSD","GBPUSD","XAUUSD"],["BTCUSD","ETHUSD","XAUUSD"],["NASDAQ","S&P500","EURUSD"],["CRUDE OIL","XAUUSD","GBPUSD"],["EURUSD","USDJPY","GBPUSD"],["BTCUSD","SOLUSDT","ETHUSD"],["XAUUSD","SILVER","CRUDE OIL"],["EURUSD","GBPUSD","USDCHF"]];
-const RISKS: ("Low"|"Medium"|"High")[] = ["Low","Low","Medium","Medium","High"];
+const RISKS: ("Low"|"Moderate"|"High")[] = ["Low","Moderate","High"];
 const EA_NAMES = [
   "Atlas Trend Rider","Gold Falcon","Pip Navigator","Quantum Scalper","London Breakout",
   "New York Momentum","Smart Money Flow","Orion Swing","Phoenix Reversal","Bullion Hunter",
@@ -30,9 +31,12 @@ const EA_STRATEGIES = [
 function eaForNumber(n: number) {
   const base = EA_NAMES[(n - 1) % EA_NAMES.length];
   const suffix = n > EA_NAMES.length ? " " + ["Pro", "Prime", "Elite"][Math.floor((n - 1) / EA_NAMES.length) % 3] + " " + Math.ceil(n / EA_NAMES.length) : "";
+  const name = n === 1 ? "Fortunex Ai" : n === 2 ? "Fortunex Ai premium" : n === 3 ? "Fortunex Ai elite" : base + suffix;
   const isPipMover = base.toLowerCase().startsWith("pip mover");
-  const strategy = isPipMover ? EA_STRATEGIES[5] : EA_STRATEGIES[(n * 7 + Math.floor(n / 3)) % EA_STRATEGIES.length];
-  return { name: base + suffix, strategy: strategy.value, strategyLabel: strategy.label, eaId: "EA-" + String(n).padStart(3, "0") };
+  const fortunex = n <= 3;
+  const strategy = isPipMover || fortunex ? EA_STRATEGIES[5] : EA_STRATEGIES[(n * 7 + Math.floor(n / 3)) % EA_STRATEGIES.length];
+  const fortunexLabels = ["Fortunex AI Fusion", "Fortunex AI Fusion Pro", "Fortunex AI Multi-Filter Elite"];
+  return { name, strategy: strategy.value, strategyLabel: fortunex ? fortunexLabels[n - 1] : strategy.label, eaId: "EA-" + String(n).padStart(3, "0"), risk: fortunex ? "Low" as const : RISKS[(n * 11) % RISKS.length] };
 }
 const STRATEGIES = ["Trend Following","Scalping","Swing Trading","Price Action","Smart Money Concepts","Grid Trading","Breakout Trading","News Trading"];
 
@@ -61,7 +65,7 @@ const TRADERS = Array.from({ length: 120 }, (_, i) => {
   const copiers = 0;
   const copyFee = Math.floor(seeded(s * 23, 5, 0));
   const profitShare = Math.floor(seeded(s * 29, 30, 10));
-  const risk = RISKS[Math.floor(seeded(s * 31, RISKS.length))];
+  const risk = ea.risk;
   const assets = ASSETS[Math.floor(seeded(s * 37, ASSETS.length))];
   const strategy = STRATEGIES[Math.floor(seeded(s * 41, STRATEGIES.length))];
   const trades = 0;
@@ -72,7 +76,7 @@ const TRADERS = Array.from({ length: 120 }, (_, i) => {
   const minCopy = [50,100,200,500][Math.floor(seeded(s * 67, 4))];
   const avatarColor = ["#6366f1","#8b5cf6","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#14b8a6"][Math.floor(seeded(s * 71, 8))];
   const ea = eaForNumber(i + 1);
-  const actualMin = 10 + ((i + 1) % 10) * 10;
+  const actualMin = i + 1 === 1 ? 10 : i + 1 === 2 ? 50 : i + 1 === 3 ? 100 : 10 + ((i + 1) % 10) * 10;
   return { id: i + 1, name: ea.name, eaId: ea.eaId, eaStrategy: ea.strategy, eaStrategyLabel: ea.strategyLabel, winRate, monthlyRoi, overallRoi, drawdown, followers, copiers: 0, copyFee: 0, profitShare: 0, risk, assets: ["EURUSD","GBPUSD","XAUUSD","BTCUSD","ETHUSD","USDJPY"], strategy: ea.strategyLabel, trades, avgDuration: "Set by session", lastActive: "Ready to start", verified: true, equity, minCopy: actualMin, maxCopy: actualMin * 100, avatarColor, initials: ea.name.split(/\s+/).map((part: string) => part[0]).join("").slice(0,2), isFollowing: false };
 });
 
@@ -95,8 +99,8 @@ function Spark({ data, color }: { data: { m: number; v: number }[]; color: strin
 }
 
 /* ─── RISK BADGE ─────────────────────────────────────────────────── */
-function RiskBadge({ risk }: { risk: "Low"|"Medium"|"High" }) {
-  const cls = risk === "Low" ? "bg-green-500/10 text-green-400 border-green-500/20" : risk === "Medium" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" : "bg-red-500/10 text-red-400 border-red-500/20";
+function RiskBadge({ risk }: { risk: "Low"|"Moderate"|"High" }) {
+  const cls = risk === "Low" ? "bg-green-500/10 text-green-400 border-green-500/20" : risk === "Moderate" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" : "bg-red-500/10 text-red-400 border-red-500/20";
   return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cls}`}>{risk} Risk</span>;
 }
 
@@ -133,7 +137,7 @@ function CopyDialog({ trader, onClose }: { trader: typeof TRADERS[0]; onClose: (
           accountType: account, eaId: trader.eaId, eaPassword,
           asset: "ALL", investmentAmount: num, tradeDuration: tradeDurationSeconds,
           sessionDurationSeconds: durationMinutes * 60, strategy: trader.eaStrategy, aiSpeed,
-          riskPct: trader.risk === "High" ? 4 : trader.risk === "Medium" ? 2 : 1,
+          riskPct: trader.risk === "High" ? 4 : trader.risk === "Moderate" ? 2 : 1,
           lotSize: 0.1, dailyTargetPct: 5, dailyLossPct: 3, maxTrades: trades,
           stopLossPips: 30, takeProfitPips: 60, trailingStop: true, breakEven: true,
         }),
@@ -278,7 +282,7 @@ function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0];
           </div>
 
           <Button onClick={onCopy} className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base">
-            <Copy className="w-4 h-4 mr-2" /> Copy This Trader
+            <Copy className="w-4 h-4 mr-2" /> Copy This Expert
           </Button>
         </div>
       </motion.div>
@@ -336,7 +340,7 @@ function TraderCard({ trader, onView, onCopy, isFav, onToggleFav }: { trader: ty
       </div>
 
       <Button onClick={e => { e.stopPropagation(); onCopy(); }} className="w-full h-9 bg-primary/90 hover:bg-primary text-primary-foreground font-semibold text-sm" size="sm">
-        <Copy className="w-3.5 h-3.5 mr-1.5" /> Copy Trade
+        <Copy className="w-3.5 h-3.5 mr-1.5" /> Copy Expert
       </Button>
     </motion.div>
   );
@@ -356,6 +360,7 @@ export default function CopyTrading() {
   const [copyId, setCopyId]           = useState<number | null>(null);
   const [assetFilter, setAssetFilter] = useState("All");
   const [showFilters, setShowFilters] = useState(false);
+  const [, setLocation] = useLocation();
 
   const profile = TRADERS.find(t => t.id === profileId) ?? null;
   const copyTrader = TRADERS.find(t => t.id === copyId) ?? null;
@@ -378,14 +383,14 @@ export default function CopyTrading() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2"><Users className="w-7 h-7 text-primary" />Copy Trading</h1>
-        <p className="text-muted-foreground text-sm">Mirror top Kenyan traders automatically.</p>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2"><Users className="w-7 h-7 text-primary" />Copy Experts</h1>
+        <p className="text-muted-foreground text-sm">Choose an expert EA, then review its settings in Auto Trading before you confirm and start.</p>
       </div>
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Available EAs", value: "120", sub: "Existing auto-trading engines", icon: Users, color: "text-primary" },
+          { label: "Available Experts", value: "120", sub: "Same EAs available in Auto Trading", icon: Users, color: "text-primary" },
           { label: "EA Fees", value: "0%", sub: "No copy fee charged by engine", icon: TrendingUp, color: "text-green-400" },
           { label: "Strategy Engines", value: "6", sub: "Trend, scalp, swing, breakout, grid, SMC", icon: Zap, color: "text-yellow-400" },
           { label: "Session Results", value: "Live", sub: "Shown in the EA terminal", icon: Copy, color: "text-blue-400" },
@@ -404,7 +409,7 @@ export default function CopyTrading() {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search traders or assets..." className="pl-9 h-10 bg-card border-border" />
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search experts or assets..." className="pl-9 h-10 bg-card border-border" />
           </div>
           <div className="flex gap-2">
             <button onClick={() => setShowFavsOnly(!showFavsOnly)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${showFavsOnly ? "border-yellow-500 bg-yellow-500/10 text-yellow-400" : "border-border text-muted-foreground hover:border-primary/40"}`}>
@@ -423,7 +428,7 @@ export default function CopyTrading() {
                 <div className="flex flex-col gap-1">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Risk Level</p>
                   <div className="flex gap-1.5">
-                    {["All","Low","Medium","High"].map(r => (
+                    {["All","Low","Moderate","High"].map(r => (
                       <button key={r} onClick={() => setRiskFilter(r)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${riskFilter === r ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>{r}</button>
                     ))}
                   </div>
@@ -452,8 +457,8 @@ export default function CopyTrading() {
         </AnimatePresence>
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <span>Showing <span className="font-semibold text-foreground">{filtered.length}</span> traders</span>
-          <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full font-semibold">TRADER DIRECTORY</span>
+          <span>Showing <span className="font-semibold text-foreground">{filtered.length}</span> experts</span>
+          <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full font-semibold">EXPERT DIRECTORY</span>
         </div>
       </div>
 
@@ -461,13 +466,13 @@ export default function CopyTrading() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {filtered.map((t, i) => (
           <motion.div key={t.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-            <TraderCard trader={t} onView={() => setProfileId(t.id)} onCopy={() => setCopyId(t.id)} isFav={favs.has(t.id)} onToggleFav={() => toggleFav(t.id)} />
+            <TraderCard trader={t} onView={() => setProfileId(t.id)} onCopy={() => setLocation("/auto-trading?eaId=" + encodeURIComponent(t.eaId))} isFav={favs.has(t.id)} onToggleFav={() => toggleFav(t.id)} />
           </motion.div>
         ))}
         {filtered.length === 0 && (
           <div className="col-span-full text-center py-16 text-muted-foreground">
             <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="font-medium">No traders found</p>
+            <p className="font-medium">No experts found</p>
             <p className="text-sm mt-1">Try adjusting your filters</p>
           </div>
         )}
@@ -475,7 +480,7 @@ export default function CopyTrading() {
 
       {/* Modals */}
       <AnimatePresence>
-        {profile && !copyId && <TraderProfile trader={profile} onClose={() => setProfileId(null)} onCopy={() => { setCopyId(profile.id); setProfileId(null); }} />}
+        {profile && !copyId && <TraderProfile trader={profile} onClose={() => setProfileId(null)} onCopy={() => { setProfileId(null); setLocation("/auto-trading?eaId=" + encodeURIComponent(profile.eaId)); }} />}
         {copyTrader && <CopyDialog trader={copyTrader} onClose={() => setCopyId(null)} />}
       </AnimatePresence>
 
