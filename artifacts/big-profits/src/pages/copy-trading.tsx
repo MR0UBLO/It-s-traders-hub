@@ -65,7 +65,6 @@ const TRADERS = Array.from({ length: 120 }, (_, i) => {
   const copiers = 0;
   const copyFee = Math.floor(seeded(s * 23, 5, 0));
   const profitShare = Math.floor(seeded(s * 29, 30, 10));
-  const risk = ea.risk;
   const assets = ASSETS[Math.floor(seeded(s * 37, ASSETS.length))];
   const strategy = STRATEGIES[Math.floor(seeded(s * 41, STRATEGIES.length))];
   const trades = 0;
@@ -76,6 +75,7 @@ const TRADERS = Array.from({ length: 120 }, (_, i) => {
   const minCopy = [50,100,200,500][Math.floor(seeded(s * 67, 4))];
   const avatarColor = ["#6366f1","#8b5cf6","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#14b8a6"][Math.floor(seeded(s * 71, 8))];
   const ea = eaForNumber(i + 1);
+  const risk = ea.risk;
   const actualMin = i + 1 === 1 ? 10 : i + 1 === 2 ? 50 : i + 1 === 3 ? 100 : 10 + ((i + 1) % 10) * 10;
   return { id: i + 1, name: ea.name, eaId: ea.eaId, eaStrategy: ea.strategy, eaStrategyLabel: ea.strategyLabel, winRate, monthlyRoi, overallRoi, drawdown, followers, copiers: 0, copyFee: 0, profitShare: 0, risk, assets: ["EURUSD","GBPUSD","XAUUSD","BTCUSD","ETHUSD","USDJPY"], strategy: ea.strategyLabel, trades, avgDuration: "Set by session", lastActive: "Ready to start", verified: true, equity, minCopy: actualMin, maxCopy: actualMin * 100, avatarColor, initials: ea.name.split(/\s+/).map((part: string) => part[0]).join("").slice(0,2), isFollowing: false };
 });
