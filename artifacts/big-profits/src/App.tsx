@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import Home from "@/pages/home";
 import Login from "@/pages/login";
+import ForgotPassword from "@/pages/forgot-password";
 import Register from "@/pages/register";
 import VerifyOtp from "@/pages/verify-otp";
 import Dashboard from "@/pages/dashboard";
@@ -95,6 +96,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
+      <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/register" component={Register} />
       <Route path="/verify-otp" component={VerifyOtp} />
 
