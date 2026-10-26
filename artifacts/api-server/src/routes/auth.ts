@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { randomInt } from "node:crypto"
 import bcrypt from "bcryptjs";
 import { db, usersTable, walletsTable, demoWalletsTable, depositsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
@@ -52,7 +51,7 @@ async function ensureInitialCreditRecord(userId: number, email: string, accountC
 
 
 function generateOtp(): string {
-  return String(randomInt(100000, 1000000));
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 // POST /api/auth/register
@@ -297,55 +296,37 @@ if (!demoWallet) {
 });
 
 
-// POST /api/auth/request-password-reset — send a short-lived code without revealing account existence.
-router.post("/request-password-reset", async (req, res) => {
+// POST /api/auth/change-password-by-email — verify the email and last known password.
+router.post("/change-password-by-email", async (req, res) => {
   try {
     const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
-    if (!email) {
-      res.status(400).json({ error: "Email address is required" });
-      return;
-    }
-    const [user] = await db.select().from(usersTable).where(sql`lower(${usersTable.email}) = ${email}`).limit(1);
-    if (user?.emailVerified) {
-      const otpCode = generateOtp();
-      const otpExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
-      await db.update(usersTable).set({ otpCode, otpExpiresAt }).where(eq(usersTable.id, user.id));
-      const emailSent = await sendOtpEmail(user.email, user.name, otpCode, "password-reset");
-      if (!emailSent) logger.warn({ userId: user.id }, "Password reset email could not be sent");
-    }
-    res.json({ success: true, message: "If a verified account exists for that email, a reset code will be sent." });
-  } catch (err) {
-    logger.error({ err }, "Request password reset error");
-    res.status(500).json({ error: "Unable to request a password reset right now" });
-  }
-});
-
-// POST /api/auth/reset-password — validate the emailed code and replace the password.
-router.post("/reset-password", async (req, res) => {
-  try {
-    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
-    const otp = typeof req.body?.otp === "string" ? req.body.otp.trim() : "";
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
     const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
-    if (!email || !otp || !newPassword) {
-      res.status(400).json({ error: "Email, reset code, and new password are required" });
+    if (!email || !currentPassword || !newPassword) {
+      res.status(400).json({ error: "Email, last remembered password, and new password are required" });
       return;
     }
     if (newPassword.length < 6 || newPassword.length > 128) {
-      res.status(400).json({ error: "Password must be between 6 and 128 characters" });
+      res.status(400).json({ error: "New password must be between 6 and 128 characters" });
+      return;
+    }
+    if (currentPassword === newPassword) {
+      res.status(400).json({ error: "Choose a new password different from your last password" });
       return;
     }
     const [user] = await db.select().from(usersTable).where(sql`lower(${usersTable.email}) = ${email}`).limit(1);
-    if (!user || !user.emailVerified || !user.otpCode || user.otpCode !== otp ||
-        !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
-      res.status(400).json({ error: "Invalid or expired reset code. Request a new one and try again." });
+    if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      res.status(400).json({ error: "Email or last remembered password is incorrect" });
       return;
     }
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    await db.update(usersTable).set({ passwordHash, otpCode: null, otpExpiresAt: null }).where(eq(usersTable.id, user.id));
-    res.json({ success: true, message: "Password reset successfully. You can now log in." });
+    await db.update(usersTable)
+      .set({ passwordHash, otpCode: null, otpExpiresAt: null })
+      .where(eq(usersTable.id, user.id));
+    res.json({ success: true, message: "Password changed successfully. You can now log in." });
   } catch (err) {
-    logger.error({ err }, "Reset password error");
-    res.status(500).json({ error: "Unable to reset the password right now" });
+    logger.error({ err }, "Change password by email error");
+    res.status(500).json({ error: "Unable to change password right now" });
   }
 });
 
