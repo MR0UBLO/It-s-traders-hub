@@ -96,6 +96,15 @@ export default function AutoTrading() {
 
   const chooseEA = (ea: EA) => { setSelectedEA(ea); setAmount(String(ea.minInvestment)); setTradeCount("5"); setDurationMinutes(5); setTradeDurationSeconds(5); setAiSpeed("fast"); setPassword(""); setError(null); };
 
+  // A Copy Experts selection opens this exact Auto Trading confirmation form.
+  useEffect(() => {
+    const requestedId = new URLSearchParams(window.location.search).get("eaId");
+    if (!requestedId) return;
+    const requestedEA = EAS.find(ea => ea.id === requestedId);
+    if (requestedEA) chooseEA(requestedEA);
+    setLocation("/auto-trading");
+  }, []);
+
   const startTrading = async () => {
     if (!selectedEA) return;
     if (!localStorage.getItem("bp_token")) { setError("Your login session has expired. Please log in again."); return; }
