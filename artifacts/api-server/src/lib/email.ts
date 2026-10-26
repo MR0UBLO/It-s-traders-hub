@@ -20,7 +20,7 @@ function createSmtpTransporter() {
   return nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user, pass } });
 }
 
-function buildHtml(toEmail: string, toName: string, otpCode: string): string {
+function buildHtml(toEmail: string, toName: string, otpCode: string, purpose: "verification" | "password-reset" = "verification"): string {
   return `
     <div style="font-family:'IBM Plex Sans',Arial,sans-serif;max-width:480px;margin:0 auto;background:#0d0e12;color:#f0f0f0;border-radius:12px;overflow:hidden;">
       <div style="background:#ff444f;padding:24px 32px;">
@@ -28,8 +28,8 @@ function buildHtml(toEmail: string, toName: string, otpCode: string): string {
         <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.8);">Your professional trading terminal</p>
       </div>
       <div style="padding:32px;">
-        <h2 style="margin:0 0 8px;font-size:20px;font-weight:600;">Verify your email</h2>
-        <p style="color:#999;margin:0 0 24px;font-size:14px;">Hi ${toName}, use the code below to verify your Tradollar account. It expires in <strong style="color:#f0f0f0;">15 minutes</strong>.</p>
+        <h2 style="margin:0 0 8px;font-size:20px;font-weight:600;">${purpose === "password-reset" ? "Reset your password" : "Verify your email"}</h2>
+        <p style="color:#999;margin:0 0 24px;font-size:14px;">Hi ${toName}, ${purpose === "password-reset" ? "use the code below to reset your Tradollar password" : "use the code below to verify your Tradollar account"}. It expires in <strong style="color:#f0f0f0;">15 minutes</strong>.</p>
         <div style="background:#1a1c23;border:1px solid #2a2d38;border-radius:8px;padding:28px;text-align:center;margin-bottom:24px;">
           <p style="margin:0 0 8px;font-size:12px;color:#666;text-transform:uppercase;letter-spacing:2px;">Verification Code</p>
           <span style="font-size:40px;font-weight:700;letter-spacing:14px;color:#ff444f;font-family:monospace;">${otpCode}</span>
@@ -37,7 +37,7 @@ function buildHtml(toEmail: string, toName: string, otpCode: string): string {
         <p style="color:#666;font-size:13px;margin:0;">Never share this code with anyone. Tradollar will never ask for it by phone or email.</p>
       </div>
       <div style="padding:16px 32px;border-top:1px solid #1a1c23;">
-        <p style="color:#444;font-size:11px;margin:0;">This email was sent to ${toEmail} because you created a Tradollar account.</p>
+        <p style="color:#444;font-size:11px;margin:0;">${purpose === "password-reset" ? `This email was sent to ${toEmail} because a password reset was requested.` : `This email was sent to ${toEmail} because you created a Tradollar account.`}</p>
       </div>
     </div>
   `;
@@ -47,9 +47,12 @@ export async function sendOtpEmail(
   toEmail: string,
   toName: string,
   otpCode: string,
+  purpose: "verification" | "password-reset" = "verification",
 ): Promise<boolean> {
-  const html = buildHtml(toEmail, toName, otpCode);
-  const subject = `${otpCode} — Your Tradollar verification code`;
+  const html = buildHtml(toEmail, toName, otpCode, purpose);
+  const subject = purpose === "password-reset"
+    ? `${otpCode} — Your Tradollar password reset code`
+    : `${otpCode} — Your Tradollar verification code`;
 
   // ── 1. Try Resend first (preferred) ──────────────────────────────────────
   const resend = createResend();
