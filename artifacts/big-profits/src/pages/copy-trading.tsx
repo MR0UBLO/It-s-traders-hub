@@ -99,8 +99,8 @@ function Spark({ data, color }: { data: { m: number; v: number }[]; color: strin
 }
 
 /* ─── RISK BADGE ─────────────────────────────────────────────────── */
-function RiskBadge({ risk }: { risk: "Low"|"Medium"|"High" }) {
-  const cls = risk === "Low" ? "bg-green-500/10 text-green-400 border-green-500/20" : risk === "Medium" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" : "bg-red-500/10 text-red-400 border-red-500/20";
+function RiskBadge({ risk }: { risk: "Low"|"Moderate"|"High" }) {
+  const cls = risk === "Low" ? "bg-green-500/10 text-green-400 border-green-500/20" : risk === "Moderate" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" : "bg-red-500/10 text-red-400 border-red-500/20";
   return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cls}`}>{risk} Risk</span>;
 }
 
@@ -137,7 +137,7 @@ function CopyDialog({ trader, onClose }: { trader: typeof TRADERS[0]; onClose: (
           accountType: account, eaId: trader.eaId, eaPassword,
           asset: "ALL", investmentAmount: num, tradeDuration: tradeDurationSeconds,
           sessionDurationSeconds: durationMinutes * 60, strategy: trader.eaStrategy, aiSpeed,
-          riskPct: trader.risk === "High" ? 4 : trader.risk === "Medium" ? 2 : 1,
+          riskPct: trader.risk === "High" ? 4 : trader.risk === "Moderate" ? 2 : 1,
           lotSize: 0.1, dailyTargetPct: 5, dailyLossPct: 3, maxTrades: trades,
           stopLossPips: 30, takeProfitPips: 60, trailingStop: true, breakEven: true,
         }),
@@ -428,7 +428,7 @@ export default function CopyTrading() {
                 <div className="flex flex-col gap-1">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Risk Level</p>
                   <div className="flex gap-1.5">
-                    {["All","Low","Medium","High"].map(r => (
+                    {["All","Low","Moderate","High"].map(r => (
                       <button key={r} onClick={() => setRiskFilter(r)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${riskFilter === r ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:border-primary/40"}`}>{r}</button>
                     ))}
                   </div>
@@ -472,7 +472,7 @@ export default function CopyTrading() {
         {filtered.length === 0 && (
           <div className="col-span-full text-center py-16 text-muted-foreground">
             <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="font-medium">No traders found</p>
+            <p className="font-medium">No experts found</p>
             <p className="text-sm mt-1">Try adjusting your filters</p>
           </div>
         )}
