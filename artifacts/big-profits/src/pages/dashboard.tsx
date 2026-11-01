@@ -23,7 +23,7 @@ function StatCard({ title, value, sub, icon: Icon, accent, delay }: {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.35 }}
-      className="glass-card rounded-2xl p-5 flex flex-col gap-3"
+      className="glass-card rounded-2xl p-4 sm:p-5 flex flex-col gap-3"
     >
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground font-medium">{title}</p>
@@ -32,7 +32,7 @@ function StatCard({ title, value, sub, icon: Icon, accent, delay }: {
         </div>
       </div>
       <div>
-        <p className="text-2xl font-bold tracking-tight">{value}</p>
+        <p className="text-[clamp(1rem,4.2vw,1.5rem)] font-bold tracking-tight whitespace-nowrap">{value}</p>
         {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
       </div>
     </motion.div>
