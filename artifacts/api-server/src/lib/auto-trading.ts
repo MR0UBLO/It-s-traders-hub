@@ -62,9 +62,14 @@ const DEFAULTS: AutoTradingConfig = {
   aiSpeed: "fast",
 };
 
-const pipSize = (symbol: string) =>
-  symbol === "EURUSD" || symbol === "GBPUSD" ? 0.0001 :
-  symbol === "USDJPY" ? 0.01 : 1;
+const pipSize = (symbol: string) => {
+  const isForexPair =
+    symbol.length === 6 &&
+    /^[A-Z]{6}$/.test(symbol) &&
+    !["BTCUSD", "ETHUSD", "XAUUSD"].includes(symbol);
+  if (isForexPair) return symbol.endsWith("JPY") ? 0.01 : 0.0001;
+  return 1;
+};
 
 const ticket = (budgetId: number) => `AT-${budgetId}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
