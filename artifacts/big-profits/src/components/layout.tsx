@@ -471,7 +471,7 @@ function MoreDrawer({
               </button>
             </div>
 
-            <div className="grid grid-cols-4 gap-2.5 px-4 pb-7">
+            <div className="grid grid-cols-4 gap-2 px-4 pb-6">
               {items.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(location, item.href);
@@ -479,20 +479,21 @@ function MoreDrawer({
                   <Link key={item.href} href={item.href}>
                     <div
                       onClick={onClose}
-                      className={`flex min-h-[104px] flex-col items-center justify-center gap-2.5 rounded-2xl border p-2.5 transition-all cursor-pointer active:scale-[0.97] ${
+                      className={`group relative flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-xl px-1.5 py-2 transition-all duration-200 cursor-pointer active:scale-[0.97] ${
                         active
-                          ? "border-primary/50 bg-primary/15 shadow-[0_0_0_1px_rgba(239,51,64,0.12)]"
-                          : "border-border/80 bg-card/70 hover:border-primary/30 hover:bg-accent/80"
+                          ? "bg-gradient-to-b from-primary/15 to-primary/5"
+                          : "bg-white/[0.025] hover:bg-white/[0.06]"
                       }`}
                     >
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
+                      {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-primary" />}
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
                         active
-                          ? "bg-primary/20 ring-1 ring-primary/30"
-                          : "bg-accent border border-border/70"
+                          ? "bg-primary/15 text-primary ring-1 ring-primary/25"
+                          : "bg-white/[0.06] text-muted-foreground group-hover:text-foreground"
                       }`}>
-                        <Icon className={`w-6 h-6 ${active ? "text-primary" : "text-foreground"}`} strokeWidth={2.2} />
+                        <Icon className="h-5 w-5" strokeWidth={2} />
                       </div>
-                      <span className={`text-xs font-semibold text-center leading-tight ${active ? "text-primary" : "text-foreground"}`}>
+                      <span className={`text-[11px] font-medium text-center leading-tight tracking-tight ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`}>
                         {item.label}
                       </span>
                     </div>
