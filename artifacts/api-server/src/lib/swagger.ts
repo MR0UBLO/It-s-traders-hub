@@ -162,7 +162,7 @@ const options: swaggerJsdoc.Options = {
               name: "symbol",
               in: "path",
               required: true,
-              schema: { type: "string", enum: ["XAUUSD", "EURUSD", "BTCUSD", "GBPUSD", "USDJPY", "ETHUSD"] },
+              schema: { type: "string", enum: ["XAUUSD","EURUSD","BTCUSD","GBPUSD","USDJPY","ETHUSD","USDCHF","AUDUSD","USDCAD","NZDUSD","EURGBP","EURJPY","EURCHF","EURCAD","EURNZD","EURAUD","GBPJPY","GBPCHF","GBPCAD","GBPAUD","GBPNZD","AUDJPY","AUDCAD","AUDCHF","AUDNZD","CADJPY","CADCHF","CHFJPY","NZDJPY","NZDCAD","NZDCHF","USDSGD","USDHKD","USDZAR","USDMXN","USDTRY","USDSEK","USDNOK","USDDKK","USDPLN","USDHUF","USDCZK","USDILS","USDTHB","USDCNH","USDINR","USDKRW","EURSEK","EURNOK","EURDKK","EURPLN","EURHUF","EURCZK","GBPSEK","GBPNOK","AUDSGD"] },
             },
             {
               name: "timeframe",
