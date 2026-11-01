@@ -180,7 +180,7 @@ function CopyDialog({ trader, onClose }: { trader: typeof TRADERS[0]; onClose: (
           <div className="space-y-1.5"><Label>Shared EA password</Label><Input type="password" autoComplete="current-password" value={eaPassword} onChange={e => setEaPassword(e.target.value)} placeholder="Enter EA password" className="h-11 bg-background"/></div>
           {error && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</div>}
           <label className="flex items-start gap-3 cursor-pointer"><input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-1 accent-primary"/><span className="text-xs text-muted-foreground">I understand the EA is simulated, trading can lose money, performance is not guaranteed, and I accept the Copy Trading Agreement and Terms & Conditions.</span></label>
-          <Button onClick={() => void handleCopy()} disabled={submitting} className="w-full h-11 font-semibold"><Copy className="w-4 h-4 mr-2"/>{submitting ? "Starting EA session..." : "Start Copy Trading"}</Button>
+          <Button onClick={() => void handleCopy()} disabled={submitting} className="w-full h-11 font-semibold"><Copy className="w-4 h-4 mr-2"/>{submitting ? "Starting EA session..." : "Start Copy AI"}</Button>
         </div>
       </motion.div>
     </div>
