@@ -471,7 +471,7 @@ function MoreDrawer({
               </button>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 px-4 pb-6">
+            <div className="grid grid-cols-4 gap-2.5 px-4 pb-7">
               {items.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(location, item.href);
@@ -479,16 +479,20 @@ function MoreDrawer({
                   <Link key={item.href} href={item.href}>
                     <div
                       onClick={onClose}
-                      className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-colors cursor-pointer ${
-                        active ? "bg-primary/10" : "hover:bg-accent"
+                      className={`flex min-h-[104px] flex-col items-center justify-center gap-2.5 rounded-2xl border p-2.5 transition-all cursor-pointer active:scale-[0.97] ${
+                        active
+                          ? "border-primary/50 bg-primary/15 shadow-[0_0_0_1px_rgba(239,51,64,0.12)]"
+                          : "border-border/80 bg-card/70 hover:border-primary/30 hover:bg-accent/80"
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        active ? "bg-primary/15" : "bg-accent"
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
+                        active
+                          ? "bg-primary/20 ring-1 ring-primary/30"
+                          : "bg-accent border border-border/70"
                       }`}>
-                        <Icon className={`w-5 h-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                        <Icon className={`w-6 h-6 ${active ? "text-primary" : "text-foreground"}`} strokeWidth={2.2} />
                       </div>
-                      <span className={`text-[10px] font-medium text-center leading-tight ${active ? "text-primary" : "text-muted-foreground"}`}>
+                      <span className={`text-xs font-semibold text-center leading-tight ${active ? "text-primary" : "text-foreground"}`}>
                         {item.label}
                       </span>
                     </div>
