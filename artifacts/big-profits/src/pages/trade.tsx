@@ -607,7 +607,7 @@ console.log("PRICE DATA:", prices);
             )}
           </AnimatePresence>
         </div>
-        <span className="text-xs text-muted-foreground">
+        <span className="inline-flex items-center rounded-lg border border-white/15 bg-[#242832] px-3 py-2 text-xs font-semibold text-slate-200 shadow-sm shadow-black/20">
           {drawingStart ? "Tap the chart to place the second anchor" : drawingTool === "select" ? "Select / edit" : `Active: ${drawingTool === "trendline" ? "Trend line" : drawingTool === "horizontal" ? "Horizontal level" : drawingTool === "vertical" ? "Vertical line" : drawingTool === "rectangle" ? "Price zone" : "Fibonacci retracement"} · tap chart to draw`}
         </span>
       </div>
@@ -1110,7 +1110,7 @@ useEffect(() => {
                   aria-label="Timeframes"
                   aria-expanded={timeframeMenuOpen}
                   onClick={() => setTimeframeMenuOpen((open) => !open)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/15 bg-[#242832] text-xs font-bold text-slate-100 shadow-sm shadow-black/20 hover:border-white/25 hover:bg-[#2d323e] transition-colors"
                 >
                   <span>Timeframes</span>
                   <span className="text-primary">{TIMEFRAMES.find((tf) => tf.value === timeframe)?.label ?? "5m"}</span>
@@ -1130,7 +1130,7 @@ useEffect(() => {
                             key={tf.value}
                             type="button"
                             onClick={() => { setTimeframe(tf.value); setTimeframeMenuOpen(false); }}
-                            className={`px-2 py-2 rounded-lg text-xs font-semibold transition-colors ${timeframe === tf.value ? "bg-primary/15 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground hover:bg-white/10"}`}
+                            className={`px-2 py-2 rounded-lg text-xs font-bold transition-colors ${timeframe === tf.value ? "bg-primary/20 text-primary border border-primary/50 shadow-sm" : "bg-white/[0.06] text-slate-200 hover:text-white hover:bg-white/[0.12]"}`}
                           >
                             {tf.label}
                           </button>
@@ -1144,7 +1144,7 @@ useEffect(() => {
               {/* Indicators dropdown */}
               <div className="relative">
                 <button onClick={() => setIndicatorMenuOpen(!indicatorMenuOpen)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/15 bg-[#242832] text-xs font-bold text-slate-100 shadow-sm shadow-black/20 hover:border-white/25 hover:bg-[#2d323e] transition-colors"
                 >
                   Indicators <ChevronDown className="w-3 h-3" />
                 </button>
@@ -1172,7 +1172,7 @@ useEffect(() => {
                 type="button"
                 onClick={toggleFullscreen}
                 aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-accent transition-colors whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/20 bg-[#242832] text-xs font-bold text-slate-100 shadow-sm shadow-black/20 hover:border-white/30 hover:bg-[#2d323e] transition-colors whitespace-nowrap"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
                 <span>{isFullscreen ? "Exit full screen" : "Full screen"}</span>
