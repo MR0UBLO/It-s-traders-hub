@@ -111,7 +111,6 @@ function CopyDialog({ trader, onClose }: { trader: typeof TRADERS[0]; onClose: (
   const [tradeCount, setTradeCount] = useState("5");
   const [tradeDurationSeconds, setTradeDurationSeconds] = useState(5);
   const [aiSpeed, setAiSpeed] = useState<"fast"|"slow">("fast");
-  const [eaPassword, setEaPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,18 +122,18 @@ function CopyDialog({ trader, onClose }: { trader: typeof TRADERS[0]; onClose: (
   const authHeaders = () => ({ "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("bp_token") || "") });
 
   const handleCopy = async () => {
+    if (account !== "real") { setError("Copy AI is available only on a Real Account. Switch to Real Account to continue."); return; }
     if (!localStorage.getItem("bp_token")) { setError("Please log in again before starting copy trading."); return; }
     if (!agreed) { setError("Please accept the copy trading risk terms before continuing."); return; }
     if (!Number.isFinite(num) || num < trader.minCopy || num > trader.maxCopy) { setError(`Enter an amount between $${trader.minCopy} and $${trader.maxCopy}.`); return; }
     const trades = Number(tradeCount);
     if (!Number.isInteger(trades) || trades < 1 || trades > 100 || num / trades < 1) { setError("Choose 1–100 trades and allocate at least $1 per trade."); return; }
-    if (!eaPassword.trim()) { setError("Enter the shared EA password to start this EA session."); return; }
     setSubmitting(true); setError(null);
     try {
       const response = await fetch(api + "/auto-trading/start", {
         method: "POST", headers: authHeaders(),
         body: JSON.stringify({
-          accountType: account, eaId: trader.eaId, eaPassword,
+          accountType: "real", eaId: trader.eaId,
           asset: "ALL", investmentAmount: num, tradeDuration: tradeDurationSeconds,
           sessionDurationSeconds: durationMinutes * 60, strategy: trader.eaStrategy, aiSpeed,
           riskPct: trader.risk === "High" ? 4 : trader.risk === "Moderate" ? 2 : 1,
@@ -177,10 +176,10 @@ function CopyDialog({ trader, onClose }: { trader: typeof TRADERS[0]; onClose: (
           <div><div className="flex justify-between gap-3"><Label>Copy session duration</Label><span className="text-sm font-bold text-primary">{durationMinutes} min</span></div><input type="range" min="1" max="60" step="1" value={durationMinutes} onChange={e => setDurationMinutes(Number(e.target.value))} className="mt-3 w-full accent-primary"/><div className="flex justify-between text-xs text-muted-foreground"><span>1 min</span><span>30 min</span><span>60 min</span></div></div>
           <div><div className="flex justify-between gap-3"><Label>Each trade duration</Label><span className="text-sm font-bold text-primary">{tradeDurationSeconds} sec</span></div><input type="range" min="5" max="60" step="5" value={tradeDurationSeconds} onChange={e => setTradeDurationSeconds(Number(e.target.value))} className="mt-3 w-full accent-primary"/><div className="flex justify-between text-xs text-muted-foreground"><span>5 sec</span><span>30 sec</span><span>60 sec</span></div></div>
           <div className="space-y-1.5"><Label>Entry speed</Label><select value={aiSpeed} onChange={e => setAiSpeed(e.target.value === "slow" ? "slow" : "fast")} className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"><option value="fast">Fast · checks every 5 seconds</option><option value="slow">Slow · checks every 10 seconds</option></select></div>
-          <div className="space-y-1.5"><Label>Shared EA password</Label><Input type="password" autoComplete="current-password" value={eaPassword} onChange={e => setEaPassword(e.target.value)} placeholder="Enter EA password" className="h-11 bg-background"/></div>
-          {error && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</div>}
+          
+          {account !== "real" && <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">Copy AI works only on a Real Account. Switch to Real Account to continue.</div>}{error && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</div>}
           <label className="flex items-start gap-3 cursor-pointer"><input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="mt-1 accent-primary"/><span className="text-xs text-muted-foreground">I understand the EA is simulated, trading can lose money, performance is not guaranteed, and I accept the Copy Trading Agreement and Terms & Conditions.</span></label>
-          <Button onClick={() => void handleCopy()} disabled={submitting} className="w-full h-11 font-semibold"><Copy className="w-4 h-4 mr-2"/>{submitting ? "Starting EA session..." : "Start Copy AI"}</Button>
+          <Button onClick={() => void handleCopy()} disabled={submitting || account !== "real"} className="w-full h-11 font-semibold"><Copy className="w-4 h-4 mr-2"/>{submitting ? "Starting EA session..." : "Start Copy AI"}</Button>
         </div>
       </motion.div>
     </div>
