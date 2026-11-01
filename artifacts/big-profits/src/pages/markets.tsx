@@ -9,8 +9,9 @@ const SYMBOL_META: Record<string, { name: string; description: string; color: st
 };
 
 function priceDecimals(symbol: string): number {
-  if (["EURUSD", "GBPUSD"].includes(symbol)) return 5;
-  if (symbol === "USDJPY") return 3;
+  if (symbol.length === 6 && /^[A-Z]{6}$/.test(symbol) && !["BTCUSD", "ETHUSD", "XAUUSD"].includes(symbol)) {
+    return symbol.endsWith("JPY") ? 3 : 5;
+  }
   return 2;
 }
 
@@ -92,9 +93,9 @@ export default function Markets() {
           : prices?.map((p, i) => {
               const meta =
                 SYMBOL_META[p.symbol] || {
-                  name: p.symbol,
-                  description: "Market",
-                  color: "#64748b",
+                  name: `${p.symbol.slice(0, 3)} / ${p.symbol.slice(3)}`,
+                  description: p.symbol.length === 6 && !["BTCUSD", "ETHUSD", "XAUUSD"].includes(p.symbol) ? "Forex Pair" : "Market",
+                  color: "#10B981",
                 };
 
               const up = p.changePercent24h >= 0;
