@@ -1,4 +1,3 @@
-import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 import { db, eaBudgetsTable, walletsTable, demoWalletsTable } from "@workspace/db";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -9,13 +8,6 @@ import { SYMBOLS } from "../lib/market.js";
 const router = Router();
 const validStrategies = new Set(["trend","scalp","swing","breakout","grid","smc"]);
 
-function validSharedPassword(supplied: unknown): boolean {
-  const expected = process.env.AUTO_TRADING_EA_PASSWORD;
-  if (!expected || typeof supplied !== "string") return false;
-  const suppliedBuffer = Buffer.from(supplied);
-  const expectedBuffer = Buffer.from(expected);
-  return suppliedBuffer.length === expectedBuffer.length && timingSafeEqual(suppliedBuffer, expectedBuffer);
-}
 
 router.get("/status", requireAuth, async (req: AuthRequest, res) => {
   const account = req.query.account === "demo" ? "demo" : "real";
@@ -79,12 +71,8 @@ router.post("/start", requireAuth, async (req: AuthRequest, res) => {
   try {
     const body = req.body ?? {};
     const accountType = body.accountType === "demo" ? "demo" : "real";
-
-    if (!process.env.AUTO_TRADING_EA_PASSWORD) {
-      return res.status(503).json({ error: "The shared EA password has not been configured by the administrator." });
-    }
-    if (!validSharedPassword(body.eaPassword)) {
-      return res.status(403).json({ error: "Incorrect EA password." });
+    if (accountType !== "real") {
+      return res.status(403).json({ error: "AI Trading and Copy AI are available only on a Real Account. Switch to Real Account to continue." });
     }
 
     const eaId = typeof body.eaId === "string" ? body.eaId : "";
