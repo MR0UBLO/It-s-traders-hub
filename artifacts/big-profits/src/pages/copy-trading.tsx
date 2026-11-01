@@ -308,9 +308,7 @@ function TraderCard({ trader, onView, onCopy, isFav, onToggleFav }: { trader: ty
             <RiskBadge risk={trader.risk} />
           </div>
         </div>
-        <button onClick={e => { e.stopPropagation(); onToggleFav(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${isFav ? "text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`}>
-          <Star className={`w-4 h-4 ${isFav ? "fill-yellow-400" : ""}`} />
-        </button>
+
       </div>
 
       {/* EA information panel — aligned with Auto Trading cards */}
@@ -323,11 +321,6 @@ function TraderCard({ trader, onView, onCopy, isFav, onToggleFav }: { trader: ty
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Minimum investment</p>
           <p className="mt-1 text-sm font-semibold">{`${trader.minCopy.toFixed(2)}`}</p>
         </div>
-      </div>
-
-      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-        <span><Users className="w-3 h-3 inline mr-1" />{trader.followers.toLocaleString()} followers</span>
-        <span className="flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${trader.lastActive.includes("now") || trader.lastActive.includes("min") ? "bg-green-400 animate-pulse" : "bg-muted-foreground"}`} />{trader.lastActive}</span>
       </div>
 
       <Button onClick={e => { e.stopPropagation(); onCopy(); }} className="w-full h-9 bg-primary/90 hover:bg-primary text-primary-foreground font-semibold text-sm" size="sm">
@@ -432,7 +425,7 @@ export default function CopyTrading() {
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>Showing <span className="font-semibold text-foreground">{filtered.length}</span> experts</span>
-          <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full font-semibold">EXPERT DIRECTORY</span>
+
         </div>
       </div>
 
