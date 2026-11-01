@@ -353,7 +353,7 @@ export default function CopyTrading() {
 
   const filtered = useMemo(() => {
     let list = [...TRADERS];
-    if (search) list = list.filter(t => t.name.toLowerCase().includes(search.toLowerCase()) || t.assets.some(a => a.toLowerCase().includes(search.toLowerCase())));
+    if (search) list = list.filter(t => t.name.toLowerCase().includes(search.trim().toLowerCase()));
     if (riskFilter !== "All") list = list.filter(t => t.risk === riskFilter);
     if (assetFilter !== "All") list = list.filter(t => t.assets.includes(assetFilter));
     if (showFavsOnly) list = list.filter(t => favs.has(t.id));
@@ -368,7 +368,6 @@ export default function CopyTrading() {
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2"><Users className="w-7 h-7 text-primary" />Copy Experts</h1>
-        <p className="text-muted-foreground text-sm">Choose an expert EA, then review its settings in Auto Trading before you confirm and start.</p>
       </div>
 
       {/* Search & Filters */}
@@ -376,7 +375,7 @@ export default function CopyTrading() {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search experts or assets..." className="pl-9 h-10 bg-card border-border" />
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search experts..." className="pl-9 h-10 bg-card border-border" />
           </div>
           <div className="flex gap-2">
             <button onClick={() => setShowFavsOnly(!showFavsOnly)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${showFavsOnly ? "border-yellow-500 bg-yellow-500/10 text-yellow-400" : "border-border text-muted-foreground hover:border-primary/40"}`}>
