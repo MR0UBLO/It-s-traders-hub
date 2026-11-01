@@ -313,24 +313,15 @@ function TraderCard({ trader, onView, onCopy, isFav, onToggleFav }: { trader: ty
         </button>
       </div>
 
-      {/* Sparkline */}
-      <div className="-mx-1">
-        <Spark data={trader.equity} color={sparkColor} />
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 text-center">
+      {/* EA information panel — aligned with Auto Trading cards */}
+      <div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/30 p-3">
         <div>
-          <p className="text-xs font-bold text-green-400">{trader.winRate}%</p>
-          <p className="text-[10px] text-muted-foreground">Win Rate</p>
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Market</p>
+          <p className="mt-1 text-sm font-semibold">All supported markets</p>
         </div>
         <div>
-          <p className="text-xs font-bold text-primary">+{trader.monthlyRoi}%</p>
-          <p className="text-[10px] text-muted-foreground">Monthly</p>
-        </div>
-        <div>
-          <p className="text-xs font-bold text-red-400">Not yet measured</p>
-          <p className="text-[10px] text-muted-foreground">Max DD</p>
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Minimum investment</p>
+          <p className="mt-1 text-sm font-semibold">{`${trader.minCopy.toFixed(2)}`}</p>
         </div>
       </div>
 
