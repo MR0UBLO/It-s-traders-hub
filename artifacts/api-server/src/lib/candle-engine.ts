@@ -87,6 +87,11 @@ export function seedCandles(symbol: string, basePrice: number): void {
   }
 }
 
+export function rebaseCandles(symbol: string, basePrice: number): void {
+  delete store[symbol];
+  seedCandles(symbol, basePrice);
+}
+
 export function tickCandles(symbol: string, price: number): void {
   if (!store[symbol]) return;
 
