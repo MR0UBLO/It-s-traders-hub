@@ -1,53 +1,114 @@
-import { seedCandles, tickCandles } from "./candle-engine.js";
+import { seedCandles, tickCandles, rebaseCandles } from "./candle-engine.js";
 
 // ─── Symbol configuration ───────────────────────────────────────────────────
 
-export const SYMBOLS = ["XAUUSD", "EURUSD", "BTCUSD", "GBPUSD", "USDJPY", "ETHUSD"] as const;
-export type Symbol = (typeof SYMBOLS)[number];
+export const FOREX_PAIRS = [
+  "USDCHF",
+  "AUDUSD",
+  "USDCAD",
+  "NZDUSD",
+  "EURGBP",
+  "EURJPY",
+  "EURCHF",
+  "EURCAD",
+  "EURNZD",
+  "EURAUD",
+  "GBPJPY",
+  "GBPCHF",
+  "GBPCAD",
+  "GBPAUD",
+  "GBPNZD",
+  "AUDJPY",
+  "AUDCAD",
+  "AUDCHF",
+  "AUDNZD",
+  "CADJPY",
+  "CADCHF",
+  "CHFJPY",
+  "NZDJPY",
+  "NZDCAD",
+  "NZDCHF",
+  "USDSGD",
+  "USDHKD",
+  "USDZAR",
+  "USDMXN",
+  "USDTRY",
+  "USDSEK",
+  "USDNOK",
+  "USDDKK",
+  "USDPLN",
+  "USDHUF",
+  "USDCZK",
+  "USDILS",
+  "USDTHB",
+  "USDCNH",
+  "USDINR",
+  "USDKRW",
+  "EURSEK",
+  "EURNOK",
+  "EURDKK",
+  "EURPLN",
+  "EURHUF",
+  "EURCZK",
+  "GBPSEK",
+  "GBPNOK",
+  "AUDSGD",
+] as const;
 
-let BASE_PRICES: Record<Symbol, number> = {
-  // Current-market fallbacks used only if the external reference feed is
-  // temporarily unavailable. The simulator re-anchors from the live feed
-  // immediately on startup and refreshes the reference every 60 seconds.
-  XAUUSD: 4140.52,
-  EURUSD: 1.1257,
-  BTCUSD: 84820.17,
-  GBPUSD: 1.3246,
-  USDJPY: 157.87,
-  ETHUSD: 2694.0,
+export const SYMBOLS = ["XAUUSD", "EURUSD", "BTCUSD", "GBPUSD", "USDJPY", "ETHUSD", ...FOREX_PAIRS] as const;
+export type Symbol = (typeof SYMBOLS)[number];
+const FOREX_SYMBOL_SET = new Set<string>(["EURUSD", "GBPUSD", "USDJPY", ...FOREX_PAIRS]);
+
+const BASE_PRICES: Record<Symbol, number> = {
+  // Fallback reference levels; live quotes re-anchor every instrument at startup.
+  XAUUSD: 4140.52, EURUSD: 1.1257, BTCUSD: 84820.17,
+  GBPUSD: 1.3246, USDJPY: 157.87, ETHUSD: 2694.0,
+  USDCHF: 0.80, AUDUSD: 0.65, USDCAD: 1.39, NZDUSD: 0.57,
+  EURGBP: 0.85, EURJPY: 173.8, EURCHF: 0.94, EURCAD: 1.56,
+  EURNZD: 1.98, EURAUD: 1.72, GBPJPY: 198.5, GBPCHF: 1.07,
+  GBPCAD: 1.82, GBPAUD: 2.01, GBPNZD: 2.31, AUDJPY: 102.7,
+  AUDCAD: 0.90, AUDCHF: 0.52, AUDNZD: 1.13, CADJPY: 113.5,
+  CADCHF: 0.58, CHFJPY: 181.5, NZDJPY: 90.1, NZDCAD: 0.79,
+  NZDCHF: 0.46, USDSGD: 1.29, USDHKD: 7.80, USDZAR: 17.5,
+  USDMXN: 18.3, USDTRY: 42.0, USDSEK: 9.45, USDNOK: 10.1,
+  USDDKK: 6.45, USDPLN: 3.65, USDHUF: 335, USDCZK: 21.3,
+  USDILS: 3.25, USDTHB: 32.5, USDCNH: 7.12, USDINR: 88.5,
+  USDKRW: 1430, EURSEK: 10.9, EURNOK: 11.7, EURDKK: 7.46,
+  EURPLN: 4.25, EURHUF: 390, EURCZK: 24.8, GBPSEK: 12.7,
+  GBPNOK: 13.6, AUDSGD: 0.84,
 };
 
 // Current-market reference symbols. Prices are fetched server-side so the
 // existing simulator starts from the latest available market level and then
 // continues generating its normal simulated ticks between refreshes.
-const LIVE_REFERENCE_TICKERS: Record<Symbol, string> = {
+const LIVE_REFERENCE_TICKERS: Partial<Record<Symbol, string>> = {
   XAUUSD: "GC=F",
-  EURUSD: "EURUSD=X",
   BTCUSD: "BTC-USD",
-  GBPUSD: "GBPUSD=X",
-  USDJPY: "JPY=X",
   ETHUSD: "ETH-USD",
 };
 
 const LIVE_REFERENCE_REFRESH_MS = 60_000;
 
-const SPREADS: Record<Symbol, number> = {
-  XAUUSD: 0.5,
-  EURUSD: 0.0002,
-  BTCUSD: 50.0,
-  GBPUSD: 0.0003,
-  USDJPY: 0.02,
-  ETHUSD: 2.0,
-};
+const SPREADS: Record<Symbol, number> = Object.fromEntries(
+  SYMBOLS.map((symbol) => {
+    if (symbol === "XAUUSD") return [symbol, 0.5];
+    if (symbol === "BTCUSD") return [symbol, 50.0];
+    if (symbol === "ETHUSD") return [symbol, 2.0];
+    if (symbol.endsWith("JPY")) return [symbol, 0.02];
+    if (["USDZAR", "USDMXN", "USDTRY", "USDHUF", "USDINR", "USDKRW", "USDTHB", "USDILS"].includes(symbol)) return [symbol, 0.02];
+    return [symbol, 0.0002];
+  }),
+) as Record<Symbol, number>;
 
-const BASE_VOLATILITY: Record<Symbol, number> = {
-  XAUUSD: 0.0006,
-  EURUSD: 0.0003,
-  BTCUSD: 0.0012,
-  GBPUSD: 0.0004,
-  USDJPY: 0.0003,
-  ETHUSD: 0.0015,
-};
+const BASE_VOLATILITY: Record<Symbol, number> = Object.fromEntries(
+  SYMBOLS.map((symbol) => [
+    symbol,
+    symbol === "BTCUSD" || symbol === "ETHUSD" ? 0.0015
+      : symbol === "XAUUSD" ? 0.0006
+      : ["USDZAR", "USDMXN", "USDTRY", "USDHUF", "USDINR", "USDKRW", "USDTHB", "USDILS"].includes(symbol) ? 0.0008
+      : 0.00035,
+  ]),
+) as Record<Symbol, number>;
 
 // ─── Trend state ─────────────────────────────────────────────────────────────
 
@@ -71,6 +132,7 @@ interface PriceState {
 
 const trendStates: Record<string, TrendState> = {};
 const priceStates: Record<string, PriceState> = {};
+const referenceInitialized = new Set<Symbol>();
 
 // All consumers (Markets, Trade, TradingView and trades) read the same
 // server-side simulated price. Movement is time-based rather than request-based,
@@ -92,7 +154,7 @@ function currentSession(): Session {
 
 function sessionVolatilityBoost(symbol: Symbol): number {
   const session = currentSession();
-  const isForex = ["EURUSD", "GBPUSD", "USDJPY"].includes(symbol);
+  const isForex = FOREX_SYMBOL_SET.has(symbol);
   const isCrypto = ["BTCUSD", "ETHUSD"].includes(symbol);
   if (isForex && session === "London") return 1.5;
   if (isForex && session === "Overlap") return 1.8;
@@ -102,60 +164,78 @@ function sessionVolatilityBoost(symbol: Symbol): number {
 
 // ─── Current market reference ────────────────────────────────────────────────
 
-async function fetchLiveReferencePrice(symbol: Symbol): Promise<{ price: number; previousClose: number } | null> {
-  const ticker = LIVE_REFERENCE_TICKERS[symbol];
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=1d&interval=1m&includePrePost=false`;
-
+async function fetchYahooReference(ticker: string): Promise<{ price: number; previousClose: number } | null> {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=5d&interval=1d&includePrePost=false`;
   try {
     const response = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0" },
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) return null;
-
     const payload = await response.json() as {
-      chart?: {
-        result?: Array<{
-          meta?: {
-            regularMarketPrice?: number;
-            chartPreviousClose?: number;
-          };
-        }>;
-      };
+      chart?: { result?: Array<{ meta?: { regularMarketPrice?: number; chartPreviousClose?: number } }> };
     };
-
     const meta = payload.chart?.result?.[0]?.meta;
     const price = Number(meta?.regularMarketPrice);
     const previousClose = Number(meta?.chartPreviousClose);
-
     if (!Number.isFinite(price) || price <= 0) return null;
-
-    return {
-      price,
-      previousClose: Number.isFinite(previousClose) && previousClose > 0 ? previousClose : price,
-    };
+    return { price, previousClose: Number.isFinite(previousClose) && previousClose > 0 ? previousClose : price };
   } catch {
-    // Keep the existing simulator running if the external reference is
-    // temporarily unavailable or rate-limited.
     return null;
   }
 }
 
-async function refreshLiveMarketReferences(): Promise<void> {
-  const results = await Promise.all(
-    SYMBOLS.map(async (symbol) => [symbol, await fetchLiveReferencePrice(symbol)] as const),
-  );
+async function fetchLiveReferencePrice(
+  symbol: Symbol,
+  currencyCache: Map<string, Promise<{ price: number; previousClose: number } | null>>,
+): Promise<{ price: number; previousClose: number } | null> {
+  const ticker = LIVE_REFERENCE_TICKERS[symbol] ?? (FOREX_SYMBOL_SET.has(symbol) ? `${symbol}=X` : null);
+  if (ticker) {
+    const direct = await fetchYahooReference(ticker);
+    if (direct) return direct;
+  }
 
+  if (!FOREX_SYMBOL_SET.has(symbol)) return null;
+  const getUsdValue = (currency: string): Promise<{ price: number; previousClose: number } | null> => {
+    if (currency === "USD") return Promise.resolve({ price: 1, previousClose: 1 });
+    const cached = currencyCache.get(currency);
+    if (cached) return cached;
+    const request = (async () => {
+      const direct = await fetchYahooReference(`${currency}USD=X`);
+      if (direct) return direct;
+      const inverse = await fetchYahooReference(`USD${currency}=X`);
+      return inverse && inverse.price > 0
+        ? { price: 1 / inverse.price, previousClose: 1 / inverse.previousClose }
+        : null;
+    })();
+    currencyCache.set(currency, request);
+    return request;
+  };
+  const [base, quote] = await Promise.all([
+    getUsdValue(symbol.slice(0, 3)),
+    getUsdValue(symbol.slice(3, 6)),
+  ]);
+  if (!base || !quote || quote.price <= 0 || quote.previousClose <= 0) return null;
+  return {
+    price: base.price / quote.price,
+    previousClose: base.previousClose / quote.previousClose,
+  };
+}
+
+async function refreshLiveMarketReferences(): Promise<void> {
+  const currencyCache = new Map<string, Promise<{ price: number; previousClose: number } | null>>();
+  const results = await Promise.all(
+    SYMBOLS.map(async (symbol) => [symbol, await fetchLiveReferencePrice(symbol, currencyCache)] as const),
+  );
   for (const [symbol, reference] of results) {
     if (!reference) continue;
-
     BASE_PRICES[symbol] = reference.price;
-
     const state = priceStates[symbol];
     if (!state) continue;
-
-    // Re-anchor the simulation to the current market level without changing
-    // the existing tick/trend engine or any consumer of MarketPrice.
+    if (!referenceInitialized.has(symbol)) {
+      rebaseCandles(symbol, reference.price);
+      referenceInitialized.add(symbol);
+    }
     state.bid = reference.price;
     state.ask = reference.price + SPREADS[symbol];
     state.open24h = reference.previousClose;
