@@ -489,11 +489,11 @@ function MoreDrawer({
                       <div className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
                         active
                           ? "bg-primary/15 text-primary ring-1 ring-primary/25"
-                          : "bg-white/[0.06] text-muted-foreground group-hover:text-foreground"
+                          : "bg-black/25 text-foreground/95 ring-1 ring-white/[0.08] group-hover:bg-black/40"
                       }`}>
-                        <Icon className="h-5 w-5" strokeWidth={2} />
+                        <Icon className="h-5 w-5" strokeWidth={2.2} />
                       </div>
-                      <span className={`text-[11px] font-medium text-center leading-tight tracking-tight ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`}>
+                      <span className={`text-[11px] font-medium text-center leading-tight tracking-tight ${active ? "text-primary" : "text-foreground/90 group-hover:text-white"}`}>
                         {item.label}
                       </span>
                     </div>
