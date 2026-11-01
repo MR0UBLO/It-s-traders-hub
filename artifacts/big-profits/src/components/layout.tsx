@@ -32,8 +32,8 @@ const NAV_GROUPS = [
     items: [
       { href: "/trade",         label: "Trade",         icon: LineChart },
       { href: "/ai-signals",    label: "AI Signals",    icon: Bot       },
-      { href: "/copy-trading",  label: "Copy Trading",  icon: Users     },
-      { href: "/auto-trading",  label: "Auto Trading",  icon: Cpu       },
+      { href: "/copy-trading",  label: "Copy AI",  icon: Users     },
+      { href: "/auto-trading",  label: "AI Trading",  icon: Cpu       },
     ],
   },
   {
@@ -67,8 +67,8 @@ const MOBILE_PRIMARY = [
 /* Mobile "More" drawer — secondary features only */
 const MOBILE_MORE = [
   { href: "/ai-signals",   label: "AI Signals",   icon: Bot         },
-  { href: "/copy-trading", label: "Copy Trading", icon: Users       },
-  { href: "/auto-trading", label: "Auto Trading", icon: Cpu         },
+  { href: "/copy-trading", label: "Copy AI", icon: Users       },
+  { href: "/auto-trading", label: "AI Trading", icon: Cpu         },
   { href: "/portfolio",    label: "Portfolio",    icon: Briefcase   },
   { href: "/settings",     label: "Settings",     icon: Settings    },
   { href: "/support",      label: "Support",      icon: HelpCircle  },
