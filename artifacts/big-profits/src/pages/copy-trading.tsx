@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useAccountStore } from "@/store/account-store";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Search, SlidersHorizontal, Star, BadgeCheck, TrendingUp, TrendingDown, X, ChevronDown, Copy, Shield, AlertTriangle, Info, Zap } from "lucide-react";
+import { Users, Search, SlidersHorizontal, Star, BadgeCheck, TrendingUp, TrendingDown, X, ChevronDown, Copy, Shield, AlertTriangle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -385,23 +385,6 @@ export default function CopyTrading() {
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2"><Users className="w-7 h-7 text-primary" />Copy Experts</h1>
         <p className="text-muted-foreground text-sm">Choose an expert EA, then review its settings in Auto Trading before you confirm and start.</p>
-      </div>
-
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "Available Experts", value: "120", sub: "Same EAs available in Auto Trading", icon: Users, color: "text-primary" },
-          { label: "EA Fees", value: "0%", sub: "No copy fee charged by engine", icon: TrendingUp, color: "text-green-400" },
-          { label: "Strategy Engines", value: "6", sub: "Trend, scalp, swing, breakout, grid, SMC", icon: Zap, color: "text-yellow-400" },
-          { label: "Session Results", value: "Live", sub: "Shown in the EA terminal", icon: Copy, color: "text-blue-400" },
-        ].map(({ label, value, sub, icon: Icon, color }) => (
-          <div key={label} className="glass-card rounded-2xl p-4">
-            <Icon className={`w-5 h-5 ${color} mb-2`} />
-            <p className="text-xl font-bold">{value}</p>
-            <p className="text-xs font-medium text-foreground">{label}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>
-          </div>
-        ))}
       </div>
 
       {/* Search & Filters */}
