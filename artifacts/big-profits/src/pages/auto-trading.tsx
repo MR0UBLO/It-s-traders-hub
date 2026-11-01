@@ -154,7 +154,7 @@ export default function AutoTrading() {
 
   return <div className="mx-auto max-w-7xl p-4 md:p-6 space-y-6">
     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div><div className="flex items-center gap-2 text-primary mb-2"><Bot className="h-6 w-6"/><span className="text-xs font-bold uppercase tracking-[0.2em]">Tradollar Automation</span></div><h1 className="text-3xl font-bold tracking-tight">Auto Trading EAs</h1></div>
+      <div><div className="flex items-center gap-2 text-primary mb-2"><Bot className="h-6 w-6"/><span className="text-xs font-bold uppercase tracking-[0.2em]">Tradollar Automation</span></div><h1 className="text-3xl font-bold tracking-tight">AI Trading EAs</h1></div>
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-border bg-card p-3 min-w-32"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Wallet className="h-4 w-4"/>{isDemo ? "Demo" : "Real"} balance</div><p className="mt-1 text-xl font-bold">{"$"}{Number(wallet?.balance ?? 0).toFixed(2)}</p></div>
         <div className="rounded-xl border border-border bg-card p-3 min-w-32"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Activity className="h-4 w-4"/>Available EAs</div><p className="mt-1 text-xl font-bold">120</p></div>
