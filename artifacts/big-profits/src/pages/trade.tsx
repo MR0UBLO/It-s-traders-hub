@@ -38,13 +38,66 @@ const SYMBOL_COLORS: Record<string, string> = {
   GBPUSD: "#10B981", USDJPY: "#3B82F6", ETHUSD: "#8B5CF6",
 };
 
+const FOREX_SYMBOLS = [
+  "USDCHF",
+  "AUDUSD",
+  "USDCAD",
+  "NZDUSD",
+  "EURGBP",
+  "EURJPY",
+  "EURCHF",
+  "EURCAD",
+  "EURNZD",
+  "EURAUD",
+  "GBPJPY",
+  "GBPCHF",
+  "GBPCAD",
+  "GBPAUD",
+  "GBPNZD",
+  "AUDJPY",
+  "AUDCAD",
+  "AUDCHF",
+  "AUDNZD",
+  "CADJPY",
+  "CADCHF",
+  "CHFJPY",
+  "NZDJPY",
+  "NZDCAD",
+  "NZDCHF",
+  "USDSGD",
+  "USDHKD",
+  "USDZAR",
+  "USDMXN",
+  "USDTRY",
+  "USDSEK",
+  "USDNOK",
+  "USDDKK",
+  "USDPLN",
+  "USDHUF",
+  "USDCZK",
+  "USDILS",
+  "USDTHB",
+  "USDCNH",
+  "USDINR",
+  "USDKRW",
+  "EURSEK",
+  "EURNOK",
+  "EURDKK",
+  "EURPLN",
+  "EURHUF",
+  "EURCZK",
+  "GBPSEK",
+  "GBPNOK",
+  "AUDSGD",
+];
+
 const SYMBOL_GROUPS: Record<string, string[]> = {
-  Crypto:      ["BTCUSD", "ETHUSD"],
+  Crypto: ["BTCUSD", "ETHUSD"],
   Commodities: ["XAUUSD"],
-  Forex:       ["EURUSD", "GBPUSD", "USDJPY"],
+  Forex: ["EURUSD", "GBPUSD", "USDJPY", ...FOREX_SYMBOLS],
 };
 
-const ALL_SYMBOLS = ["BTCUSD", "XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "ETHUSD"];
+const ALL_SYMBOLS = ["BTCUSD", "XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "ETHUSD", ...FOREX_SYMBOLS];
 
 const TIMEFRAMES = [
   { label: "5s",  value: "S5"  },
@@ -65,9 +118,11 @@ const TIMEFRAMES = [
 ];
 
 /* ─── Helpers ────────────────────────────────────────────────────────── */
+const isForexSymbol = (s: string) =>
+  s.length === 6 && /^[A-Z]{6}$/.test(s) && !["BTCUSD", "ETHUSD", "XAUUSD"].includes(s);
+
 const dp = (s: string) => {
-  if (["EURUSD", "GBPUSD"].includes(s)) return 5;
-  if (s === "USDJPY") return 3;
+  if (isForexSymbol(s)) return s.endsWith("JPY") ? 3 : 5;
   return 2;
 };
 
@@ -75,8 +130,7 @@ const dp = (s: string) => {
 // The chart uses the same precision as the Markets page so its price scale,
 // OHLC values, and live price marker cannot display a different pip/point size.
 const priceMinMove = (s: string) => {
-  if (["EURUSD", "GBPUSD"].includes(s)) return 0.00001;
-  if (s === "USDJPY") return 0.001;
+  if (isForexSymbol(s)) return s.endsWith("JPY") ? 0.001 : 0.00001;
   return 0.01;
 };
 
