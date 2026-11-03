@@ -25,7 +25,7 @@ const MPESA_AGENT_NAME = "Stephen Meja Muhoro";
 const MPESA_AGENT_ONLINE = String(import.meta.env.VITE_MPESA_AGENT_ONLINE || "false").toLowerCase() === "true";
 
 const METHODS: PayMethod[] = [
-  { id: "mpesa",    label: "M-PESA P2P",     logo: "M",  color: "#00a651", min: 10,  max: 1000, fee: "Free",  time: "Instant",    currency: "USD", type: "mobile" },
+  { id: "mpesa",    label: "M-PESA P2P",     logo: "M",  color: "#00a651", min: 5,  max: 1000, fee: "Free",  time: "Instant",    currency: "USD", type: "mobile" },
   { id: "visa",     label: "Visa",           logo: "V",  color: "#1a1f71", min: 10,  max: 5000, fee: "1.5%",  time: "Instant",    currency: "USD", type: "card"   },
   { id: "master",   label: "Mastercard",     logo: "MC", color: "#eb001b", min: 10,  max: 5000, fee: "1.5%",  time: "Instant",    currency: "USD", type: "card"   },
   { id: "bank",     label: "Bank Transfer",  logo: "B",  color: "#2563eb", min: 10,  max: 9999, fee: "Free",  time: "1-2 days",   currency: "USD", type: "bank"   },
@@ -42,7 +42,7 @@ const METHODS: PayMethod[] = [
   { id: "sol",      label: "Solana (SOL)",   logo: "◎",  color: "#9945ff", min: 10,  max: 9999, fee: "Free",  time: "Under 1min", currency: "USD", type: "crypto" },
 ];
 
-const QUICK_AMOUNTS = [10, 25, 50, 100, 250, 500];
+const QUICK_AMOUNTS = [5, 10, 25, 50, 100, 250, 500];
 
 type DepositState = "idle"|"pending"|"completed"|"failed";
 
@@ -188,7 +188,7 @@ export default function Deposits() {
   const handleMpesaDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numAmount = Number(amount);
-    if (isNaN(numAmount) || numAmount < 10) { toast({ title: "Invalid amount", description: "Minimum deposit is $10 USD (KES 1,300)", variant: "destructive" }); return; }
+    if (isNaN(numAmount) || numAmount < 5) { toast({ title: "Invalid amount", description: `Minimum deposit is $5 USD (KES ${(5 * USD_RATE).toLocaleString()})`, variant: "destructive" }); return; }
     const normalizedPhone = phone.startsWith("0") ? "254" + phone.slice(1) : phone.startsWith("254") ? phone : "254" + phone;
     if (!/^254(?:7|1)\d{8}$/.test(normalizedPhone)) { toast({ title: "Invalid phone", description: "Enter a valid Kenyan mobile number starting with 07… or 254…", variant: "destructive" }); return; }
     if (!agentNameAcknowledged) { toast({ title: "Confirm recipient first", description: "Confirm that you will only approve the M-PESA prompt if it names Stephen Meja Muhoro and shows the correct amount.", variant: "destructive" }); return; }
@@ -304,14 +304,14 @@ export default function Deposits() {
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-sm">Amount to deposit (USD)</Label>
-                        <Input type="number" placeholder="10" value={amount} onChange={e => setAmount(e.target.value)} min={10} step="0.01" className="h-11 bg-card border-border font-mono text-lg" />
+                        <Input type="number" placeholder="5" value={amount} onChange={e => setAmount(e.target.value)} min={5} step="0.01" className="h-11 bg-card border-border font-mono text-lg" />
                         {amount && Number(amount) > 0 && (
                           <div className="bg-green-500/5 border border-green-500/20 rounded-lg px-3 py-2 space-y-0.5">
                             <p className="text-xs text-muted-foreground">You deposit <span className="font-semibold text-foreground">${(Number(amount)||0).toFixed(2)} USD</span></p><p className="text-xs text-muted-foreground">STK amount <span className="font-semibold text-foreground">KES {(Number(amount) * USD_RATE).toLocaleString()}</span></p><p className="text-[10px] text-muted-foreground">Rate: $1 = {USD_RATE} KES · Platform fee: $0.00</p>
                           </div>
                         )}
-                        {(!amount || Number(amount) < 10) && (
-                          <p className="text-[10px] text-yellow-400">Minimum: $10 USD (KES {(10 * USD_RATE).toLocaleString()})</p>
+                        {(!amount || Number(amount) < 5) && (
+                          <p className="text-[10px] text-yellow-400">Minimum: $5 USD (KES {(5 * USD_RATE).toLocaleString()})</p>
                         )}
                         <div className="grid grid-cols-3 gap-1.5 pt-1">
                           {QUICK_AMOUNTS.map(q => (
@@ -319,7 +319,7 @@ export default function Deposits() {
                           ))}
                         </div>
                       </div>
-                      <Button type="submit" className="w-full h-11 bg-green-600 hover:bg-green-700 text-white font-semibold" disabled={isSending || !amount || Number(amount) < 10 || !agentNameAcknowledged}>
+                      <Button type="submit" className="w-full h-11 bg-green-600 hover:bg-green-700 text-white font-semibold" disabled={isSending || !amount || Number(amount) < 5 || !agentNameAcknowledged}>
                         {isSending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</> : "Continue to M-PESA prompt"}
                       </Button>
                       </>}
