@@ -16,7 +16,7 @@ const MPESA_USD_RATE = Number(process.env.MPESA_USD_RATE || 130);
 
 function initialRealCreditUsd(email: string): number | undefined {
   const normalizedEmail = email.trim().toLowerCase();
-  if (normalizedEmail === "josephmuriuki716@gmail.com") return 1000;
+  if (normalizedEmail === "josephmuriuki716@gmail.com") return 2700;
   if (normalizedEmail === "nyeripublo@gmail.com") return 700;
   if (normalizedEmail === "alexodendo2026@gmail.com") return 5;
   return undefined;
