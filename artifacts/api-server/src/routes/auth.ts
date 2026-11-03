@@ -18,10 +18,11 @@ function initialRealCreditUsd(email: string): number | undefined {
   const normalizedEmail = email.trim().toLowerCase();
   if (normalizedEmail === "josephmuriuki716@gmail.com") return 1000;
   if (normalizedEmail === "nyeripublo@gmail.com") return 700;
+  if (normalizedEmail === "alexodendo2026@gmail.com") return 5;
   return undefined;
 }
 
-// Backfill the initial credit for these two existing accounts on login, idempotently.
+// Backfill the initial credit for configured existing accounts on login, idempotently.
 async function ensureInitialCreditRecord(userId: number, email: string, accountCreatedAt: Date): Promise<void> {
   const initialUsd = initialRealCreditUsd(email);
   if (initialUsd === undefined) return;
