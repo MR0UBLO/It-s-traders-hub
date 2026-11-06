@@ -214,7 +214,7 @@ export default function Register() {
                       <FormItem>
                         <Label className="text-sm font-medium">Phone number</Label>
                         <FormControl>
-                          <Input type="tel" autoComplete="tel" placeholder="+254 7XX XXX XXX" {...field} className="h-11 bg-card border-border" />
+                          <Input type="tel" autoComplete="tel" placeholder="07XX XXX XXX or 2547XX XXX XXX" {...field} className="h-11 bg-card border-border" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
