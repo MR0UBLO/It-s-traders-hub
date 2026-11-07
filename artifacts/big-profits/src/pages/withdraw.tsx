@@ -355,23 +355,7 @@ export default function Withdraw() {
             </div>
           </div>
 
-          <div className="glass-card rounded-2xl p-4">
-            <p className="text-sm font-semibold mb-3">Withdrawal Info</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-              {[
-                { icon: Clock, label: "Processing Time", value: method.time },
-                { icon: Banknote, label: "Minimum Amount", value: `$${method.min} USD${(method.id === "mpesa" || method.id === "airtel") ? ` (KES ${(method.min * USD_RATE).toLocaleString()})` : ""}` },
-                { icon: Phone, label: "Method", value: method.label },
-                { icon: Info, label: "Fee", value: method.fee },
-              ].map(({ icon: Icon, label, value }) => (
-                <div key={label} className="flex items-center gap-2 p-2.5 bg-muted/20 rounded-xl">
-                  <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <span className="text-muted-foreground">{label}:</span>
-                  <span className="font-semibold">{value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
