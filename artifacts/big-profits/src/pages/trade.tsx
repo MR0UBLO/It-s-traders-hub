@@ -612,13 +612,13 @@ console.log("PRICE DATA:", prices);
         </span>
       </div>
             {/* OHLC bar */}
-      <div className="flex items-center gap-3 px-3 pt-2 pb-1 text-[11px] font-mono flex-wrap gap-y-1 border-b border-border/30">
+      <div className="flex items-center gap-3 px-3 pt-2 pb-1 text-[11px] font-mono flex-wrap gap-y-1 border-b border-[#20242c] bg-[#090b0f]">
         {ohlc ? (
           <>
-            <span className="text-muted-foreground">O <span className="text-foreground">{fmt(ohlc.o, decimals)}</span></span>
-            <span className="text-muted-foreground">H <span className="text-green-400">{fmt(ohlc.h, decimals)}</span></span>
-            <span className="text-muted-foreground">L <span className="text-red-400">{fmt(ohlc.l, decimals)}</span></span>
-            <span className="text-muted-foreground">C <span className={ohlc.c >= ohlc.o ? "text-green-400" : "text-red-400"}>{fmt(ohlc.c, decimals)}</span></span>
+            <span className="text-slate-400">O <span className="text-slate-200">{fmt(ohlc.o, decimals)}</span></span>
+            <span className="text-slate-400">H <span className="text-slate-200">{fmt(ohlc.h, decimals)}</span></span>
+            <span className="text-slate-400">L <span className="text-slate-200">{fmt(ohlc.l, decimals)}</span></span>
+            <span className="text-slate-400">C <span className="text-slate-200">{fmt(ohlc.c, decimals)}</span></span>
             {livePrice && (
               <>
                 <span className="ml-2 text-muted-foreground">Bid <span className="text-red-400">{fmt(livePrice.bid, decimals)}</span></span>
