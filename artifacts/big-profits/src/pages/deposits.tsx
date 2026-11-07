@@ -282,7 +282,7 @@ export default function Deposits() {
                 <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white" style={{ backgroundColor: method.color }}>{method.logo}</div>
                 <div>
                   <CardTitle className="text-base">{method.id === "mpesa" ? "M-PESA P2P" : `${method.label} Deposit`}</CardTitle>
-                  <CardDescription className="text-xs">Minimum: ${method.min} USD · Fee: ${method.fee}</CardDescription>{method.id === "mpesa" && <CardDescription className="text-xs">Verify the recipient and amount shown on your M-PESA prompt before authorizing.</CardDescription>}
+                  <CardDescription className="text-xs">Minimum: ${method.min} USD · Fee: ${method.fee}</CardDescription>
                 </div>
               </div>
             </CardHeader>
