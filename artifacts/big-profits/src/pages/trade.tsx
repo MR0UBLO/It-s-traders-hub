@@ -563,11 +563,11 @@ console.log("PRICE DATA:", prices);
   return (
     <div className="flex flex-col h-full">
       {/* Drawing tools menu */}
-      <div className="relative flex items-center gap-2 px-3 py-2 border-b border-border/30 shrink-0">
+      <div className="relative flex items-center gap-2 px-3 py-2 border-b border-[#20242c] bg-[#090b0f] shrink-0">
         <div className="relative">
           <button type="button" aria-label="Drawings" aria-expanded={drawingMenuOpen}
             onClick={() => setDrawingMenuOpen(open => !open)}
-            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${drawingMenuOpen ? "border-primary/60 bg-primary/15 text-primary" : "border-border/60 text-foreground hover:bg-accent"}`}>
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${drawingMenuOpen ? "border-primary/60 bg-primary/15 text-primary" : "border-[#292f39] bg-[#11151b] text-slate-200 hover:bg-[#1b2029]"}`}>
             <Pencil className="h-4 w-4" />
             <span>Drawings</span>
             <ChevronDown className={`h-3.5 w-3.5 transition-transform ${drawingMenuOpen ? "rotate-180" : ""}`} />
@@ -1054,13 +1054,13 @@ useEffect(() => {
             style={{ minHeight: 520 }}
           >
             {/* Chart toolbar */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-border flex-wrap gap-y-2 shrink-0">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-[#20242c] bg-[#090b0f] flex-wrap gap-y-2 shrink-0">
 
               {/* Symbol picker */}
               <div className="relative">
                 <button
                   onClick={() => setSymbolMenuOpen(!symbolMenuOpen)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background/60 border border-border text-sm font-bold hover:bg-accent transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#101319] border border-[#292f39] text-sm font-bold hover:bg-[#191e26] transition-colors"
                   style={{ color: SYMBOL_COLORS[symbol] || "#fff" }}
                 >
                   {symbol} <ChevronDown className="w-3.5 h-3.5 opacity-60" />
@@ -1106,7 +1106,7 @@ useEffect(() => {
               <div
                 role="group"
                 aria-label="Timeframes"
-                className="min-w-0 w-[min(420px,calc(100vw-2rem))] max-w-full overflow-x-auto overscroll-x-contain touch-pan-x rounded-xl border border-white/15 bg-[#171a20] p-1.5 shadow-inner shadow-black/20"
+                className="min-w-0 w-[min(420px,calc(100vw-2rem))] max-w-full overflow-x-auto overscroll-x-contain touch-pan-x rounded-xl border border-[#242a34] bg-[#090b0f] p-1.5 shadow-inner shadow-black/40"
                 style={{ scrollbarWidth: "thin" }}
               >
                 <div className="flex w-max min-w-full items-center gap-1.5">
@@ -1116,7 +1116,7 @@ useEffect(() => {
                       type="button"
                       aria-pressed={timeframe === tf.value}
                       onClick={() => setTimeframe(tf.value)}
-                      className={`shrink-0 whitespace-nowrap rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${timeframe === tf.value ? "border-primary/60 bg-primary/20 text-primary shadow-sm" : "border-transparent bg-white/[0.06] text-slate-200 hover:border-white/15 hover:bg-white/[0.12] hover:text-white"}`}
+                      className={`shrink-0 whitespace-nowrap rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${timeframe === tf.value ? "border-primary/60 bg-primary/20 text-primary shadow-sm" : "border-transparent bg-[#141820] text-slate-200 hover:border-[#343b48] hover:bg-[#1c222c] hover:text-white"}`}
                     >
                       {tf.label}
                     </button>
@@ -1127,7 +1127,7 @@ useEffect(() => {
               {/* Indicators dropdown */}
               <div className="relative">
                 <button onClick={() => setIndicatorMenuOpen(!indicatorMenuOpen)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/15 bg-[#242832] text-xs font-bold text-slate-100 shadow-sm shadow-black/20 hover:border-white/25 hover:bg-[#2d323e] transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#292f39] bg-[#11151b] text-xs font-bold text-slate-100 shadow-sm shadow-black/40 hover:border-[#3a4350] hover:bg-[#1b2029] transition-colors"
                 >
                   Indicators <ChevronDown className="w-3 h-3" />
                 </button>
@@ -1155,7 +1155,7 @@ useEffect(() => {
                 type="button"
                 onClick={toggleFullscreen}
                 aria-label={isFullscreen ? "Exit full screen" : "Full screen"}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/20 bg-[#242832] text-xs font-bold text-slate-100 shadow-sm shadow-black/20 hover:border-white/30 hover:bg-[#2d323e] transition-colors whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#292f39] bg-[#11151b] text-xs font-bold text-slate-100 shadow-sm shadow-black/40 hover:border-[#3a4350] hover:bg-[#1b2029] transition-colors whitespace-nowrap"
               >
                 <Maximize2 className="w-3.5 h-3.5" />
                 <span>{isFullscreen ? "Exit full screen" : "Full screen"}</span>
