@@ -278,11 +278,18 @@ export default function Deposits() {
           {/* Dedicated payment gateway view */}
           {gatewayOpen && <Card className={method.id === "mpesa" ? "border-green-500/30 shadow-lg shadow-green-950/10" : "border-border"}>
             <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white" style={{ backgroundColor: method.color }}>{method.logo}</div>
-                <div>
-                  <CardTitle className="text-base">{method.id === "mpesa" ? "M-PESA P2P" : `${method.label} Deposit`}</CardTitle>
-                  <CardDescription className="text-xs">Minimum: ${method.min} USD · Fee: ${method.fee}</CardDescription>
+              <div className="flex items-center gap-3">
+                <div
+                  className={method.id === "mpesa"
+                    ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-emerald-200/60 bg-gradient-to-br from-emerald-300 via-green-600 to-emerald-950 text-2xl font-black text-white shadow-[0_4px_16px_rgba(16,185,129,0.35)] ring-2 ring-emerald-500/15"
+                    : "w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs text-white"}
+                  style={method.id === "mpesa" ? undefined : { backgroundColor: method.color }}
+                >
+                  {method.id === "mpesa" ? <span className="drop-shadow-md">M</span> : method.logo}
+                </div>
+                <div className="min-w-0">
+                  <CardTitle className="text-base leading-tight">{method.id === "mpesa" ? "M-PESA P2P" : `${method.label} Deposit`}</CardTitle>
+                  {method.id !== "mpesa" && <CardDescription className="text-xs">Minimum: ${method.min} USD · Fee: ${method.fee}</CardDescription>}
                 </div>
               </div>
             </CardHeader>
