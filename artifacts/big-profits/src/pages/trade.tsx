@@ -858,7 +858,6 @@ const [timeLeft, setTimeLeft] = useState<Record<number, number>>({});
   const [activeTab, setActiveTab] = useState<"positions" | "history" | "analytics">("positions");
   const [symbolMenuOpen,    setSymbolMenuOpen]    = useState(false);
   const [indicatorMenuOpen, setIndicatorMenuOpen] = useState(false);
-  const [timeframeMenuOpen, setTimeframeMenuOpen] = useState(false);
   const [isFullscreen,      setIsFullscreen]      = useState(false);
   const [indicators, setIndicators] = useState<Record<IndicatorKey, boolean>>({
     ema9: false, ema21: false, sma50: false, sma200: false, volume: true,
@@ -1103,42 +1102,26 @@ useEffect(() => {
 
               <div className="flex-1" />
 
-              {/* Timeframes dropdown */}
-              <div className="relative">
-                <button
-                  type="button"
-                  aria-label="Timeframes"
-                  aria-expanded={timeframeMenuOpen}
-                  onClick={() => setTimeframeMenuOpen((open) => !open)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/15 bg-[#242832] text-xs font-bold text-slate-100 shadow-sm shadow-black/20 hover:border-white/25 hover:bg-[#2d323e] transition-colors"
-                >
-                  <span>Timeframes</span>
-                  <span className="text-primary">{TIMEFRAMES.find((tf) => tf.value === timeframe)?.label ?? "5m"}</span>
-                  <ChevronDown className={`w-3 h-3 transition-transform ${timeframeMenuOpen ? "rotate-180" : ""}`} />
-                </button>
-                <AnimatePresence>
-                  {timeframeMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4, scale: 0.97 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                      className="absolute top-full right-0 mt-2 z-[110] w-[min(260px,calc(100vw-2rem))] rounded-xl border border-white/10 bg-[#111318] p-2 shadow-2xl shadow-black/50 ring-1 ring-white/5"
+              {/* Scrollable timeframe selector */}
+              <div
+                role="group"
+                aria-label="Timeframes"
+                className="min-w-0 w-[min(420px,calc(100vw-2rem))] max-w-full overflow-x-auto overscroll-x-contain touch-pan-x rounded-xl border border-white/15 bg-[#171a20] p-1.5 shadow-inner shadow-black/20"
+                style={{ scrollbarWidth: "thin" }}
+              >
+                <div className="flex w-max min-w-full items-center gap-1.5">
+                  {TIMEFRAMES.map((tf) => (
+                    <button
+                      key={tf.value}
+                      type="button"
+                      aria-pressed={timeframe === tf.value}
+                      onClick={() => setTimeframe(tf.value)}
+                      className={`shrink-0 whitespace-nowrap rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${timeframe === tf.value ? "border-primary/60 bg-primary/20 text-primary shadow-sm" : "border-transparent bg-white/[0.06] text-slate-200 hover:border-white/15 hover:bg-white/[0.12] hover:text-white"}`}
                     >
-                      <div className="grid grid-cols-3 gap-1">
-                        {TIMEFRAMES.map((tf) => (
-                          <button
-                            key={tf.value}
-                            type="button"
-                            onClick={() => { setTimeframe(tf.value); setTimeframeMenuOpen(false); }}
-                            className={`px-2 py-2 rounded-lg text-xs font-bold transition-colors ${timeframe === tf.value ? "bg-primary/20 text-primary border border-primary/50 shadow-sm" : "bg-white/[0.06] text-slate-200 hover:text-white hover:bg-white/[0.12]"}`}
-                          >
-                            {tf.label}
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      {tf.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Indicators dropdown */}
