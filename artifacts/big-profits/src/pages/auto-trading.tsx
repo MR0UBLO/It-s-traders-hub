@@ -104,7 +104,7 @@ export default function AutoTrading() {
     if (!requestedId) return;
     const requestedEA = EAS.find(ea => ea.id === requestedId);
     if (requestedEA) chooseEA(requestedEA);
-    setLocation("/auto-trading");
+    setLocation("/ai-trading");
   }, []);
 
   const startTrading = async () => {
