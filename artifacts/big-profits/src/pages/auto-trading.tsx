@@ -68,7 +68,6 @@ export default function AutoTrading() {
   const [aiSpeed, setAiSpeed] = useState<"fast" | "slow">("fast");
   const [submitting, setSubmitting] = useState(false);
   const [enabled, setEnabled] = useState(false);
-  const [status, setStatus] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const authHeaders = () => ({ "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("bp_token") || "") });
   const { data: wallet } = useGetWallet({ account }, { query: { queryKey: getGetWalletQueryKey({ account }), refetchInterval: enabled ? 2000 : 10000 } });
@@ -78,7 +77,6 @@ export default function AutoTrading() {
       const response = await fetch(api + "/auto-trading/status?account=" + account, { headers: { Authorization: "Bearer " + (localStorage.getItem("bp_token") || "") } });
       if (!response.ok) return;
       const data = await response.json();
-      setStatus(data);
       setEnabled(Boolean(data.enabled) && data.accountType === account);
     } catch { /* retain the last known status on network errors */ }
   };
@@ -133,26 +131,14 @@ export default function AutoTrading() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) { setError(data.error || "The EA could not be started."); return; }
       const name = selectedEA.name;
-      setSelectedEA(null); setEnabled(true);
-      await loadStatus();
+      setSelectedEA(null);
+      setEnabled(true);
       toast({ title: name + " started", description: "Opening the live execution terminal." });
       setLocation("/ea-terminal");
     } catch { setError("Unable to connect to the trading server. Please try again."); }
     finally { setSubmitting(false); }
   };
 
-  const stopTrading = async () => {
-    try {
-      const response = await fetch(api + "/auto-trading/stop", { method: "POST", headers: authHeaders(), body: JSON.stringify({ accountType: account }) });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) { toast({ title: "Unable to stop EA", description: data.error || "Please try again.", variant: "destructive" }); return; }
-      setEnabled(false); await loadStatus(); toast({ title: "EA stopped", description: "Auto Trading has been stopped." });
-    } catch { toast({ title: "Unable to stop EA", description: "Check your connection and try again.", variant: "destructive" }); }
-  };
-
-  const activeEA = EAS.find(ea => ea.id === status?.config?.eaId);
-  const openTrades = Array.isArray(status?.openTrades) ? status.openTrades : [];
-  const closedTrades = Array.isArray(status?.closedTrades) ? status.closedTrades : [];
   // Match the backend stake calculation exactly: each trade receives the budget divided by the selected trade count, rounded down to cents.
   const budgetValue = Number(amount);
   const tradeCountValue = Number(tradeCount);
@@ -169,11 +155,6 @@ export default function AutoTrading() {
         <div className="rounded-xl border border-border bg-card p-3 min-w-32"><div className="flex items-center gap-2 text-xs text-muted-foreground"><Activity className="h-4 w-4"/>Available EAs</div><p className="mt-1 text-xl font-bold">120</p></div>
       </div>
     </div>
-
-    {enabled && <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 md:p-5">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><div className="flex items-center gap-2 text-sm font-semibold text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"/>EA session active</div><h2 className="mt-1 text-lg font-bold">{activeEA?.name || "Auto Trading EA"}</h2><p className="text-sm text-muted-foreground">{status?.config?.asset || "EURUSD"} · EA budget {"$"}{Number(status?.config?.investmentAmount ?? 0).toFixed(2)} · {status?.tradesOpened ?? 0}/{status?.config?.maxTrades ?? 0} trades · {isDemo ? "Demo wallet" : "Real wallet"}</p><p className="mt-1 text-xs text-muted-foreground">{status?.lastAction || "Monitoring market signals"} · {status?.tradesOpened ?? 0} trades opened · {status?.wins ?? 0} wins / {status?.losses ?? 0} losses</p><p className="mt-1 text-xs text-muted-foreground">Session time remaining: {Math.floor(Math.max(0, Number(status?.startedAt ?? 0) + Number(status?.config?.sessionDurationSeconds ?? 0) * 1000 - Date.now()) / 60000)}m {Math.floor((Math.max(0, Number(status?.startedAt ?? 0) + Number(status?.config?.sessionDurationSeconds ?? 0) * 1000 - Date.now()) % 60000) / 1000)}s · {status?.config?.aiSpeed === "slow" ? "entries every 10 seconds" : "entries every 5 seconds"} · {status?.config?.tradeDuration ?? 5}s per trade</p></div><Button variant="destructive" onClick={() => void stopTrading()}><Power className="mr-2 h-4 w-4"/>Stop Trading</Button></div>
-      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3"><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Open trades</p><p className="text-lg font-bold">{openTrades.length}</p></div><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Closed trades</p><p className="text-lg font-bold">{closedTrades.length}</p></div><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Wallet P/L</p><p className="text-lg font-bold">{"$"}{Number(wallet?.totalProfit ?? 0).toFixed(2)}</p></div><div className="rounded-xl bg-background/70 p-3"><p className="text-xs text-muted-foreground">Started</p><p className="text-lg font-bold">{status?.startedAt ? new Date(Number(status.startedAt)).toLocaleTimeString() : "—"}</p></div></div>
-    </div>}
 
     <div className="flex flex-col gap-3 sm:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search EAs by name, ID, strategy or market..." className="pl-9"/></div></div>
 
