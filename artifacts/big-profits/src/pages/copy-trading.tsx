@@ -298,7 +298,7 @@ export default function CopyTrading() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {filtered.map((t, i) => (
           <motion.div key={t.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-            <TraderCard trader={t} onCopy={() => setLocation("/auto-trading?eaId=" + encodeURIComponent(t.eaId))} isFav={favs.has(t.id)} onToggleFav={() => toggleFav(t.id)} />
+            <TraderCard trader={t} onCopy={() => setLocation("/ai-trading?eaId=" + encodeURIComponent(t.eaId))} isFav={favs.has(t.id)} onToggleFav={() => toggleFav(t.id)} />
           </motion.div>
         ))}
         {filtered.length === 0 && (
