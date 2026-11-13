@@ -409,7 +409,7 @@ export default function Home() {
                 ] },
               { title: "Company", links: [
                   { label: "Support", href: isAuthenticated ? "/support" : "/login" },
-                  { label: "Copy Trading", href: isAuthenticated ? "/copy-trading" : "/login" },
+                  { label: "Copy AI", href: isAuthenticated ? "/copy-ai" : "/login" },
                   { label: "Settings", href: isAuthenticated ? "/settings" : "/login" },
                 ] },
             ].map(({ title, links }) => (
