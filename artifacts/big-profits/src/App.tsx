@@ -91,6 +91,14 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   return <AppLayout><Component /></AppLayout>;
 }
 
+function LegacyRouteRedirect({ to }: { to: string }) {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    setLocation(to + window.location.search + window.location.hash);
+  }, [to, setLocation]);
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -106,8 +114,10 @@ function Router() {
       <Route path="/trade"><ProtectedRoute component={Trade} /></Route>
       <Route path="/markets"><ProtectedRoute component={Markets} /></Route>
       <Route path="/ai-signals"><ProtectedRoute component={AiSignals} /></Route>
-      <Route path="/copy-trading"><ProtectedRoute component={CopyTrading} /></Route>
-      <Route path="/auto-trading"><ProtectedRoute component={AutoTrading} /></Route>
+      <Route path="/copy-ai"><ProtectedRoute component={CopyTrading} /></Route>
+      <Route path="/ai-trading"><ProtectedRoute component={AutoTrading} /></Route>
+      <Route path="/copy-trading"><LegacyRouteRedirect to="/copy-ai" /></Route>
+      <Route path="/auto-trading"><LegacyRouteRedirect to="/ai-trading" /></Route>
       <Route path="/ea-terminal"><ProtectedRoute component={EATerminal} /></Route>
 <Route path="/wallet">
   <ProtectedRoute component={Wallet} />
