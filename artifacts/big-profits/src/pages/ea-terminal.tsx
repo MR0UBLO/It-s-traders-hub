@@ -65,7 +65,7 @@ const EA_CATALOG_NAMES = [
   "Redwood Trader","Stellar Gold","Precision Pip","Falcon Wave","Equinox Strategy","Pioneer FX",
 ];
 const eaDisplayName = (value?: string | null) => {
-  const match = /^EA-(\\d{3})$/.exec(value || "");
+  const match = /^EA-(\d{3})$/.exec(value || "");
   if (!match) return value || "EA";
   const n = Number(match[1]);
   if (n < 1 || n > 120) return value || "EA";
