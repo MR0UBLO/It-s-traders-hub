@@ -54,6 +54,26 @@ const stamp = (value?: string | number | Date | null) => {
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleTimeString([], { hour12: false });
 };
 
+// Keep terminal labels aligned with the 120-EA catalog shown in AI Trading.
+const EA_CATALOG_NAMES = [
+  "Atlas Trend Rider","Gold Falcon","Pip Navigator","Quantum Scalper","London Breakout",
+  "New York Momentum","Smart Money Flow","Orion Swing","Phoenix Reversal","Bullion Hunter",
+  "Velocity FX","Apex Trend","Blue Wave Trader","Steady Pip","Nova Breakout","Titan Scalper",
+  "Eagle Eye FX","Candle Compass","Momentum Forge","Silver Arrow","Aurora Grid","Rapid Pips","Pip Mover","Pip Mover Elite 3",
+  "Zenith Trader","Market Pulse","Vortex Momentum","Delta Trend","Night Hawk FX","Prime Breakout",
+  "Cobalt Swing","Lionheart Gold","Alpha Structure","Orbit Scalper","Summit FX","Marlin Trend",
+  "Redwood Trader","Stellar Gold","Precision Pip","Falcon Wave","Equinox Strategy","Pioneer FX",
+];
+const eaDisplayName = (value?: string | null) => {
+  const match = /^EA-(\\d{3})$/.exec(value || "");
+  if (!match) return value || "EA";
+  const n = Number(match[1]);
+  if (n < 1 || n > 120) return value || "EA";
+  const baseName = n === 1 ? "Fortunex Ai" : n === 2 ? "Fortunex Ai premium" : n === 3 ? "Fortunex Ai elite" : EA_CATALOG_NAMES[(n - 1) % EA_CATALOG_NAMES.length];
+  const suffix = n > EA_CATALOG_NAMES.length ? " " + ["Pro", "Prime", "Elite"][Math.floor((n - 1) / EA_CATALOG_NAMES.length) % 3] + " " + Math.ceil(n / EA_CATALOG_NAMES.length) : "";
+  return baseName + suffix;
+};
+
 export default function EATerminal() {
   const { mode } = useAccountStore();
   const account = mode === "demo" ? "demo" : "real";
@@ -86,7 +106,7 @@ export default function EATerminal() {
       const data: TerminalStatus = await response.json();
       setStatus(data);
       if (data.enabled) {
-        addLog("Session connected • " + (data.config?.eaId || "EA") + " • " + account.toUpperCase() + " account", "system", "connected-" + data.startedAt);
+        addLog("Session connected • " + eaDisplayName(data.config?.eaId) + " • " + account.toUpperCase() + " account", "system", "connected-" + data.startedAt);
       } else {
         addLog("No active EA runtime was reported by the server.", "warn", "inactive-" + data.accountType + "-" + (data.startedAt || "none"));
       }
@@ -225,7 +245,7 @@ export default function EATerminal() {
             <div className="flex items-end justify-between gap-3"><div><p className="text-[10px] uppercase tracking-widest text-slate-500">Time remaining</p><p className="mt-1 font-mono text-4xl font-black tracking-tight">{String(Math.floor(remaining / 60)).padStart(2, "0")}:{String(remaining % 60).padStart(2, "0")}</p></div><div className="text-right"><p className="text-[10px] uppercase tracking-widest text-slate-500">Duration</p><p className="mt-1 text-sm font-bold">{Math.round(durationSeconds / 60)} min</p></div></div>
             <div className="h-2 overflow-hidden rounded-full bg-slate-800"><motion.div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-violet-400" animate={{ width: progress + "%" }} transition={{ duration: .4 }}/></div>
             <div className="grid grid-cols-2 gap-3"><div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3"><p className="text-[10px] uppercase tracking-widest text-slate-500">Trade cadence</p><p className="mt-1 text-sm font-bold text-cyan-200">{config.aiSpeed === "slow" ? "Every 10 seconds" : "Every 5 seconds"}</p><p className="mt-1 text-[10px] text-slate-500">Trade duration: {config.tradeDuration ?? 5}s</p></div><div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3"><p className="text-[10px] uppercase tracking-widest text-slate-500">Trade limit</p><p className="mt-1 text-sm font-bold">{status?.tradesOpened || 0} / {config.maxTrades || 0}</p></div></div>
-            <div className="grid grid-cols-2 gap-3 text-xs"><div><p className="text-slate-500">Strategy</p><p className="mt-1 font-semibold uppercase">{config.strategy || "—"}</p></div><div><p className="text-slate-500">EA identifier</p><p className="mt-1 font-semibold">{config.eaId || "—"}</p></div><div><p className="text-slate-500">Session started</p><p className="mt-1 font-semibold">{stamp(startedAt || null)}</p></div><div><p className="text-slate-500">Server clock</p><p className="mt-1 font-mono font-semibold">{new Date(clock).toLocaleTimeString([], { hour12: false })}</p></div></div>
+            <div className="grid grid-cols-2 gap-3 text-xs"><div><p className="text-slate-500">Strategy</p><p className="mt-1 font-semibold uppercase">{config.strategy || "—"}</p></div><div><p className="text-slate-500">EA name</p><p className="mt-1 font-semibold">{eaDisplayName(config.eaId)}</p></div><div><p className="text-slate-500">Session started</p><p className="mt-1 font-semibold">{stamp(startedAt || null)}</p></div><div><p className="text-slate-500">Server clock</p><p className="mt-1 font-mono font-semibold">{new Date(clock).toLocaleTimeString([], { hour12: false })}</p></div></div>
             <div className="rounded-lg border border-cyan-950 bg-cyan-950/20 p-3 text-[11px] leading-relaxed text-slate-400"><ShieldCheck className="mr-2 inline h-4 w-4 text-cyan-300"/>The EA can stop earlier when the trade-count, budget, daily-risk or other safety limit is reached. A completed session does not imply profit.</div>
             <Button variant="destructive" disabled={!active || stopping} onClick={() => void stop()} className="w-full"><CircleStop className="mr-2 h-4 w-4"/>{stopping ? "Sending stop command..." : "STOP EA SESSION"}</Button>
           </div>
