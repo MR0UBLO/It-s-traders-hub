@@ -2,12 +2,11 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useAccountStore } from "@/store/account-store";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Search, SlidersHorizontal, Star, BadgeCheck, TrendingUp, TrendingDown, X, ChevronDown, Copy, Shield, AlertTriangle, Info } from "lucide-react";
+import { Users, Search, SlidersHorizontal, Star, BadgeCheck, TrendingUp, TrendingDown, X, ChevronDown, Copy, Shield, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 
 /* ─── TRADER DATA ─────────────────────────────────────────────────── */
 const FIRST_NAMES = ["James","John","Peter","David","Michael","Joseph","Samuel","Daniel","Stephen","Benjamin","Anthony","Charles","Paul","Patrick","Francis","Eric","Kevin","Alex","Brian","Dennis","Felix","Gilbert","Henry","Isaac","Kenneth","Leonard","Martin","Nathan","Oliver","Philip","Richard","Simon","Thomas","Victor","William","Alfred","Edward","Emmanuel","George","Bernard","Mary","Grace","Faith","Hope","Mercy","Anne","Jane","Sarah","Esther","Ruth","Lydia","Rebecca","Elizabeth","Catherine","Margaret","Agnes","Alice","Betty","Caroline","Diana","Florence","Gloria","Hannah","Irene","Janet","Karen","Lucy","Nancy","Patricia","Rachel","Sandra","Susan","Teresa","Wanjiku","Achieng","Chebet","Auma","Njeri","Wambui","Muthoni","Wangari","Amina","Zawadi"];
@@ -45,14 +44,6 @@ function seeded(seed: number, max: number, min = 0) {
   return min + ((x - Math.floor(x)) * (max - min));
 }
 
-function makeEquityCurve(seed: number, length = 12) {
-  let v = 100;
-  return Array.from({ length }, (_, i) => {
-    v += 0;
-    return { m: i + 1, v: Math.max(60, Math.round(v * 10) / 10) };
-  });
-}
-
 const TRADERS = Array.from({ length: 120 }, (_, i) => {
   const s = i + 7;
   const fn = FIRST_NAMES[i % FIRST_NAMES.length];
@@ -71,32 +62,13 @@ const TRADERS = Array.from({ length: 120 }, (_, i) => {
   const avgDuration = `${Math.floor(seeded(s * 47, 8, 1))}h ${Math.floor(seeded(s * 53, 59, 5))}m`;
   const lastActive = ["Just now","2 min ago","5 min ago","12 min ago","1 hr ago","3 hrs ago","Today","Yesterday"][Math.floor(seeded(s * 59, 8))];
   const verified = seeded(s * 61, 1) > 0.35;
-  const equity = makeEquityCurve(s);
   const minCopy = [50,100,200,500][Math.floor(seeded(s * 67, 4))];
   const avatarColor = ["#6366f1","#8b5cf6","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","#14b8a6"][Math.floor(seeded(s * 71, 8))];
   const ea = eaForNumber(i + 1);
   const risk = ea.risk;
   const actualMin = i + 1 === 1 ? 10 : i + 1 === 2 ? 50 : i + 1 === 3 ? 100 : 10 + ((i + 1) % 10) * 10;
-  return { id: i + 1, name: ea.name, eaId: ea.eaId, eaStrategy: ea.strategy, eaStrategyLabel: ea.strategyLabel, winRate, monthlyRoi, overallRoi, drawdown, followers, copiers: 0, copyFee: 0, profitShare: 0, risk, assets: ["EURUSD","GBPUSD","XAUUSD","BTCUSD","ETHUSD","USDJPY"], strategy: ea.strategyLabel, trades, avgDuration: "Set by session", lastActive: "Ready to start", verified: true, equity, minCopy: actualMin, maxCopy: actualMin * 100, avatarColor, initials: ea.name.split(/\s+/).map((part: string) => part[0]).join("").slice(0,2), isFollowing: false };
+  return { id: i + 1, name: ea.name, eaId: ea.eaId, eaStrategy: ea.strategy, eaStrategyLabel: ea.strategyLabel, winRate, monthlyRoi, overallRoi, drawdown, followers, copiers: 0, copyFee: 0, profitShare: 0, risk, assets: ["EURUSD","GBPUSD","XAUUSD","BTCUSD","ETHUSD","USDJPY"], strategy: ea.strategyLabel, trades, avgDuration: "Set by session", lastActive: "Ready to start", verified: true, minCopy: actualMin, maxCopy: actualMin * 100, avatarColor, initials: ea.name.split(/\s+/).map((part: string) => part[0]).join("").slice(0,2), isFollowing: false };
 });
-
-/* ─── MINI SPARK ─────────────────────────────────────────────────── */
-function Spark({ data, color }: { data: { m: number; v: number }[]; color: string }) {
-  return (
-    <ResponsiveContainer width="100%" height={48}>
-      <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id={`sg${color.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-            <stop offset="100%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} fill={`url(#sg${color.replace("#","")})`} dot={false} />
-        <Tooltip contentStyle={{ display: "none" }} />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
-}
 
 /* ─── RISK BADGE ─────────────────────────────────────────────────── */
 function RiskBadge({ risk }: { risk: "Low"|"Moderate"|"High" }) {
@@ -186,114 +158,11 @@ function CopyDialog({ trader, onClose }: { trader: typeof TRADERS[0]; onClose: (
   );
 }
 
-/* ─── TRADER PROFILE MODAL ──────────────────────────────────────── */
-function TraderProfile({ trader, onClose, onCopy }: { trader: typeof TRADERS[0]; onClose: () => void; onCopy: () => void }) {
-  const monthly: { name: string; roi: number }[] = [];
-  const recentTrades: { sym: string; dir: string; pnl: number; date: string }[] = [];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} onClick={e => e.stopPropagation()} className="w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="relative p-6 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
-          <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-accent transition-colors"><X className="w-4 h-4" /></button>
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white flex-shrink-0" style={{ backgroundColor: trader.avatarColor }}>{trader.initials}</div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl font-bold">{trader.name}</h2>
-                {trader.verified && <BadgeCheck className="w-5 h-5 text-primary" />}
-                <RiskBadge risk={trader.risk} />
-              </div>
-              <p className="text-sm text-muted-foreground mt-0.5">{trader.strategy} · {trader.assets.join(", ")}</p>
-              <p className="text-xs text-muted-foreground mt-1">Last active: {trader.lastActive}</p>
-            </div>
-          </div>
-
-          {/* Stats grid */}
-          <div className="grid grid-cols-4 gap-3 mt-5">
-            {[
-              { label: "Win Rate", value: "Session-based", color: "text-green-400" },
-              { label: "Monthly ROI", value: "Not measured", color: "text-primary" },
-              { label: "Overall ROI", value: "Not measured", color: "text-primary" },
-              { label: "Drawdown", value: "Session-based", color: "text-red-400" },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="bg-background/60 rounded-xl p-3 text-center">
-                <p className={`text-lg font-bold font-mono ${color}`}>{value}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="p-6 space-y-6">
-          {/* Equity curve */}
-          <div>
-            <p className="text-sm font-semibold mb-3">EA Strategy Preview (not historical performance)</p>
-            <div className="h-32">
-              <Spark data={trader.equity} color={trader.avatarColor} />
-            </div>
-          </div>
-
-          {/* Additional stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: "Total Trades", value: trader.trades.toLocaleString() },
-              { label: "Avg Duration", value: trader.avgDuration },
-              { label: "Followers", value: trader.followers.toLocaleString() },
-              { label: "Copiers", value: trader.copiers.toLocaleString() },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-muted/30 rounded-xl p-3 text-center">
-                <p className="font-bold text-sm">{value}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Portfolio allocation */}
-          <div>
-            <p className="text-sm font-semibold mb-3">Assets Traded</p>
-            <div className="flex flex-wrap gap-2">
-              {trader.assets.map(a => (
-                <span key={a} className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-semibold">{a}</span>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent trades */}
-          <div>
-            <p className="text-sm font-semibold mb-3">Recent Session Trades</p>
-            <div className="space-y-2">
-              {recentTrades.map((t, i) => (
-                <div key={i} className="flex items-center justify-between py-2 px-3 bg-muted/20 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${t.dir === "BUY" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>{t.dir}</span>
-                    <span className="text-sm font-semibold">{t.sym}</span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className={`text-sm font-mono font-bold ${t.pnl >= 0 ? "text-green-400" : "text-red-400"}`}>{t.pnl >= 0 ? "+" : ""}{t.pnl} USD</span>
-                    <span className="text-xs text-muted-foreground">{t.date}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1"><Info className="w-3 h-3" />No historical EA performance is claimed here. Session results appear after the EA starts.</p>
-          </div>
-
-          <Button onClick={onCopy} className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base">
-            <Copy className="w-4 h-4 mr-2" /> Copy This Expert
-          </Button>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
 /* ─── TRADER CARD ────────────────────────────────────────────────── */
-function TraderCard({ trader, onView, onCopy, isFav, onToggleFav }: { trader: typeof TRADERS[0]; onView: () => void; onCopy: () => void; isFav: boolean; onToggleFav: () => void }) {
+function TraderCard({ trader, onCopy, isFav, onToggleFav }: { trader: typeof TRADERS[0]; onCopy: () => void; isFav: boolean; onToggleFav: () => void }) {
   const sparkColor = trader.monthlyRoi >= 0 ? "#10b981" : "#ef4444";
   return (
-    <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="glass-card rounded-2xl p-5 flex flex-col gap-4 cursor-pointer group border border-transparent hover:border-primary/20 transition-all" onClick={onView}>
+    <motion.div whileHover={{ y: -3 }} transition={{ duration: 0.2 }} className="glass-card rounded-2xl p-5 flex flex-col gap-4 group border border-transparent hover:border-primary/20 transition-all">
       {/* Top row */}
       <div className="flex items-start gap-3">
         <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold text-white flex-shrink-0" style={{ backgroundColor: trader.avatarColor }}>{trader.initials}</div>
@@ -339,13 +208,11 @@ export default function CopyTrading() {
   const [sortDesc, setSortDesc]       = useState(true);
   const [favs, setFavs]               = useState<Set<number>>(new Set());
   const [showFavsOnly, setShowFavsOnly] = useState(false);
-  const [profileId, setProfileId]     = useState<number | null>(null);
   const [copyId, setCopyId]           = useState<number | null>(null);
   const [assetFilter, setAssetFilter] = useState("All");
   const [showFilters, setShowFilters] = useState(false);
   const [, setLocation] = useLocation();
 
-  const profile = TRADERS.find(t => t.id === profileId) ?? null;
   const copyTrader = TRADERS.find(t => t.id === copyId) ?? null;
 
   const ASSET_OPTIONS = ["All","EURUSD","GBPUSD","XAUUSD","BTCUSD","ETHUSD","NASDAQ","CRUDE OIL"];
@@ -431,7 +298,7 @@ export default function CopyTrading() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {filtered.map((t, i) => (
           <motion.div key={t.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-            <TraderCard trader={t} onView={() => setProfileId(t.id)} onCopy={() => setLocation("/auto-trading?eaId=" + encodeURIComponent(t.eaId))} isFav={favs.has(t.id)} onToggleFav={() => toggleFav(t.id)} />
+            <TraderCard trader={t} onCopy={() => setLocation("/auto-trading?eaId=" + encodeURIComponent(t.eaId))} isFav={favs.has(t.id)} onToggleFav={() => toggleFav(t.id)} />
           </motion.div>
         ))}
         {filtered.length === 0 && (
@@ -445,7 +312,6 @@ export default function CopyTrading() {
 
       {/* Modals */}
       <AnimatePresence>
-        {profile && !copyId && <TraderProfile trader={profile} onClose={() => setProfileId(null)} onCopy={() => { setProfileId(null); setLocation("/auto-trading?eaId=" + encodeURIComponent(profile.eaId)); }} />}
         {copyTrader && <CopyDialog trader={copyTrader} onClose={() => setCopyId(null)} />}
       </AnimatePresence>
 
