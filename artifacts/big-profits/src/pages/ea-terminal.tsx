@@ -100,7 +100,7 @@ export default function EATerminal() {
       const oldest = seenEvents.current.values().next().value;
       if (oldest) seenEvents.current.delete(oldest);
     }
-    const eventDate = occurredAt == null ? new Date() : new Date(occurredAt);
+    const eventDate = occurredAt == null ? new Date() : occurredAt instanceof Date ? occurredAt : new Date(occurredAt);
     const eventTime = Number.isNaN(eventDate.getTime()) ? new Date().toLocaleTimeString([], { hour12: false }) : eventDate.toLocaleTimeString([], { hour12: false });
     setLogs(previous => [...previous, { id: eventKey + "-" + Date.now(), time: eventTime, type, text }].slice(-160));
   }, []);
