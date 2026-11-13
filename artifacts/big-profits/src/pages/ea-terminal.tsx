@@ -87,91 +87,53 @@ export default function EATerminal() {
   const [clock, setClock] = useState(Date.now());
   const logEndRef = useRef<HTMLDivElement>(null);
   const seenEvents = useRef<Set<string>>(new Set());
-  const pollInFlight = useRef(false);
-  const previousSessionEnabled = useRef<boolean | null>(null);
-  const lastActionText = useRef<string | null>(null);
-  const statusConnectionFailed = useRef(false);
 
-  const addLog = useCallback((text: string, type: "system" | "trade" | "win" | "loss" | "warn" = "system", key?: string, occurredAt?: string | number | Date | null) => {
+  const addLog = useCallback((text: string, type: "system" | "trade" | "win" | "loss" | "warn" = "system", key?: string) => {
     const eventKey = key || text;
     if (seenEvents.current.has(eventKey)) return;
     seenEvents.current.add(eventKey);
-    if (seenEvents.current.size > 400) {
-      const oldest = seenEvents.current.values().next().value;
-      if (oldest) seenEvents.current.delete(oldest);
-    }
-    const eventDate = occurredAt == null ? new Date() : occurredAt instanceof Date ? occurredAt : new Date(occurredAt);
-    const eventTime = Number.isNaN(eventDate.getTime()) ? new Date().toLocaleTimeString([], { hour12: false }) : eventDate.toLocaleTimeString([], { hour12: false });
-    setLogs(previous => [...previous, { id: eventKey + "-" + Date.now(), time: eventTime, type, text }].slice(-160));
+    setLogs(previous => [...previous, { id: eventKey + "-" + Date.now(), time: new Date().toLocaleTimeString([], { hour12: false }), type, text }].slice(-160));
   }, []);
 
   const load = useCallback(async () => {
-    if (pollInFlight.current) return;
-    pollInFlight.current = true;
     const token = localStorage.getItem("bp_token") || "";
     try {
-      try {
-        const response = await fetch(api + "/auto-trading/status?account=" + account, { headers: { Authorization: "Bearer " + token } });
-        if (!response.ok) {
-          if (!statusConnectionFailed.current) addLog("Status API returned HTTP " + response.status, "warn", "status-http-" + response.status);
-          statusConnectionFailed.current = true;
-          return;
-        }
-        const data: TerminalStatus = await response.json();
-        if (statusConnectionFailed.current) addLog("Connection to the EA status service restored.", "system", "status-connection-restored-" + Date.now());
-        statusConnectionFailed.current = false;
-        setStatus(data);
-
-        const wasEnabled = previousSessionEnabled.current;
-        if (data.enabled) {
-          addLog("Session connected • " + eaDisplayName(data.config?.eaId) + " • " + String(data.accountType || account).toUpperCase() + " account", "system", "connected-" + data.accountType + "-" + data.startedAt, data.startedAt);
-        } else if (wasEnabled === true) {
-          addLog("EA session is no longer active on the server.", "system", "session-ended-" + (data.accountType || account) + "-" + Date.now());
-        } else if (wasEnabled === null) {
-          addLog("No active EA session for " + String(data.accountType || account).toUpperCase() + " account.", "system", "idle-" + (data.accountType || account));
-        }
-        previousSessionEnabled.current = Boolean(data.enabled);
-
-        if (data.lastAction && data.lastAction !== lastActionText.current) {
-          const action = data.lastAction;
-          const normalizedAction = action.toLowerCase();
-          const actionType = normalizedAction.includes("win") ? "win" : normalizedAction.includes("loss") ? "loss" : normalizedAction.includes("limit") || normalizedAction.includes("failed") || normalizedAction.includes("unavailable") ? "warn" : "system";
-          addLog(action, actionType, "action-" + (data.lastActionAt || "unknown") + "-" + action, data.lastActionAt);
-          lastActionText.current = action;
-        }
-
-        const trades = [...(data.openTrades || []), ...(data.closedTrades || [])];
-        for (const trade of trades) {
-          const currentBudgetPrefix = data.budgetId ? "AT-" + data.budgetId + "-" : null;
-          if (currentBudgetPrefix ? !trade.ticketNumber?.startsWith(currentBudgetPrefix) : !trade.ticketNumber?.startsWith("AT-")) continue;
-          const tradeStatus = String(trade.status || "").toLowerCase();
-          if (tradeStatus === "open") addLog("OPEN " + String(trade.direction || "").toUpperCase() + " " + trade.symbol + " • stake " + money(trade.amount) + " • ticket " + trade.ticketNumber, "trade", "open-" + trade.id, trade.createdAt);
-          if (tradeStatus === "closed") {
-            const result = String(trade.result || "SETTLED").toUpperCase();
-            const resultType = result === "WIN" ? "win" : result === "LOSS" ? "loss" : "system";
-            addLog("CLOSED " + trade.symbol + " • " + result + " • P/L " + money(trade.profitLoss), resultType, "closed-" + trade.id, trade.closedAt || trade.createdAt);
-          }
-        }
-      } catch {
-        if (!statusConnectionFailed.current) addLog("Connection to the EA status service interrupted; retaining the last confirmed server state.", "warn", "status-connection-lost");
-        statusConnectionFailed.current = true;
+      const response = await fetch(api + "/auto-trading/status?account=" + account, { headers: { Authorization: "Bearer " + token } });
+      if (!response.ok) {
+        addLog("Status API returned HTTP " + response.status, "warn", "status-http-" + response.status);
+        return;
       }
-
-      try {
-        const response = await fetch(api + "/market/prices", { headers: { Authorization: "Bearer " + token } });
-        if (!response.ok) return;
-        const payload = await response.json();
-        const list = Array.isArray(payload) ? payload : Array.isArray(payload.prices) ? payload.prices : Array.isArray(payload.data) ? payload.data : [];
-        const normalized = list.map((p: any) => ({ symbol: String(p.symbol || p.asset || ""), bid: Number(p.bid), ask: Number(p.ask), spread: Number(p.spread), change: Number(p.change) })).filter((p: MarketPrice) => p.symbol && Number.isFinite(p.bid) && Number.isFinite(p.ask));
-        if (normalized.length) {
-          setPrices(normalized);
-          const focus = normalized.find(p => p.symbol === "EURUSD") || normalized[0];
-          setPriceHistory(previous => [...previous, (focus.bid + focus.ask) / 2].slice(-72));
-        }
-      } catch { /* the terminal remains usable if the price feed briefly disconnects */ }
-    } finally {
-      pollInFlight.current = false;
+      const data: TerminalStatus = await response.json();
+      setStatus(data);
+      if (data.enabled) {
+        addLog("Session connected • " + eaDisplayName(data.config?.eaId) + " • " + account.toUpperCase() + " account", "system", "connected-" + data.startedAt);
+      } else {
+        addLog("No active EA runtime was reported by the server.", "warn", "inactive-" + data.accountType + "-" + (data.startedAt || "none"));
+      }
+      if (data.lastAction) addLog(data.lastAction, data.lastAction.toLowerCase().includes("win") ? "win" : data.lastAction.toLowerCase().includes("loss") ? "loss" : data.lastAction.toLowerCase().includes("limit") ? "warn" : "system", "action-" + data.lastActionAt + "-" + data.lastAction);
+      const trades = [...(data.openTrades || []), ...(data.closedTrades || [])];
+      for (const trade of trades) {
+        const currentBudgetPrefix = data.budgetId ? "AT-" + data.budgetId + "-" : null;
+        if (currentBudgetPrefix ? !trade.ticketNumber?.startsWith(currentBudgetPrefix) : !trade.ticketNumber?.startsWith("AT-")) continue;
+        if (trade.status === "open") addLog("OPEN " + trade.direction.toUpperCase() + " " + trade.symbol + " • stake " + money(trade.amount) + " • ticket " + trade.ticketNumber, "trade", "open-" + trade.id);
+        if (trade.status === "closed") addLog("CLOSED " + trade.symbol + " • " + (trade.result || "SETTLED") + " • P/L " + money(trade.profitLoss), trade.result === "WIN" ? "win" : "loss", "closed-" + trade.id);
+      }
+    } catch {
+      addLog("Connection interrupted — retaining last confirmed server state.", "warn", "network-" + Math.floor(Date.now() / 15000));
     }
+
+    try {
+      const response = await fetch(api + "/market/prices", { headers: { Authorization: "Bearer " + token } });
+      if (!response.ok) return;
+      const payload = await response.json();
+      const list = Array.isArray(payload) ? payload : Array.isArray(payload.prices) ? payload.prices : Array.isArray(payload.data) ? payload.data : [];
+      const normalized = list.map((p: any) => ({ symbol: String(p.symbol || p.asset || ""), bid: Number(p.bid), ask: Number(p.ask), spread: Number(p.spread), change: Number(p.change) })).filter((p: MarketPrice) => p.symbol && Number.isFinite(p.bid) && Number.isFinite(p.ask));
+      if (normalized.length) {
+        setPrices(normalized);
+        const focus = normalized.find(p => p.symbol === "EURUSD") || normalized[0];
+        setPriceHistory(previous => [...previous, (focus.bid + focus.ask) / 2].slice(-72));
+      }
+    } catch { /* the terminal remains usable if the price feed briefly disconnects */ }
   }, [account, addLog, api]);
 
   useEffect(() => {
@@ -222,7 +184,7 @@ export default function EATerminal() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) addLog("Stop request failed: " + (data.error || response.status), "warn", "stop-fail-" + Date.now());
       else {
-        addLog(data.message || "Server confirmed EA stop.", "system", "stop-ok-" + Date.now());
+        addLog("Server confirmed EA stop. Budget release was requested.", "system", "stop-ok-" + Date.now());
         setStatus(previous => previous ? { ...previous, enabled: false } : previous);
       }
     } catch {
@@ -302,7 +264,7 @@ export default function EATerminal() {
             {logs.map(log => <div key={log.id} className="flex gap-3"><span className="shrink-0 text-slate-700">[{log.time}]</span><span className={"break-words " + logColor(log.type)}><span className="mr-2 text-slate-700">{log.type === "win" ? "[WIN]" : log.type === "loss" ? "[LOSS]" : log.type === "trade" ? "[ORDER]" : log.type === "warn" ? "[WARN]" : "[INFO]"}</span>{log.text}</span></div>)}
             <div ref={logEndRef} className="flex items-center gap-2 text-emerald-400"><span>›</span><span className="inline-block h-3 w-1.5 animate-pulse bg-emerald-400"/></div>
           </div>
-          <div className="flex items-center justify-between border-t border-slate-900 px-4 py-2 text-[9px] text-slate-600"><span>{logs.length} observed events (last 160 retained)</span><span>SESSION + SERVER EVENTS</span></div>
+          <div className="flex items-center justify-between border-t border-slate-900 px-4 py-2 text-[9px] text-slate-600"><span>{logs.length} observed events (last 160 retained)</span><span>SERVER-DERIVED TELEMETRY</span></div>
         </div>
       </section>
       <footer className="flex flex-col justify-between gap-2 border-t border-slate-900 py-4 text-[10px] text-slate-600 sm:flex-row"><span>TRADOLLAR EXECUTION CONSOLE · {account.toUpperCase()} MODE</span><span>Displayed statistics are calculated from API-reported trades. They do not predict future outcomes.</span></footer>
