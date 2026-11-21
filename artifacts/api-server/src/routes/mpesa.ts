@@ -18,7 +18,7 @@ const MPESA_SHORTCODE = process.env.MPESA_SHORTCODE?.trim() || "";
 const MPESA_TILL_NUMBER = process.env.MPESA_TILL_NUMBER?.trim() || "";
 const MPESA_TRANSACTION_TYPE = (process.env.MPESA_TRANSACTION_TYPE?.trim() || "CustomerBuyGoodsOnline");
 const MPESA_USD_RATE = Number(process.env.MPESA_USD_RATE || 130);
-const MIN_MPESA_DEPOSIT_KES = Math.round(3 * MPESA_USD_RATE);
+const MIN_MPESA_DEPOSIT_KES = Math.round(5 * MPESA_USD_RATE);
 
 const BASE_URL = "https://api.safaricom.co.ke";
 
@@ -60,7 +60,7 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
 
     const amt = Number(amount);
     if (!Number.isFinite(amt) || amt < MIN_MPESA_DEPOSIT_KES) {
-      res.status(400).json({ error: `Minimum deposit is $3 USD (KES ${MIN_MPESA_DEPOSIT_KES.toLocaleString()}).` });
+      res.status(400).json({ error: `Minimum deposit is $5 USD (KES ${MIN_MPESA_DEPOSIT_KES.toLocaleString()}).` });
       return;
     }
 
