@@ -276,7 +276,7 @@ export default function Deposits() {
   });
 
   return (
-    <div className="p-6 pb-28 space-y-6 max-w-6xl mx-auto min-h-screen overflow-y-auto">
+    <div className="p-6 pb-32 space-y-6 max-w-6xl mx-auto min-h-screen">
       <div>
         {gatewayOpen ? (
           <div className="flex items-start gap-3">
