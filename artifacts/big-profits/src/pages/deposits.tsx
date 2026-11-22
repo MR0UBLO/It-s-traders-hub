@@ -255,7 +255,7 @@ export default function Deposits() {
       return;
     }
     const numAmount = Number(amount);
-    if (isNaN(numAmount) || numAmount < method.min) { toast({ title: "Invalid amount", description: `Minimum deposit is $${method.min} USD${(method.id === "mpesa" || method.id === "airtel") ? ` (KES ${(method.min * USD_RATE).toLocaleString()})` : ""}`, variant: "destructive" }); return; }
+    if (!Number.isFinite(numAmount) || numAmount < method.min || (isVisaOrMastercard && numAmount > method.max)) { toast({ title: "Invalid amount", description: `Enter an amount between ${method.min} and ${method.max} USD.`, variant: "destructive" }); return; }
     setIsSending(true);
     await new Promise(r => setTimeout(r, 1500));
     setPendingAmount(numAmount); setDepositState("completed");
