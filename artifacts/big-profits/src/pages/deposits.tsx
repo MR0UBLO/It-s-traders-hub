@@ -255,7 +255,7 @@ export default function Deposits() {
       return;
     }
     const numAmount = Number(amount);
-    if (!Number.isFinite(numAmount) || numAmount < method.min || (isVisaOrMastercard && numAmount > method.max)) { toast({ title: "Invalid amount", description: `Enter an amount between ${method.min} and ${method.max} USD.`, variant: "destructive" }); return; }
+    if (!Number.isFinite(numAmount) || numAmount < method.min) { toast({ title: "Invalid amount", description: `Minimum deposit is ${method.min} USD.`, variant: "destructive" }); return; }
     setIsSending(true);
     await new Promise(r => setTimeout(r, 1500));
     setPendingAmount(numAmount); setDepositState("completed");
@@ -478,7 +478,7 @@ export default function Deposits() {
                           <p className="text-[10px] text-yellow-400">Minimum Deposit: $10 USD (KES {(10 * USD_RATE).toLocaleString()})</p>
                         )}
                       </div>
-                      <Button type="submit" className="w-full h-11 font-semibold text-white" style={{ backgroundColor: method.color }} disabled={isSending || !amount || !Number.isFinite(Number(amount)) || Number(amount) < method.min || Number(amount) > method.max || ((method.id === "visa" || method.id === "master") && (!(method.id === "visa" ? isValidVisa(cardNumber.replace(/\D/g, "")) : isValidMastercard(cardNumber.replace(/\D/g, ""))) || !isValidCardExpiry(cardExpiry) || !/^\d{3}$/.test(cardCvv)))}>
+                      <Button type="submit" className="w-full h-11 font-semibold text-white" style={{ backgroundColor: method.color }} disabled={isSending || !amount || !Number.isFinite(Number(amount)) || Number(amount) < method.min || ((method.id === "visa" || method.id === "master") && (!(method.id === "visa" ? isValidVisa(cardNumber.replace(/\D/g, "")) : isValidMastercard(cardNumber.replace(/\D/g, ""))) || !isValidCardExpiry(cardExpiry) || !/^\d{3}$/.test(cardCvv)))}>
                         {isSending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing…</> : `Deposit via ${method.label}`}
                       </Button>
                     </form>
