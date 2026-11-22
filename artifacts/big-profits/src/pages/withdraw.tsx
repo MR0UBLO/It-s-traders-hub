@@ -165,7 +165,7 @@ export default function Withdraw() {
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="p-6 pb-32 space-y-6 max-w-6xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2"><ArrowUpFromLine className="w-7 h-7 text-primary" />Withdraw</h1>
         <p className="text-muted-foreground mt-1 text-sm">Withdraw your earnings to your preferred payment method.</p>
