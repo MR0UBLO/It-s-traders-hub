@@ -660,7 +660,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <AppHeader onMenuToggle={toggleSidebar} />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-16 md:pb-0">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden pb-[calc(5rem+env(safe-area-inset-bottom)+1rem)] md:pb-0">
           <motion.div
             key={location}
             initial={{ opacity: 0, y: 6 }}
