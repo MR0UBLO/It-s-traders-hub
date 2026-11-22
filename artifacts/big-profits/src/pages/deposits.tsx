@@ -46,6 +46,41 @@ const QUICK_AMOUNTS = [5, 10, 25, 50, 100, 250, 500, 1000, 10000];
 
 type DepositState = "idle"|"pending"|"completed"|"failed";
 
+function passesLuhn(value: string): boolean {
+  let sum = 0;
+  let doubleDigit = false;
+  for (let i = value.length - 1; i >= 0; i--) {
+    let digit = Number(value[i]);
+    if (doubleDigit) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    doubleDigit = !doubleDigit;
+  }
+  return sum % 10 === 0;
+}
+
+function isValidVisa(value: string): boolean {
+  return /^4(?:\d{12}|\d{15}|\d{18})$/.test(value) && passesLuhn(value);
+}
+
+function isValidMastercard(value: string): boolean {
+  if (!/^\d{16}$/.test(value)) return false;
+  const prefix2 = Number(value.slice(0, 2));
+  const prefix4 = Number(value.slice(0, 4));
+  return ((prefix2 >= 51 && prefix2 <= 55) || (prefix4 >= 2221 && prefix4 <= 2720)) && passesLuhn(value);
+}
+
+function isValidCardExpiry(value: string): boolean {
+  const match = /^(0[1-9]|1[0-2])\/(\d{2})$/.exec(value);
+  if (!match) return false;
+  const month = Number(match[1]);
+  const year = 2000 + Number(match[2]);
+  const now = new Date();
+  return year > now.getFullYear() || (year === now.getFullYear() && month >= now.getMonth() + 1);
+}
+
 /* ─── METHOD CARD ────────────────────────────────────────────────── */
 function MethodCard({ m, selected, onClick }: { m: PayMethod; selected: boolean; onClick: () => void }) {
   return (
@@ -140,6 +175,9 @@ export default function Deposits() {
   const [phone, setPhone]         = useState("");
   const [agentNameAcknowledged, setAgentNameAcknowledged] = useState(false);
   const [amount, setAmount]       = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [depositState, setDepositState] = useState<DepositState>("idle");
   const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
@@ -209,13 +247,22 @@ export default function Deposits() {
 
   const handleSimDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const isVisaOrMastercard = method.id === "visa" || method.id === "master";
+    const cardDigits = cardNumber.replace(/\D/g, "");
+    const validCardNumber = method.id === "visa" ? isValidVisa(cardDigits) : method.id === "master" ? isValidMastercard(cardDigits) : true;
+    if (isVisaOrMastercard && (!validCardNumber || !isValidCardExpiry(cardExpiry) || !/^\d{3}$/.test(cardCvv))) {
+      toast({ title: "Invalid card details", description: "Check the card number, future expiry date and 3-digit CVV.", variant: "destructive" });
+      return;
+    }
     const numAmount = Number(amount);
     if (isNaN(numAmount) || numAmount < method.min) { toast({ title: "Invalid amount", description: `Minimum deposit is $${method.min} USD${(method.id === "mpesa" || method.id === "airtel") ? ` (KES ${(method.min * USD_RATE).toLocaleString()})` : ""}`, variant: "destructive" }); return; }
     setIsSending(true);
     await new Promise(r => setTimeout(r, 1500));
     setPendingAmount(numAmount); setDepositState("completed");
-    toast({ title: "Request received!", description: `Your $${numAmount} USD deposit request has been submitted.` });
-    setAmount(""); setIsSending(false);
+    toast({ title: "Request received!", description: "Your $" + numAmount + " USD deposit request has been submitted." });
+    setAmount("");
+    if (isVisaOrMastercard) { setCardNumber(""); setCardExpiry(""); setCardCvv(""); }
+    setIsSending(false);
   };
 
   const handleReset = () => { stopPolling(); setDepositState("idle"); setCheckoutRequestId(null); setReceipt(null); setAgentNameAcknowledged(false); };
@@ -362,14 +409,44 @@ export default function Deposits() {
                     <form onSubmit={handleSimDeposit} className="space-y-4">
                       {(method.type === "card" || method.id === "paypal" || method.id === "skrill" || method.id === "neteller" || method.id === "pm") && (
                         <div className="space-y-3">
-                          {method.type === "card" && <>
+                          {(method.id === "visa" || method.id === "master") && <>
                             <div className="space-y-1.5">
                               <Label className="text-sm">Card Number</Label>
-                              <Input placeholder="1234 5678 9012 3456" className="h-11 bg-card font-mono" />
+                              <Input placeholder="1234 5678 9012 3456" value={cardNumber}
+                                onChange={e => setCardNumber(e.target.value.replace(/\D/g, "").slice(0, 19).replace(/(.{4})/g, "$1 ").trim())}
+                                inputMode="numeric" autoComplete="cc-number" maxLength={23}
+                                aria-invalid={cardNumber.length > 0 && !(method.id === "visa" ? isValidVisa(cardNumber.replace(/\D/g, "")) : isValidMastercard(cardNumber.replace(/\D/g, "")))}
+                                className="h-11 bg-card font-mono" />
+                              {cardNumber.length > 0 && !(method.id === "visa" ? isValidVisa(cardNumber.replace(/\D/g, "")) : isValidMastercard(cardNumber.replace(/\D/g, ""))) && (
+                                <p className="text-xs text-red-500">{method.id === "visa" ? "Enter a valid Visa number." : "Enter a valid Mastercard number."}</p>
+                              )}
                             </div>
                             <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1.5"><Label className="text-sm">Expiry</Label><Input placeholder="MM/YY" className="h-11 bg-card font-mono" /></div>
-                              <div className="space-y-1.5"><Label className="text-sm">CVV</Label><Input placeholder="123" className="h-11 bg-card font-mono" /></div>
+                              <div className="space-y-1.5">
+                                <Label className="text-sm">Expiry</Label>
+                                <Input placeholder="MM/YY" value={cardExpiry}
+                                  onChange={e => {
+                                    const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+                                    setCardExpiry(digits.length > 2 ? digits.slice(0, 2) + "/" + digits.slice(2) : digits);
+                                  }}
+                                  inputMode="numeric" autoComplete="cc-exp" maxLength={5}
+                                  aria-invalid={cardExpiry.length > 0 && !isValidCardExpiry(cardExpiry)}
+                                  className="h-11 bg-card font-mono" />
+                                {cardExpiry.length > 0 && !isValidCardExpiry(cardExpiry) && (
+                                  <p className="text-xs text-red-500">Enter a valid, unexpired MM/YY date.</p>
+                                )}
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-sm">CVV</Label>
+                                <Input placeholder="123" value={cardCvv}
+                                  onChange={e => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                                  inputMode="numeric" autoComplete="cc-csc" maxLength={3}
+                                  aria-invalid={cardCvv.length > 0 && !/^\d{3}$/.test(cardCvv)}
+                                  className="h-11 bg-card font-mono" />
+                                {cardCvv.length > 0 && !/^\d{3}$/.test(cardCvv) && (
+                                  <p className="text-xs text-red-500">CVV must contain exactly 3 digits.</p>
+                                )}
+                              </div>
                             </div>
                           </>}
                           {["paypal","skrill","neteller","pm","airtel"].includes(method.id) && (
@@ -401,7 +478,7 @@ export default function Deposits() {
                           <p className="text-[10px] text-yellow-400">Minimum Deposit: $10 USD (KES {(10 * USD_RATE).toLocaleString()})</p>
                         )}
                       </div>
-                      <Button type="submit" className="w-full h-11 font-semibold text-white" style={{ backgroundColor: method.color }} disabled={isSending || !amount || Number(amount) < method.min}>
+                      <Button type="submit" className="w-full h-11 font-semibold text-white" style={{ backgroundColor: method.color }} disabled={isSending || !amount || !Number.isFinite(Number(amount)) || Number(amount) < method.min || Number(amount) > method.max || ((method.id === "visa" || method.id === "master") && (!(method.id === "visa" ? isValidVisa(cardNumber.replace(/\D/g, "")) : isValidMastercard(cardNumber.replace(/\D/g, ""))) || !isValidCardExpiry(cardExpiry) || !/^\d{3}$/.test(cardCvv)))}>
                         {isSending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing…</> : `Deposit via ${method.label}`}
                       </Button>
                     </form>
