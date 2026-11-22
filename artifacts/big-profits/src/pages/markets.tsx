@@ -172,31 +172,6 @@ export default function Markets() {
             })}
       </div>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="glass-card rounded-2xl p-6"
-      >
-        <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-primary" />
-          Market Info
-        </h2>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
-          {[
-            { label: "Trading Hours", value: "24/7" },
-            { label: "Price Refresh", value: "Every 3s" },
-            { label: "Execution", value: "Instant" },
-            { label: "Min Trade", value: "100 KES" },
-          ].map(({ label, value }) => (
-            <div key={label}>
-              <p className="text-muted-foreground text-xs mb-1">{label}</p>
-              <p className="font-semibold">{value}</p>
-            </div>
-          ))}
-        </div>
-      </motion.div>
     </div>
   );
 }
