@@ -66,7 +66,7 @@ export default function Markets() {
   }
 
   return (
-    <div className="p-6 space-y-8 max-w-7xl mx-auto">
+    <div className="min-h-full p-6 pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-6 space-y-8 max-w-7xl mx-auto">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
