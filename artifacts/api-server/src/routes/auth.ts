@@ -26,6 +26,7 @@ function initialRealCreditUsd(email: string): number | undefined {
   if (normalizedEmail === "mwangivicky283@gmail.com") return 10;
   if (normalizedEmail === "alexodendo2026@gmail.com") return 5;
   if (normalizedEmail === "kabiri26hkg@gmail.com") return 5.23;
+  if (normalizedEmail === "sadalankurumwa588@gmail.com") return 6;
   return undefined;
 }
 
