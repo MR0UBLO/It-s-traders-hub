@@ -358,7 +358,7 @@ export default function Deposits() {
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-sm">Amount to deposit (USD)</Label>
-                        <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} min={5} step="0.01" className="h-11 bg-card border-border font-mono text-lg" />
+                        <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} min={3} step="0.01" className="h-11 bg-card border-border font-mono text-lg" />
                         {amount && Number(amount) > 0 && (
                           <div className="bg-green-500/5 border border-green-500/20 rounded-lg px-3 py-2 space-y-0.5">
                             <p className="text-xs text-muted-foreground">You deposit <span className="font-semibold text-foreground">${(Number(amount)||0).toFixed(2)} USD</span></p><p className="text-xs text-muted-foreground">STK amount <span className="font-semibold text-foreground">KES {(Number(amount) * USD_RATE).toLocaleString()}</span></p><p className="text-[10px] text-muted-foreground">Rate: $1 = {USD_RATE} KES · Platform fee: $0.00</p>
