@@ -292,7 +292,7 @@ export default function AiSignals() {
   const toggleFav = (id: number) => setFavs(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="px-6 pt-6 pb-32 md:pb-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2"><Bot className="w-7 h-7 text-primary" />AI Signals</h1>
@@ -460,11 +460,6 @@ export default function AiSignals() {
           </div>
         </div>
       )}
-
-      <div className="glass-card rounded-2xl p-4 flex items-start gap-2 text-xs text-muted-foreground">
-        <Shield className="w-4 h-4 flex-shrink-0 mt-0.5 text-primary/50" />
-        All AI signals are generated for informational purposes only. They do not represent real trading recommendations, guaranteed profits, or guaranteed win rates. Trading involves substantial risk of loss.
-      </div>
 
       <AnimatePresence>
         {selected && <SignalModal signal={selected} onClose={() => setSelected(null)} />}
