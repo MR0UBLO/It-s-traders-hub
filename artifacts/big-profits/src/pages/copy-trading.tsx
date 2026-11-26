@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useAccountStore } from "@/store/account-store";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Search, SlidersHorizontal, Star, BadgeCheck, TrendingUp, TrendingDown, X, ChevronDown, Copy, Shield, AlertTriangle } from "lucide-react";
+import { Users, Search, SlidersHorizontal, Star, BadgeCheck, TrendingUp, TrendingDown, X, ChevronDown, Copy, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -315,10 +315,6 @@ export default function CopyTrading() {
         {copyTrader && <CopyDialog trader={copyTrader} onClose={() => setCopyId(null)} />}
       </AnimatePresence>
 
-      <div className="glass-card rounded-2xl p-4 flex items-start gap-2 text-xs text-muted-foreground">
-        <Shield className="w-4 h-4 flex-shrink-0 mt-0.5 text-primary/50" />
-        Copy trading involves substantial risk of loss. This EA has no verified historical performance in this directory. Results can be positive or negative. This is not financial advice.
-      </div>
     </div>
   );
 }
