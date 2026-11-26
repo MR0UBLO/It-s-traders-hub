@@ -475,6 +475,33 @@ console.log("PRICE DATA:", prices);
     setLivePrice(null);
   }, [symbol, timeframe]);
 
+  // Keep the chart's final candle and its right-edge price marker tied to the
+  // same latest simulated bid used by the market header and order ticket.
+  useEffect(() => {
+    if (!livePrice || !candleSeriesRef.current || !lastCandlesRef.current.length) return;
+    const candles = lastCandlesRef.current;
+    const index = candles.length - 1;
+    const current = candles[index];
+    if (!current || livePrice.bid <= 0) return;
+
+    const synced = {
+      ...current,
+      close: livePrice.bid,
+      high: Math.max(current.high, livePrice.bid),
+      low: Math.min(current.low, livePrice.bid),
+    };
+    candles[index] = synced;
+
+    candleSeriesRef.current.update({
+      time: Math.floor(synced.time / 1000) as Time,
+      open: synced.open,
+      high: synced.high,
+      low: synced.low,
+      close: synced.close,
+    });
+    setOhlc({ o: synced.open, h: synced.high, l: synced.low, c: synced.close });
+  }, [livePrice]);
+
   /* Polling loop */
   useEffect(() => {
     fetchAndUpdate();
