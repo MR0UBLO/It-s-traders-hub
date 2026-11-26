@@ -378,10 +378,27 @@ console.log("PRICE DATA:", prices);
 
       let last = deduped[deduped.length - 1];
 
-      // The Markets page is the source of truth for the simulated price.
-      // Keep the chart's active candle synchronized to that same Bid so the
-      // candle close and live chart price never drift onto a separate range.
-      if (p && last) {
+      // Keep this symbol's chart history on the same price scale as its live
+      // simulated quote. Older seeded history can occasionally belong to a
+      // different scale; proportionally align that history without changing
+      // the live market price or trade execution.
+      if (p && last && p.bid > 0 && last.close > 0) {
+        const scaleDifference = Math.abs(last.close - p.bid) / p.bid;
+        if (scaleDifference > 0.08) {
+          const scaleFactor = p.bid / last.close;
+          for (let i = 0; i < deduped.length; i++) {
+            const candle = deduped[i];
+            deduped[i] = {
+              ...candle,
+              open: candle.open * scaleFactor,
+              high: candle.high * scaleFactor,
+              low: candle.low * scaleFactor,
+              close: candle.close * scaleFactor,
+            };
+          }
+          last = deduped[deduped.length - 1];
+        }
+
         last = {
           ...last,
           close: p.bid,
@@ -400,6 +417,8 @@ console.log("PRICE DATA:", prices);
           open:  c.open, high: c.high, low: c.low, close: c.close,
         }));
         candleSeriesRef.current.setData(lwData);
+        candleSeriesRef.current.priceScale().applyOptions({ autoScale: true });
+        chartRef.current?.priceScale("right").applyOptions({ autoScale: true, scaleMargins: { top: 0.08, bottom: 0.08 } });
         chartRef.current?.timeScale().fitContent();
 
         if (volSeriesRef.current) {
