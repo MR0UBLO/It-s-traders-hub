@@ -224,8 +224,12 @@ async function fetchLiveReferencePrice(
 
 async function refreshLiveMarketReferences(): Promise<void> {
   const currencyCache = new Map<string, Promise<{ price: number; previousClose: number } | null>>();
+  // Only fetch instruments that have not yet been anchored. Once a pair
+  // receives its initial market reference, the existing simulation engine
+  // continues from that level instead of being snapped back every minute.
+  const pendingSymbols = SYMBOLS.filter((symbol) => !referenceInitialized.has(symbol));
   const results = await Promise.all(
-    SYMBOLS.map(async (symbol) => [symbol, await fetchLiveReferencePrice(symbol, currencyCache)] as const),
+    pendingSymbols.map(async (symbol) => [symbol, await fetchLiveReferencePrice(symbol, currencyCache)] as const),
   );
   for (const [symbol, reference] of results) {
     if (!reference) continue;
@@ -239,14 +243,21 @@ async function refreshLiveMarketReferences(): Promise<void> {
     state.bid = reference.price;
     state.ask = reference.price + SPREADS[symbol];
     state.open24h = reference.previousClose;
-    state.history.push(reference.price);
-    if (state.history.length > 200) state.history.shift();
+    state.history = [reference.price];
+    state.lastTickAt = Date.now();
+    referenceInitialized.add(symbol);
   }
 }
 
 function startLiveReferenceRefresh(): void {
   void refreshLiveMarketReferences();
-  setInterval(() => {
+  // Retry instruments whose live reference was temporarily unavailable.
+  // Successfully anchored instruments are left to the existing simulator.
+  const retryTimer = setInterval(() => {
+    if (referenceInitialized.size >= SYMBOLS.length) {
+      clearInterval(retryTimer);
+      return;
+    }
     void refreshLiveMarketReferences();
   }, LIVE_REFERENCE_REFRESH_MS);
 }
@@ -295,6 +306,11 @@ function ensureInit(symbol: Symbol) {
 
 function tickSymbol(symbol: Symbol): void {
   ensureInit(symbol);
+
+  // Never run the random simulation from a hard-coded fallback level.
+  // Each instrument starts moving only after its current market reference
+  // has successfully anchored its initial price and candle state.
+  if (!referenceInitialized.has(symbol)) return;
 
   const trend = trendStates[symbol];
   const state = priceStates[symbol];
