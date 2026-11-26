@@ -45,6 +45,12 @@ function volumeRand(): number {
   return Math.floor(100 + Math.random() * 4900);
 }
 
+function normalRandom(): number {
+  const u1 = Math.max(Math.random(), Number.EPSILON);
+  const u2 = Math.random();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
 export function seedCandles(symbol: string, basePrice: number): void {
   if (store[symbol]) return;
   store[symbol] = {};
@@ -52,31 +58,40 @@ export function seedCandles(symbol: string, basePrice: number): void {
   for (const tf of TIMEFRAMES) {
     const tfMs = TIMEFRAME_MS[tf];
     const history: Candle[] = [];
-    let price = basePrice;
-    const now = Date.now();
+    const currentTime = nowAligned(tfMs);
+    const candleVolatility = Math.min(0.004, 0.00022 * Math.sqrt(tfMs / 5_000));
 
-    // Build illustrative startup history around the pair's actual reference
-    // price. Do not compound random percentage changes across 299 candles:
-    // that can push the chart far away from the live simulated price.
-    for (let i = MAX_CANDLES - 1; i >= 1; i--) {
-      const open = price;
-      const phase = i * 0.19;
-      const boundedDeviation = (Math.sin(phase) * 0.004) + ((Math.random() * 2 - 1) * 0.001);
-      const close = i === 1 ? basePrice : basePrice * (1 + boundedDeviation);
-      const high = Math.max(open, close) * (1 + Math.random() * 0.0008);
-      const low = Math.min(open, close) * (1 - Math.random() * 0.0008);
+    // Generate a stochastic price path (Brownian bridge) around the live
+    // reference. It has natural irregular swings but is anchored at both ends,
+    // so seeded history cannot drift away from the current simulated quote.
+    const increments = Array.from({ length: MAX_CANDLES - 1 }, () => normalRandom() * candleVolatility);
+    const cumulative: number[] = [0];
+    for (const increment of increments) {
+      cumulative.push(cumulative[cumulative.length - 1] + increment);
+    }
+    const endpoint = cumulative[cumulative.length - 1];
+    const closes = cumulative.map((value, index) =>
+      basePrice * Math.exp(value - (index / (MAX_CANDLES - 1)) * endpoint),
+    );
+    closes[closes.length - 1] = basePrice;
+
+    for (let i = 0; i < MAX_CANDLES - 1; i++) {
+      const open = closes[i];
+      const close = closes[i + 1];
+      const wickRange = candleVolatility * (0.12 + Math.random() * 0.38);
+      const high = Math.max(open, close) * (1 + wickRange * Math.random());
+      const low = Math.min(open, close) * (1 - wickRange * Math.random());
       history.push({
-        time: Math.floor((now - i * tfMs) / tfMs) * tfMs,
+        time: currentTime - (MAX_CANDLES - i) * tfMs,
         open,
         high,
         low,
         close,
         volume: volumeRand(),
       });
-      price = close;
     }
 
-    const currentTime = nowAligned(tfMs);
+    const price = basePrice;
     store[symbol][tf] = {
       current: {
         time: currentTime,
