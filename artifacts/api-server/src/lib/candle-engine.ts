@@ -82,7 +82,7 @@ export function seedCandles(symbol: string, basePrice: number): void {
       const high = Math.max(open, close) * (1 + wickRange * Math.random());
       const low = Math.min(open, close) * (1 - wickRange * Math.random());
       history.push({
-        time: currentTime - (MAX_CANDLES - i) * tfMs,
+        time: currentTime - (MAX_CANDLES - 1 - i) * tfMs,
         open,
         high,
         low,
