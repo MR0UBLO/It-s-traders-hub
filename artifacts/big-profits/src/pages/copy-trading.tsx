@@ -230,7 +230,7 @@ export default function CopyTrading() {
   const toggleFav = (id: number) => setFavs(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="px-6 pt-6 pb-32 md:pb-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2"><Users className="w-7 h-7 text-primary" />Copy Experts</h1>
