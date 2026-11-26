@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, TrendingUp, TrendingDown, Minus, Zap, Clock, Target, Search, Star, Bell, BellOff, Shield, AlertTriangle, ChevronRight, BarChart2, Filter } from "lucide-react";
+import { Bot, TrendingUp, TrendingDown, Minus, Zap, Clock, Target, Search, Star, Bell, BellOff, AlertTriangle, ChevronRight, BarChart2, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { BarChart, Bar, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
