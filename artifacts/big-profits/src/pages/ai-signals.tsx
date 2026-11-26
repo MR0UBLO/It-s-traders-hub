@@ -58,7 +58,7 @@ type Signal = {
 let _sigSeed = 0;
 function makeSignal(symbol: string, category: string, tfIndex: number, idx: number): Signal {
   const seed = ++_sigSeed * 7 + idx * 13 + tfIndex * 31;
-  const dir = seeded(seed, 1) > 0.45 ? "BUY" : seeded(seed * 3, 1) > 0.7 ? "NEUTRAL" : "SELL";
+  const dir = symbol === "NVDA" ? "BUY" : seeded(seed, 1) > 0.45 ? "BUY" : seeded(seed * 3, 1) > 0.7 ? "NEUTRAL" : "SELL";
   const confidence = Math.round(seeded(seed * 5, 44, 51));
   const tf = TIMEFRAMES[tfIndex % TIMEFRAMES.length];
   const { base, pip } = makePriceEntry(symbol, seed);
@@ -135,7 +135,7 @@ function SignalModal({ signal, onClose }: { signal: Signal; onClose: () => void 
               {isDir("BUY") ? <TrendingUp className={`w-5 h-5 ${dirColor}`} /> : isDir("SELL") ? <TrendingDown className={`w-5 h-5 ${dirColor}`} /> : <Minus className={`w-5 h-5 ${dirColor}`} />}
             </div>
             <div>
-              <p className="font-bold text-lg">{signal.symbol}</p>
+              <p className="font-bold text-lg">{signal.symbol === "NVDA" ? "Nvidia" : signal.symbol}</p>
               <p className={`text-xs font-bold ${dirColor}`}>{signal.direction} · {signal.timeframe}</p>
             </div>
           </div>
@@ -205,7 +205,7 @@ function SignalCard({ signal, isFav, onToggleFav, onClick }: { signal: Signal; i
             {isDir("BUY") ? <TrendingUp className="w-5 h-5" /> : isDir("SELL") ? <TrendingDown className="w-5 h-5" /> : <Minus className="w-5 h-5" />}
           </div>
           <div>
-            <p className="font-bold">{signal.symbol}</p>
+            <p className="font-bold">{signal.symbol === "NVDA" ? "Nvidia" : signal.symbol}</p>
             <p className={`text-xs font-bold ${dirColor}`}>{signal.direction}</p>
             <p className="text-[10px] text-muted-foreground">{signal.category}</p>
           </div>
