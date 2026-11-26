@@ -188,7 +188,7 @@ export default function Home() {
                       </div>
                       <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-[10px] sm:text-xs font-bold text-emerald-300 whitespace-nowrap">
                         <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                        {marketsLoading ? "CONNECTING" : marketError ? "FEED OFFLINE" : "MARKET LIVE"}
+                        {marketsLoading ? "CONNECTING" : marketError ? "FEED OFFLINE" : marketPrices?.length ? "MARKET LIVE" : "WAITING FOR FEED"}
                       </div>
                     </div>
                   </div>
