@@ -55,12 +55,16 @@ export function seedCandles(symbol: string, basePrice: number): void {
     let price = basePrice;
     const now = Date.now();
 
+    // Build illustrative startup history around the pair's actual reference
+    // price. Do not compound random percentage changes across 299 candles:
+    // that can push the chart far away from the live simulated price.
     for (let i = MAX_CANDLES - 1; i >= 1; i--) {
       const open = price;
-      const changeRatio = (Math.random() * 2 - 1) * 0.008;
-      const close = Math.max(open * (1 + changeRatio), basePrice * 0.5);
-      const high = Math.max(open, close) * (1 + Math.random() * 0.003);
-      const low = Math.min(open, close) * (1 - Math.random() * 0.003);
+      const phase = i * 0.19;
+      const boundedDeviation = (Math.sin(phase) * 0.004) + ((Math.random() * 2 - 1) * 0.001);
+      const close = i === 1 ? basePrice : basePrice * (1 + boundedDeviation);
+      const high = Math.max(open, close) * (1 + Math.random() * 0.0008);
+      const low = Math.min(open, close) * (1 - Math.random() * 0.0008);
       history.push({
         time: Math.floor((now - i * tfMs) / tfMs) * tfMs,
         open,
