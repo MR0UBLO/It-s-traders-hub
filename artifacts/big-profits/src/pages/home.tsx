@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useGetMarketPrices, getGetMarketPricesQueryKey } from "@workspace/api-client-react";
 import {
   TrendingUp, BarChart2, Users, Shield, Zap, Globe,
-  ChevronDown, Bot, ArrowRight, Star,
+  ChevronDown, Bot, ArrowRight, Star, ArrowUp, ArrowDown,
 } from "lucide-react";
 
 /* ---------- animated counter ---------- */
