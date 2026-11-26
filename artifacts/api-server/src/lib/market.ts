@@ -103,10 +103,12 @@ const SPREADS: Record<Symbol, number> = Object.fromEntries(
 const BASE_VOLATILITY: Record<Symbol, number> = Object.fromEntries(
   SYMBOLS.map((symbol) => [
     symbol,
-    symbol === "BTCUSD" || symbol === "ETHUSD" ? 0.0015
-      : symbol === "XAUUSD" ? 0.0006
-      : ["USDZAR", "USDMXN", "USDTRY", "USDHUF", "USDINR", "USDKRW", "USDTHB", "USDILS"].includes(symbol) ? 0.0008
-      : 0.00035,
+    // Per-second simulation volatility: keep price action fluid and avoid
+    // unrealistic multi-percent jumps between adjacent ticks.
+    symbol === "BTCUSD" || symbol === "ETHUSD" ? 0.00018
+      : symbol === "XAUUSD" ? 0.00009
+      : ["USDZAR", "USDMXN", "USDTRY", "USDHUF", "USDINR", "USDKRW", "USDTHB", "USDILS"].includes(symbol) ? 0.00012
+      : 0.000045,
   ]),
 ) as Record<Symbol, number>;
 
@@ -337,20 +339,18 @@ function tickSymbol(symbol: Symbol): void {
     trend.ticksRemaining = 50 + Math.floor(Math.random() * 200);
   }
 
-  // Volatility spike
-  trend.spikeCountdown--;
-  if (trend.spikeCountdown <= 0) {
-    trend.volMultiplier = 2.0 + Math.random() * 2.0; // spike!
-    trend.spikeCountdown = 30 + Math.floor(Math.random() * 100);
-    // Spike decays over ~10 ticks (handled below)
-  } else if (trend.volMultiplier > 1.0) {
-    trend.volMultiplier = Math.max(1.0, trend.volMultiplier * 0.85); // decay
-  }
+  // Keep volatility continuous. Sudden 2–4x artificial spikes made
+  // adjacent simulated ticks produce oversized candles unlike normal flow.
+  trend.spikeCountdown = Math.max(1, trend.spikeCountdown - 1);
+  trend.volMultiplier = 1.0;
 
-  // Price change = trend component + noise
-  const trendBias = vol * trend.direction * trend.strength * 0.4;
-  const noise = vol * (Math.random() * 2 - 1);
-  const totalChange = state.bid * (trendBias + noise) * trend.volMultiplier;
+  // Price change = modest directional pressure + irregular market noise.
+  // A small per-tick cap prevents isolated outliers while preserving the
+  // gradual bullish/bearish movement and natural alternating candles.
+  const trendBias = vol * trend.direction * trend.strength * 0.22;
+  const noise = vol * (Math.random() * 2 - 1) * 0.8;
+  const maxTickMove = vol * 1.1;
+  const totalChange = state.bid * Math.max(-maxTickMove, Math.min(maxTickMove, trendBias + noise));
 
   const minPrice = BASE_PRICES[symbol] * 0.6;
   const newBid = Math.max(state.bid + totalChange, minPrice);
