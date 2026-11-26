@@ -3,6 +3,7 @@ import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useGetMarketPrices, getGetMarketPricesQueryKey } from "@workspace/api-client-react";
 import {
   TrendingUp, BarChart2, Users, Shield, Zap, Globe,
   ChevronDown, Bot, ArrowRight, Star,
@@ -94,6 +95,16 @@ const FAQS = [
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
+  const {
+    data: marketPrices,
+    isLoading: marketsLoading,
+    error: marketError,
+  } = useGetMarketPrices({
+    query: {
+      queryKey: getGetMarketPricesQueryKey(),
+      refetchInterval: 3000,
+    },
+  });
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-x-hidden">
       {/* ── NAV ── */}
@@ -165,74 +176,118 @@ export default function Home() {
                 transition={{ duration: 0.65, delay: 0.25 }}
                 className="relative max-w-xl mx-auto lg:max-w-none w-full"
               >
-                <div className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-primary/15 via-blue-500/10 to-emerald-500/10 blur-2xl pointer-events-none" />
-                <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950 text-white shadow-2xl shadow-slate-950/20">
-                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.18),transparent_55%)] pointer-events-none" />
-                  <div className="relative flex items-center justify-between gap-3 px-5 py-4 border-b border-white/10">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400 font-semibold">Tradollar Terminal</p>
-                      <h2 className="text-base sm:text-lg font-bold mt-1">Market intelligence</h2>
-                    </div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-300 whitespace-nowrap">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      MARKET WATCH
+                <div className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-primary/20 via-blue-500/10 to-emerald-500/10 blur-2xl pointer-events-none" />
+                <div className="relative overflow-hidden rounded-3xl border border-blue-500/40 bg-[#030817] text-white shadow-2xl shadow-blue-950/40">
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(37,99,235,0.22),transparent_58%)] pointer-events-none" />
+                  <div className="relative px-5 pt-5 pb-4 border-b border-blue-400/15">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.24em] text-sky-300 font-bold">Tradollar Terminal</p>
+                        <h2 className="text-xl sm:text-2xl font-bold mt-2 tracking-tight">Market Intelligence</h2>
+                        <p className="mt-1 text-xs sm:text-sm text-slate-400">Live market prices and market insights</p>
+                      </div>
+                      <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-[10px] sm:text-xs font-bold text-emerald-300 whitespace-nowrap">
+                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                        {marketsLoading ? "CONNECTING" : marketError ? "FEED OFFLINE" : "MARKET LIVE"}
+                      </div>
                     </div>
                   </div>
-                  <div className="relative grid grid-cols-2 gap-3 p-4 sm:p-5">
-                    {[
-                      { symbol: "XAUUSD", name: "Gold / US Dollar", price: "2,847.50", change: "+1.24%", color: "#F6B94A", delay: 0.3 },
-                      { symbol: "BTCUSD", name: "Bitcoin / US Dollar", price: "97,420.00", change: "+2.87%", color: "#F58A43", delay: 0.45 },
-                      { symbol: "EURUSD", name: "Euro / US Dollar", price: "1.08420", change: "+0.31%", color: "#818CF8", delay: 0.6 },
-                    ].map((market) => (
-                      <motion.div
-                        key={market.symbol}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.45, delay: market.delay }}
-                        className="min-w-0 rounded-2xl border border-white/[0.08] bg-white/[0.045] p-3 sm:p-4 hover:bg-white/[0.075] transition-colors"
+
+                  <div className="relative flex items-center justify-between gap-2 px-3 sm:px-4 py-3 border-b border-blue-400/15 overflow-x-auto">
+                    {["Forex", "Crypto", "Indices", "Commodities", "Stocks"].map((category, index) => (
+                      <span
+                        key={category}
+                        className={`shrink-0 rounded-lg px-2.5 sm:px-3 py-2 text-[10px] sm:text-xs font-semibold whitespace-nowrap ${index === 0 ? "bg-blue-600/25 text-sky-300 ring-1 ring-blue-400/30" : "text-slate-400"}`}
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: market.color }} />
-                          <span className="text-xs font-bold tracking-wide">{market.symbol}</span>
-                        </div>
-                        <p className="mt-1 text-[10px] text-slate-400 truncate">{market.name}</p>
-                        <p className="mt-3 text-lg sm:text-xl font-bold font-mono tracking-tight tabular-nums">{market.price}</p>
-                        <div className="mt-1 flex items-center justify-between gap-2">
-                          <span className="text-[11px] font-semibold text-emerald-400">{market.change}</span>
-                        </div>
-                        <div className="mt-2">
-                          <AnimatedChart color={market.color} delay={market.delay + 0.2} />
-                        </div>
-                      </motion.div>
+                        {category}
+                      </span>
                     ))}
+                  </div>
+
+                  <div className="relative grid grid-cols-2 gap-3 p-3 sm:p-4">
+                    {[
+                      { symbol: "XAUUSD", name: "Gold / US Dollar", color: "#F5B942", accent: "from-amber-500/15" },
+                      { symbol: "BTCUSD", name: "Bitcoin / US Dollar", color: "#F7931A", accent: "from-orange-500/15" },
+                      { symbol: "EURUSD", name: "Euro / US Dollar", color: "#818CF8", accent: "from-blue-500/15" },
+                    ].map((market) => {
+                      const live = marketPrices?.find((item) => item.symbol === market.symbol);
+                      const positive = (live?.changePercent24h ?? 0) >= 0;
+                      const decimals = market.symbol === "EURUSD" ? 5 : 2;
+                      return (
+                        <motion.div
+                          key={market.symbol}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.45 }}
+                          className={`min-w-0 overflow-hidden rounded-2xl border border-blue-300/15 bg-gradient-to-br ${market.accent} to-slate-950/90 p-3 sm:p-4 hover:border-blue-300/35 transition-colors`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: market.color }} />
+                              <span className="text-xs sm:text-sm font-bold tracking-wide">{market.symbol}</span>
+                            </div>
+                            {live && (
+                              <span className={`text-[9px] font-bold rounded-md px-1.5 py-1 ${positive ? "text-emerald-300 bg-emerald-400/10" : "text-red-300 bg-red-400/10"}`}>
+                                {positive ? "UP" : "DOWN"}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-[10px] text-slate-400 truncate">{market.name}</p>
+                          <p className="mt-3 text-base sm:text-xl font-bold font-mono tracking-tight tabular-nums">
+                            {live
+                              ? live.bid.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+                              : marketsLoading ? "Loading…" : "Unavailable"}
+                          </p>
+                          <div className="mt-1 flex items-center gap-1.5">
+                            {live ? (
+                              <>
+                                {positive ? <ArrowUp className="h-3 w-3 text-emerald-400" /> : <ArrowDown className="h-3 w-3 text-red-400" />}
+                                <span className={`text-[11px] font-bold tabular-nums ${positive ? "text-emerald-400" : "text-red-400"}`}>
+                                  {Math.abs(live.changePercent24h).toFixed(2)}% <span className="font-medium text-slate-500">24h</span>
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-slate-500">{marketError ? "Price feed unavailable" : "Waiting for live feed"}</span>
+                            )}
+                          </div>
+                          <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-2 text-[9px] sm:text-[10px] text-slate-400">
+                            <span>Bid {live ? live.bid.toFixed(decimals) : "—"}</span>
+                            <span>Ask {live ? live.ask.toFixed(decimals) : "—"}</span>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.45, delay: 0.75 }}
-                      className="rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-3 sm:p-4 flex flex-col justify-between min-w-0"
+                      transition={{ duration: 0.45, delay: 0.15 }}
+                      className="relative overflow-hidden rounded-2xl border border-fuchsia-500/35 bg-gradient-to-br from-violet-900/50 via-slate-950 to-blue-950/70 p-3 sm:p-4 flex flex-col justify-between min-w-0"
                     >
-                      <div>
+                      <div className="absolute -right-10 -bottom-10 h-36 w-36 rounded-full bg-violet-600/15 blur-2xl pointer-events-none" />
+                      <div className="relative">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="h-9 w-9 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center">
-                            <Bot className="h-5 w-5 text-primary" />
+                          <div className="h-9 w-9 rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center">
+                            <Bot className="h-5 w-5 text-violet-300" />
                           </div>
-                          <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 border border-white/10 rounded-full px-2 py-1">AI insight</span>
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-violet-200 border border-violet-400/30 bg-violet-500/10 rounded-full px-2 py-1">AI Insight</span>
                         </div>
-                        <p className="mt-3 text-sm font-bold">Signal preview</p>
-                        <p className="mt-1 text-[11px] text-slate-400 leading-relaxed">Explore market setups and confidence indicators in your trading workspace.</p>
+                        <p className="mt-3 text-sm sm:text-base font-bold">Market analysis</p>
+                        <p className="mt-2 text-[11px] sm:text-xs text-slate-300 leading-relaxed">Explore market setups, analysis and AI-powered signals in your trading workspace.</p>
                       </div>
-                      <div className="mt-4 rounded-xl border border-emerald-400/15 bg-emerald-400/10 px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-wider text-emerald-300/80">Illustrative setup</p>
-                        <p className="mt-1 text-xs font-bold text-emerald-300">XAUUSD <span className="ml-1">↗</span> <span className="font-medium">87%*</span></p>
+                      <div className="relative mt-4 rounded-xl border border-violet-400/20 bg-violet-500/10 px-3 py-2.5">
+                        <p className="text-[9px] uppercase tracking-wider text-violet-200/80">Tradollar AI</p>
+                        <p className="mt-1 text-xs font-bold text-white">Insights in your workspace</p>
                       </div>
                     </motion.div>
                   </div>
-                  <div className="relative flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t border-white/10 bg-black/20">
-                    <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                      <Shield className="h-3.5 w-3.5 text-emerald-400" />
+
+                  <div className="relative flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-blue-400/15 bg-black/30">
+                    <div className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-400">
+                      <Shield className="h-4 w-4 text-emerald-400" />
                       <span>Built for focused trading</span>
                     </div>
-                    <Link href="/login" className="inline-flex items-center gap-1.5 text-xs font-semibold text-white hover:text-primary transition-colors">
+                    <Link href="/login" className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-white hover:text-sky-300 transition-colors">
                       Open dashboard <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </div>
