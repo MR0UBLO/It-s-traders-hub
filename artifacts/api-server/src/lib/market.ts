@@ -245,7 +245,6 @@ async function refreshLiveMarketReferences(): Promise<void> {
     state.open24h = reference.previousClose;
     state.history = [reference.price];
     state.lastTickAt = Date.now();
-    referenceInitialized.add(symbol);
   }
 }
 
