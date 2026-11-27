@@ -1,12 +1,17 @@
 import { Router } from "express";
 import { db, signalsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, gte } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth.js";
 import { generateSignalForSymbol } from "../lib/ai-engine.js";
 import { logger } from "../lib/logger.js";
 import { SYMBOLS } from "../lib/market.js";
 
 const router = Router();
+
+// Public signal history is limited to the most recent seven days.
+function getSignalRetentionCutoff(): Date {
+  return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+}
 
 // GET /api/signals?limit=20
 router.get("/", requireAuth, async (req, res) => {
@@ -15,6 +20,7 @@ router.get("/", requireAuth, async (req, res) => {
     const rows = await db
       .select()
       .from(signalsTable)
+      .where(gte(signalsTable.createdAt, getSignalRetentionCutoff()))
       .orderBy(desc(signalsTable.createdAt))
       .limit(limit);
     res.json(rows);
@@ -35,7 +41,7 @@ router.get("/live", requireAuth, (req, res) => {
   }
 });
 
-// GET /api/signals/:symbol — latest stored signal for a symbol
+// GET /api/signals/:symbol — latest stored signal for a symbol, within seven days
 router.get("/:symbol", requireAuth, async (req, res) => {
   try {
     const symbol = (req.params.symbol as string)?.toUpperCase();
@@ -46,12 +52,15 @@ router.get("/:symbol", requireAuth, async (req, res) => {
     const [row] = await db
       .select()
       .from(signalsTable)
-      .where(eq(signalsTable.symbol, symbol))
+      .where(and(
+        eq(signalsTable.symbol, symbol),
+        gte(signalsTable.createdAt, getSignalRetentionCutoff()),
+      ))
       .orderBy(desc(signalsTable.createdAt))
       .limit(1);
 
     if (!row) {
-      // Generate on demand if no stored signals yet
+      // Generate on demand if no signal exists within the seven-day window.
       const fresh = generateSignalForSymbol(symbol as any);
       res.json({ ...fresh, id: null, createdAt: new Date().toISOString() });
       return;

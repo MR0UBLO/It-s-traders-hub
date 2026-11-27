@@ -15,7 +15,7 @@ import {
 } from "@workspace/db";
 import { SYMBOLS, getCurrentPrice } from "./market.js";
 import { calculateBinarySettlement } from "./binary-settlement.js";
-import { eq, and, lte, sql } from "drizzle-orm";
+import { eq, and, lte, lt, sql } from "drizzle-orm";
 
 let priceTickInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -49,6 +49,11 @@ export function startBackgroundJobs(): void {
   cron.schedule("0 */4 * * *", () => broadcastCandles("H4"), { name: "candle-H4" });
   // D1 — midnight
   cron.schedule("0 0 * * *", () => broadcastCandles("D1"), { name: "candle-D1" });
+
+  // ── Public signal retention: remove records older than seven days ─────────────
+  // Run once on startup and hourly so expired rows do not accumulate in Postgres.
+  void cleanupExpiredSignals();
+  cron.schedule("0 * * * *", () => void cleanupExpiredSignals(), { name: "signal-retention" });
 
   // ── 3. AI signal generation: every 30 seconds ────────────────────────────────
   cron.schedule("*/30 * * * * *", () => void generateAndStoreSignals(), { name: "ai-signals" });
@@ -238,6 +243,25 @@ function broadcastCandles(timeframe: (typeof TIMEFRAMES)[number]): void {
     socketIO.emitCandleUpdate({ timeframe, symbols: payload });
   } catch (err) {
     logger.error({ err, timeframe }, "Candle broadcast error");
+  }
+}
+
+async function cleanupExpiredSignals(): Promise<void> {
+  try {
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const deleted = await db
+      .delete(signalsTable)
+      .where(lt(signalsTable.createdAt, cutoff))
+      .returning({ id: signalsTable.id });
+
+    if (deleted.length > 0) {
+      logger.info(
+        { deletedCount: deleted.length, cutoff: cutoff.toISOString() },
+        "Deleted public signals older than seven days",
+      );
+    }
+  } catch (err) {
+    logger.error({ err }, "Seven-day public signal cleanup failed");
   }
 }
 
