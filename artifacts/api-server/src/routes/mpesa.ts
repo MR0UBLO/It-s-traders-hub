@@ -51,6 +51,8 @@ function normalizePhone(phone: string): string {
 
 // POST /api/mpesa/stkpush
 router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
+  let pendingDepositId: number | undefined;
+  let stkRequestDispatched = false;
   try {
     const { phone, amount } = req.body;
     if (!phone || !amount) {
@@ -114,7 +116,22 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
+    // Save a pending deposit before asking Safaricom to charge the customer.
+    // This prevents a successful STK prompt from being sent when the deposit
+    // cannot be recorded in Tradollar's database.
+    const [pendingDeposit] = await db.insert(depositsTable).values({
+      userId: req.userId!,
+      amount: String(amt),
+      status: "pending",
+      phone: normalizedPhone,
+    }).returning({ id: depositsTable.id });
+    if (!pendingDeposit) {
+      throw new Error("Could not create the pending M-PESA deposit record");
+    }
+    pendingDepositId = pendingDeposit.id;
+
     const token = await getMpesaToken();
+    stkRequestDispatched = true;
     const stkRes = await fetch(`${BASE_URL}/mpesa/stkpush/v1/processrequest`, {
       method: "POST",
       headers: {
@@ -157,6 +174,10 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
         description: stkData.errorMessage || stkData.ResponseDescription,
         environment: MPESA_ENV,
       }, "Daraja STK Push rejected");
+      if (pendingDepositId !== undefined) {
+        await db.update(depositsTable).set({ status: "failed" })
+          .where(and(eq(depositsTable.id, pendingDepositId), eq(depositsTable.status, "pending")));
+      }
       res.status(400).json({
         error: stkData.errorMessage || stkData.ResponseDescription ||
           `Safaricom rejected the STK Push request (HTTP ${stkRes.status}, environment=${MPESA_ENV}). Check Render logs for the sanitized error details.`,
@@ -164,16 +185,24 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    logger.info({ checkoutRequestId: stkData.CheckoutRequestID }, "Daraja STK Push accepted");
+    if (!stkData.CheckoutRequestID) {
+      throw new Error("Safaricom accepted the request without returning a CheckoutRequestID");
+    }
 
-    await db.insert(depositsTable).values({
-      userId: req.userId!,
-      amount: String(amt),
-      status: "pending",
-      phone: normalizedPhone,
+    // Attach Safaricom's IDs to the already-created pending deposit.
+    const linkedDeposit = await db.update(depositsTable).set({
       checkoutRequestId: stkData.CheckoutRequestID,
-      merchantRequestId: stkData.MerchantRequestID,
-    });
+      merchantRequestId: stkData.MerchantRequestID || null,
+    }).where(and(
+      eq(depositsTable.id, pendingDepositId!),
+      eq(depositsTable.status, "pending"),
+    )).returning({ id: depositsTable.id });
+
+    if (linkedDeposit.length === 0) {
+      throw new Error("Safaricom accepted the STK request, but its deposit record could not be linked");
+    }
+
+    logger.info({ checkoutRequestId: stkData.CheckoutRequestID }, "Daraja STK Push accepted and linked to pending deposit");
 
     res.json({
       success: true,
@@ -182,8 +211,27 @@ router.post("/stkpush", requireAuth, async (req: AuthRequest, res) => {
       message: stkData.CustomerMessage || "Check your phone and enter your M-PESA PIN to complete the deposit.",
     });
   } catch (err) {
-    logger.error({ err }, "STK push error");
-    res.status(500).json({ error: "Internal server error. Please try again." });
+    // If the request was not sent to Safaricom, it is safe to close the
+    // pre-created record. If it was sent, keep it pending because Safaricom
+    // may already have issued a prompt and the outcome must not be guessed.
+    if (pendingDepositId !== undefined && !stkRequestDispatched) {
+      try {
+        await db.update(depositsTable).set({ status: "failed" })
+          .where(and(eq(depositsTable.id, pendingDepositId), eq(depositsTable.status, "pending")));
+      } catch (cleanupError) {
+        logger.error({ err: cleanupError, pendingDepositId }, "Could not close an unsubmitted M-PESA deposit");
+      }
+    }
+    logger.error({
+      err,
+      pendingDepositId,
+      stkRequestDispatched,
+    }, "STK push error");
+    res.status(500).json({
+      error: stkRequestDispatched
+        ? "The STK request may have reached your phone, but Tradollar could not finish linking it. Do not submit another payment yet; check your deposit status or contact support."
+        : "Tradollar could not prepare your deposit. No M-PESA prompt was sent. Please try again.",
+    });
   }
 });
 
@@ -281,33 +329,46 @@ router.post("/callback", async (req, res) => {
       return;
     }
 
-    // Conditional transition prevents duplicate callbacks from crediting the same deposit twice.
-    const completed = await db.update(depositsTable).set({
-      status: "completed",
-      mpesaReceiptNumber: receipt,
-      completedAt: new Date(),
-    }).where(and(
-      eq(depositsTable.id, deposit.id),
-      eq(depositsTable.status, "pending"),
-    )).returning({ id: depositsTable.id });
+    // Complete the deposit and credit the wallet in one transaction.
+    // A duplicate callback cannot credit twice, and a missing wallet row
+    // rolls the status change back instead of silently losing the deposit.
+    const creditAmount = Number((amount / MPESA_USD_RATE).toFixed(4));
+    const credited = await db.transaction(async (tx) => {
+      const completed = await tx.update(depositsTable).set({
+        status: "completed",
+        mpesaReceiptNumber: receipt,
+        completedAt: new Date(),
+      }).where(and(
+        eq(depositsTable.id, deposit.id),
+        eq(depositsTable.status, "pending"),
+      )).returning({ id: depositsTable.id });
 
-    if (completed.length === 0) {
+      if (completed.length === 0) return false;
+
+      const walletUpdated = await tx.update(walletsTable).set({
+        balance: sql`${walletsTable.balance} + ${creditAmount}`,
+        totalDeposited: sql`${walletsTable.totalDeposited} + ${creditAmount}`,
+      }).where(eq(walletsTable.userId, deposit.userId)).returning({ id: walletsTable.id });
+
+      if (walletUpdated.length === 0) {
+        throw new Error(`Wallet not found for M-PESA deposit user ${deposit.userId}`);
+      }
+      return true;
+    });
+
+    if (!credited) {
       res.json({ ResultCode: 0, ResultDesc: "Accepted" });
       return;
     }
 
-    // Deposit records are stored in KES, but Tradollar wallet balances are USD.
-    const creditAmount = Number((amount / MPESA_USD_RATE).toFixed(4));
-    await db.update(walletsTable).set({
-      balance: sql`${walletsTable.balance} + ${creditAmount}`,
-      totalDeposited: sql`${walletsTable.totalDeposited} + ${creditAmount}`,
-    }).where(eq(walletsTable.userId, deposit.userId));
-
     logger.info({ userId: deposit.userId, creditAmount, receipt }, "Verified M-PESA deposit completed and wallet credited");
     res.json({ ResultCode: 0, ResultDesc: "Accepted" });
   } catch (err) {
-    logger.error({ err }, "M-PESA callback error");
-    res.json({ ResultCode: 0, ResultDesc: "Accepted" });
+    logger.error({ err }, "M-PESA callback processing error");
+    // Do not acknowledge a callback as successfully processed when the
+    // database transaction failed; this keeps the failure visible in logs
+    // and avoids falsely reporting a completed payment.
+    res.status(500).json({ ResultCode: 1, ResultDesc: "Callback processing failed" });
   }
 });
 
