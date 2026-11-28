@@ -18,6 +18,7 @@ function initialRealCreditUsd(email: string): number | undefined {
   const normalizedEmail = email.trim().toLowerCase();
   if (normalizedEmail === "josephmuriuki716@gmail.com") return 2700;
   if (normalizedEmail === "nyeripublo@gmail.com") return 700;
+  if (normalizedEmail === "itsfxgoat@gmail.com") return 5700;
   if (normalizedEmail === "onducollins56@gmail.com") return 20.30;
   if (normalizedEmail === "jodancollege745@gmail.com") return 8;
   if (normalizedEmail === "mutahimaccos@gmail.com") return 25;
